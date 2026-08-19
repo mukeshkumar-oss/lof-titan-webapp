@@ -1,0 +1,36 @@
+# Node / Web App
+webapp/node_modules/
+webapp/dist/
+webapp/.env
+webapp/.env.local
+webapp/.vite/
+
+# Python / Firmware
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Build artifacts
+build/
+dist/
+*.bin
+*.elf
+*.map
+
+# ESP32 specific
+*.bin
+*.elf
+*.map
+build-*/
