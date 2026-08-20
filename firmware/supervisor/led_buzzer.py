@@ -209,6 +209,33 @@ class HardwareController:
     def play_confirmation_tone(self):
         self._enqueue_tone(TONE_CONFIRM)
 
+    def play_buzzer_freq(self, freq=1000, duration_ms=200):
+        if not self._is_hardware_available:
+            return
+        try:
+            bz = PWM(Pin(PIN_BUZZER), freq=int(freq), duty=512)
+            time.sleep_ms(int(duration_ms))
+            bz.duty(0)
+            bz.deinit()
+        except Exception:
+            pass
+
+    def buzzer_beep(self, freq=1000, duration_ms=150):
+        self.play_buzzer_freq(freq, duration_ms)
+
+    def stop_buzzer(self):
+        if not self._is_hardware_available:
+            return
+        try:
+            bz = PWM(Pin(PIN_BUZZER))
+            bz.duty(0)
+            bz.deinit()
+        except Exception:
+            try:
+                Pin(PIN_BUZZER, Pin.OUT).value(0)
+            except Exception:
+                pass
+
 
 # Global singleton instance
 hw = HardwareController()

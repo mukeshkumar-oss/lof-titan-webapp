@@ -4,6 +4,9 @@ import { useDevice } from './bluetooth/useDevice';
 import { projects } from './projects';
 import { FirmwareFlasherModal } from './components/FirmwareFlasherModal';
 import { Carousel } from './components/Carousel';
+import { BlocklyIDE } from './components/BlocklyIDE';
+import { AIAssistantIDE } from './components/AIAssistantIDE';
+import { SerialMonitorModal } from './components/SerialMonitorModal';
 
 const carouselItems = [
   {
@@ -495,27 +498,48 @@ function App() {
         </div>
       )}
 
-      {/* Block Code Modal */}
-      {showBlockCode && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-md bg-black/60">
-          <div className="relative w-full max-w-5xl h-[85vh] flex flex-col animate-fade-in-up glass-panel overflow-hidden">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-surface/30 shrink-0">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setShowBlockCode(false)} className="text-gray-400 hover:text-white mr-2"><Square size={16} className="fill-current"/></button>
-                <Code className="text-blue-400" />
-                <h2 className="font-heading font-semibold">Block Code Workspace</h2>
-              </div>
-            </div>
-            <div className="flex-1 bg-surface/50 relative overflow-hidden group flex items-center justify-center">
-               <div className="absolute inset-0 bg-[url('https://developers.google.com/static/blockly/images/sample.png')] bg-cover opacity-30"></div>
-               <div className="z-10 text-center bg-black/50 p-8 rounded-2xl backdrop-blur-sm border border-white/10">
-                  <h3 className="font-heading text-3xl mb-4 text-white">Visual Block Coding</h3>
-                  <p className="text-lg text-gray-300">Drag-and-drop block coding environment coming soon.</p>
-               </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Dedicated Block Code IDE (Lunar Light Theme) */}
+      <BlocklyIDE 
+        isOpen={showBlockCode} 
+        onClose={() => setShowBlockCode(false)} 
+        device={device} 
+        onUploadCode={async (generatedCode) => {
+          setCode(generatedCode);
+          setUploadProgress(0);
+          try {
+            await device.uploadProgram("main.py", generatedCode, setUploadProgress);
+          } catch (error) {
+            console.error(error);
+            alert("Upload to TITAN failed: " + error.message);
+          }
+          setTimeout(() => setUploadProgress(null), 1000);
+        }}
+      />
+
+      {/* AI Assistant Studio Modal */}
+      <AIAssistantIDE 
+        isOpen={showAIAssistant}
+        onClose={() => setShowAIAssistant(false)}
+        device={device}
+        onUploadCode={async (generatedCode) => {
+          setCode(generatedCode);
+          setUploadProgress(0);
+          try {
+            await device.uploadProgram("main.py", generatedCode, setUploadProgress);
+          } catch (error) {
+            console.error(error);
+            alert("Upload to TITAN failed: " + error.message);
+          }
+          setTimeout(() => setUploadProgress(null), 1000);
+        }}
+      />
+
+      {/* Standalone Serial Monitor Modal */}
+      <SerialMonitorModal
+        isOpen={showSerialMonitor}
+        onClose={() => setShowSerialMonitor(false)}
+        device={device}
+      />
 
       {/* Dedicated Isolated Firmware Flasher Modal */}
       <FirmwareFlasherModal 
@@ -526,16 +550,16 @@ function App() {
 
       {/* Upload Progress Modal */}
       {uploadProgress !== null && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center backdrop-blur-sm">
+        <div className="fixed inset-0 z-[120] bg-black/80 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-surface p-8 rounded-2xl border border-white/10 max-w-md w-full text-center shadow-2xl">
-            <h2 className="text-2xl font-bold mb-6 text-white">Uploading Code to Rover</h2>
+            <h2 className="text-2xl font-bold mb-6 text-white">Uploading Code to LOF TITAN</h2>
             <div className="h-3 w-full bg-black rounded-full overflow-hidden mb-3">
               <div 
-                className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-300 shadow-[0_0_10px_rgba(34,197,94,0.8)]" 
+                className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-300 shadow-[0_0_10px_rgba(56,189,248,0.8)]" 
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>
-            <p className="text-sm font-mono text-green-400 font-bold">{uploadProgress}%</p>
+            <p className="text-sm font-mono text-cyan-400 font-bold">{uploadProgress}%</p>
           </div>
         </div>
       )}
