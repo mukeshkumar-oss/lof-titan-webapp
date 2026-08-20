@@ -29,8 +29,8 @@ dist/
 *.elf
 *.map
 
+# Allow public firmware binaries for Web Serial Flasher
+!webapp/public/firmware/*.bin
+
 # ESP32 specific
-*.bin
-*.elf
-*.map
 build-*/
