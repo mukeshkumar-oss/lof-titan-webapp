@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, 
   ArrowLeft, 
@@ -94,6 +94,39 @@ export function ProjectStoreDetailModal({
     }
   };
 
+  // Auto-detect current visible section while scrolling (Scroll Spy)
+  useEffect(() => {
+    const container = contentRef.current;
+    if (!container) return;
+
+    let isThrottled = false;
+    const handleScroll = () => {
+      if (isThrottled) return;
+      isThrottled = true;
+      requestAnimationFrame(() => {
+        const containerTop = container.getBoundingClientRect().top;
+        const triggerPoint = containerTop + 180;
+
+        for (let i = navLinks.length - 1; i >= 0; i--) {
+          const el = document.getElementById(`section-${navLinks[i].id}`);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= triggerPoint) {
+              setActiveNav(navLinks[i].id);
+              break;
+            }
+          }
+        }
+        isThrottled = false;
+      });
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [isOpen]);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 backdrop-blur-md bg-slate-950/65 transition-all duration-300 animate-fade-in">
       
@@ -123,30 +156,30 @@ export function ProjectStoreDetailModal({
             </div>
           </div>
 
-          {/* Center: Premium Single-Item Stepper Pill (< Safety >) */}
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100/90 rounded-full border border-slate-200/90 shadow-2xs text-slate-700">
+          {/* Center: Premium Single-Item Stepper Pill with Enlarged Typography */}
+          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-100/90 rounded-full border border-slate-200/90 shadow-2xs text-slate-700">
             <button
               onClick={handlePrevNav}
               disabled={currentNavIndex === 0}
-              className={`p-1 rounded-full transition-all ${
+              className={`p-1.5 rounded-full transition-all ${
                 currentNavIndex === 0 
                   ? 'opacity-30 cursor-not-allowed text-slate-400' 
                   : 'hover:bg-white hover:text-indigo-600 active:scale-95 text-slate-700 cursor-pointer shadow-2xs'
               }`}
               title="Previous Section"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={18} />
             </button>
 
             <button
               onClick={() => scrollToSection(navLinks[currentNavIndex]?.id)}
-              className="flex items-center gap-2 px-3 py-0.5 rounded-full hover:bg-white/80 transition-colors min-w-[130px] justify-center text-center cursor-pointer"
+              className="flex items-center gap-2 px-3 py-0.5 rounded-full hover:bg-white/80 transition-colors min-w-[150px] justify-center text-center cursor-pointer"
               title="Jump to Current Section"
             >
-              <span className="text-xs font-extrabold text-indigo-700 tracking-wide">
+              <span className="text-sm sm:text-base font-extrabold text-indigo-700 tracking-wide">
                 {navLinks[currentNavIndex]?.label}
               </span>
-              <span className="text-[11px] font-bold text-slate-400 font-mono">
+              <span className="text-xs font-bold text-slate-400 font-mono">
                 ({currentNavIndex + 1}/{navLinks.length})
               </span>
             </button>
@@ -154,14 +187,14 @@ export function ProjectStoreDetailModal({
             <button
               onClick={handleNextNav}
               disabled={currentNavIndex === navLinks.length - 1}
-              className={`p-1 rounded-full transition-all ${
+              className={`p-1.5 rounded-full transition-all ${
                 currentNavIndex === navLinks.length - 1 
                   ? 'opacity-30 cursor-not-allowed text-slate-400' 
                   : 'hover:bg-white hover:text-indigo-600 active:scale-95 text-slate-700 cursor-pointer shadow-2xs'
               }`}
               title="Next Section"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={18} />
             </button>
           </div>
 
