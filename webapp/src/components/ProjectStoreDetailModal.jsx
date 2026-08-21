@@ -262,18 +262,18 @@ export function ProjectStoreDetailModal({
         </div>
 
         {/* Scrollable Articulate-Style Body Content with Enhanced Typography */}
-        <div ref={contentRef} className="flex-1 overflow-y-auto p-5 sm:p-10 space-y-12 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+        <div ref={contentRef} className="flex-1 overflow-y-auto p-4 sm:p-8 lg:p-10 space-y-12 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
           
           {/* ================= 1. HERO COVER SECTION ================= */}
-          <div id="section-overview" className="max-w-5xl mx-auto rounded-3xl bg-white border border-slate-200/90 shadow-md p-6 sm:p-10 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+          <div id="section-overview" className="max-w-[1360px] mx-auto rounded-3xl bg-white border border-slate-200/90 shadow-md p-6 sm:p-10 lg:p-12 space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               
               {/* Main Visual Frame */}
-              <div className="md:col-span-6 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200/80 p-5 flex items-center justify-center relative shadow-inner overflow-hidden">
+              <div className="lg:col-span-5 rounded-3xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200/80 p-6 flex items-center justify-center relative shadow-inner overflow-hidden min-h-[340px]">
                 <img 
                   src={project.heroImage} 
                   alt={project.name} 
-                  className="w-full max-h-[320px] object-contain transition-transform duration-500 hover:scale-105"
+                  className="w-full max-h-[360px] object-contain transition-transform duration-500 hover:scale-105"
                   onError={(e) => { e.target.src = '/assets/banners/banner_invisible_diy.png'; }}
                 />
                 <div className="absolute top-4 left-4">
@@ -284,46 +284,46 @@ export function ProjectStoreDetailModal({
               </div>
 
               {/* Title & Metadata */}
-              <div className="md:col-span-6 space-y-5 flex flex-col justify-between h-full">
-                <div className="space-y-3">
-                  <h1 className="text-3xl sm:text-4xl font-heading font-extrabold text-slate-900 leading-tight">
+              <div className="lg:col-span-7 space-y-6 flex flex-col justify-between h-full">
+                <div className="space-y-3.5">
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-extrabold text-slate-900 leading-tight">
                     {project.name}
                   </h1>
 
-                  <p className="text-slate-700 text-base sm:text-lg leading-relaxed font-normal">
+                  <p className="text-slate-700 text-base sm:text-lg lg:text-xl leading-relaxed font-normal">
                     {project.description}
                   </p>
                 </div>
 
                 {/* Key Spec Badges */}
-                <div className="grid grid-cols-3 gap-3 py-3 border-y border-slate-100">
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <span className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-0.5">SENSORS</span>
-                    <span className="text-sm font-extrabold text-indigo-700">3x UV Photodiodes</span>
+                <div className="grid grid-cols-3 gap-3.5 py-4 border-y border-slate-100">
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center shadow-2xs">
+                    <span className="block text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider mb-1">SENSORS</span>
+                    <span className="text-sm sm:text-base font-extrabold text-indigo-700">3x UV Photodiodes</span>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <span className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-0.5">LOCOMOTION</span>
-                    <span className="text-sm font-extrabold text-indigo-700">8-Leg 4-Bar Link</span>
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center shadow-2xs">
+                    <span className="block text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider mb-1">LOCOMOTION</span>
+                    <span className="text-sm sm:text-base font-extrabold text-indigo-700">8-Leg 4-Bar Link</span>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <span className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-0.5">MCU</span>
-                    <span className="text-sm font-extrabold text-indigo-700">ESP32-S3 TITAN</span>
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center shadow-2xs">
+                    <span className="block text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider mb-1">MCU</span>
+                    <span className="text-sm sm:text-base font-extrabold text-indigo-700">ESP32-S3 TITAN</span>
                   </div>
                 </div>
 
                 {/* Ratings, Duration & Difficulty Metadata at Bottom */}
-                <div className="flex items-center gap-3 text-xs sm:text-sm font-semibold text-slate-500 flex-wrap pt-1">
-                  <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200 font-bold">
-                    <Star size={15} className="fill-current" />
+                <div className="flex items-center gap-3.5 text-xs sm:text-sm font-semibold text-slate-500 flex-wrap pt-1">
+                  <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-4 py-2 rounded-full border border-amber-200 font-bold shadow-2xs">
+                    <Star size={16} className="fill-current" />
                     <span>{project.rating || 4.9}</span>
                     <span className="text-slate-400 font-normal">({project.reviews || 128} Reviews)</span>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200 text-slate-700 font-bold">
-                    <Clock size={15} className="text-indigo-600" />
+                  <div className="flex items-center gap-1.5 bg-slate-100 px-4 py-2 rounded-full border border-slate-200 text-slate-700 font-bold shadow-2xs">
+                    <Clock size={16} className="text-indigo-600" />
                     <span>{project.duration || '45 Mins'}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200 text-slate-700 font-bold">
-                    <Layers size={15} className="text-purple-600" />
+                  <div className="flex items-center gap-1.5 bg-slate-100 px-4 py-2 rounded-full border border-slate-200 text-slate-700 font-bold shadow-2xs">
+                    <Layers size={16} className="text-purple-600" />
                     <span>{project.difficulty || 'Intermediate'}</span>
                   </div>
                 </div>
@@ -333,7 +333,7 @@ export function ProjectStoreDetailModal({
           </div>
 
           {/* ================= 2. SAFETY WARNINGS ================= */}
-          <div id="section-safety" className="max-w-5xl mx-auto space-y-5">
+          <div id="section-safety" className="max-w-[1360px] mx-auto space-y-5">
             <div className="flex items-center gap-2.5">
               <ShieldAlert size={24} className="text-amber-500" />
               <h2 className="text-2xl font-heading font-extrabold text-slate-900">1. Product Safety Warnings</h2>
@@ -377,7 +377,7 @@ export function ProjectStoreDetailModal({
           </div>
 
           {/* ================= 2. COMPONENTS LAB ================= */}
-          <div id="section-components" className="max-w-5xl mx-auto space-y-5">
+          <div id="section-components" className="max-w-[1360px] mx-auto space-y-5">
             <div className="flex items-center gap-2.5">
               <Cpu size={24} className="text-cyan-600" />
               <h2 className="text-2xl font-heading font-extrabold text-slate-900">2. Components Introduction & Live Labs</h2>
@@ -503,7 +503,7 @@ export function ProjectStoreDetailModal({
           </div>
 
           {/* ================= 3. ASSEMBLY GUIDE ================= */}
-          <div id="section-assembly" className="max-w-5xl mx-auto space-y-5">
+          <div id="section-assembly" className="max-w-[1360px] mx-auto space-y-5">
             <div className="flex items-center gap-2.5">
               <Wrench size={24} className="text-indigo-600" />
               <h2 className="text-2xl font-heading font-extrabold text-slate-900">3. 4-Bar Linkage Mechanical Assembly</h2>
@@ -525,7 +525,7 @@ export function ProjectStoreDetailModal({
           </div>
 
           {/* ================= 4. FIRMWARE CODE ================= */}
-          <div id="section-code" className="max-w-5xl mx-auto space-y-5">
+          <div id="section-code" className="max-w-[1360px] mx-auto space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2.5">
                 <FileCode size={24} className="text-blue-600" />
@@ -563,7 +563,7 @@ export function ProjectStoreDetailModal({
           </div>
 
           {/* ================= 5. FAQ & TROUBLESHOOTING ================= */}
-          <div id="section-faq" className="max-w-5xl mx-auto space-y-5">
+          <div id="section-faq" className="max-w-[1360px] mx-auto space-y-5">
             <div className="flex items-center gap-2.5">
               <HelpCircle size={24} className="text-purple-600" />
               <h2 className="text-2xl font-heading font-extrabold text-slate-900">5. FAQ & Hardware Troubleshooting</h2>
@@ -583,7 +583,7 @@ export function ProjectStoreDetailModal({
           </div>
 
           {/* ================= 6. CODING CHALLENGES ================= */}
-          <div id="section-challenges" className="max-w-5xl mx-auto space-y-5">
+          <div id="section-challenges" className="max-w-[1360px] mx-auto space-y-5">
             <div className="flex items-center gap-2.5">
               <Trophy size={24} className="text-amber-500" />
               <h2 className="text-2xl font-heading font-extrabold text-slate-900">6. Robotics Mission Challenges</h2>
@@ -622,7 +622,7 @@ export function ProjectStoreDetailModal({
           </div>
 
           {/* Bottom Completion & Launch Card */}
-          <div className="max-w-5xl mx-auto p-7 sm:p-10 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="max-w-[1360px] mx-auto p-7 sm:p-10 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-2 text-center md:text-left">
               <h3 className="text-2xl font-heading font-extrabold">Ready to Build & Deploy {project.name}?</h3>
               <p className="text-sm text-blue-100 max-w-xl leading-relaxed font-normal">
