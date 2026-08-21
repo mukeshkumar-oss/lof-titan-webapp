@@ -22,6 +22,13 @@ const carouselItems = [
     image: "/assets/banners/banner_aquanova_diy.png",
     badge: "DIY Sensing Kit",
     buttonText: "Explore Now"
+  },
+  {
+    title: "Invisible Line Patrol DIY Kit",
+    description: "UV light-following 4-bar linkage walking robot engineered for autonomous line detection and kinetic robotic locomotion.",
+    image: "/assets/banners/banner_invisible_diy.png",
+    badge: "DIY Walking Robot",
+    buttonText: "Explore Now"
   }
 ];
 
