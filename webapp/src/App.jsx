@@ -10,10 +10,17 @@ import { SerialMonitorModal } from './components/SerialMonitorModal';
 
 const carouselItems = [
   {
-    title: "Axes 3",
+    title: "Axes 3 DIY Kit",
     description: "Advanced multi-axis robotics system engineered for precision motion, intelligent telemetry, and autonomous mission control.",
     image: "/assets/banners/banner_axes3.png",
-    badge: "Featured Kit",
+    badge: "DIY Robotics Kit",
+    buttonText: "Explore Now"
+  },
+  {
+    title: "Aqua Nova DIY Kit",
+    description: "Build a fully functional sensing rover that detects motion and water to navigate unpredictable terrain and aquatic environments.",
+    image: "/assets/banners/banner_aquanova_diy.png",
+    badge: "DIY Sensing Kit",
     buttonText: "Explore Now"
   }
 ];
