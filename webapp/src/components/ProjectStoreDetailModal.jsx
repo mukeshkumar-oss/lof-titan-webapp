@@ -796,175 +796,302 @@ while True:
                   </p>
                 </div>
 
-                {/* TAB 1: VISUAL BLOCKS INTERACTIVE VIEW */}
+                {/* TAB 1: VISUAL BLOCKS INTERACTIVE VIEW (EXACT BLOCK STUDIO REPLICA) */}
                 {experimentTab === 'blocks' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-                        Interactive Block Code Sequence
+                        Block Studio Visual Workspace
                       </span>
-                      <span className="text-[11px] text-cyan-400 font-semibold flex items-center gap-1">
-                        <Sparkles size={12} /> Live interactive parameters
+                      <span className="text-xs text-indigo-400 font-semibold flex items-center gap-1.5 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-800/60">
+                        <Sparkles size={13} className="text-amber-400" /> LOF TITAN Block Code Replica
                       </span>
                     </div>
 
-                    {/* Visual Blockly Block Container */}
-                    <div className="p-5 rounded-2xl bg-[#070D19] border border-slate-800/90 shadow-inner space-y-3 font-sans">
-                      
-                      {/* Event Start Block */}
-                      <div className="max-w-md p-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs sm:text-sm shadow-md flex items-center gap-2 border-t-2 border-amber-300">
-                        <Play size={16} className="fill-slate-950" />
-                        <span>WHEN LOF TITAN STARTS</span>
+                    {/* Dotted Grid Blockly Canvas Container */}
+                    <div 
+                      className="p-6 sm:p-10 rounded-3xl bg-[#F8FAFC] border-2 border-slate-300/80 shadow-2xl overflow-x-auto select-none"
+                      style={{
+                        backgroundImage: 'radial-gradient(#94a3b8 1.5px, transparent 1.5px)',
+                        backgroundSize: '22px 22px'
+                      }}
+                    >
+                      <div className="inline-flex flex-col items-start min-w-[340px] drop-shadow-[0_8px_16px_rgba(0,0,0,0.14)]">
+                        
+                        {/* 1. TITAN Start Cap Block */}
+                        <div className="relative z-10 bg-[#6580D4] text-white px-5 py-3 rounded-tl-2xl rounded-tr-md rounded-bl-sm font-black text-sm flex items-center gap-2.5 shadow-sm border-t border-l border-r border-[#8199E8]">
+                          <span className="text-base">🚀</span>
+                          <span className="tracking-wide">TITAN Start</span>
+                          {/* Bottom Puzzle Notch Tab */}
+                          <div className="absolute -bottom-2 left-6 w-4 h-2 bg-[#6580D4] rounded-b-md"></div>
+                        </div>
+
+                        {/* 2. Repeat While True C-Block */}
+                        <div className="relative flex flex-col bg-[#72B666] text-white rounded-tr-xl rounded-br-xl rounded-bl-md border-t border-r border-b border-[#8CD180] shadow-sm mt-0">
+                          
+                          {/* Repeat Header Row */}
+                          <div className="flex items-center gap-2 px-4 py-2.5 flex-wrap">
+                            <span className="font-extrabold text-xs sm:text-sm tracking-wide">repeat</span>
+                            
+                            {/* While Dropdown Pill */}
+                            <div className="flex items-center gap-1 bg-[#569C48] px-2.5 py-1 rounded-lg text-xs font-bold shadow-inner cursor-pointer hover:bg-[#4E8F40] transition-colors border border-[#437D36]">
+                              <span>while</span>
+                              <ChevronDown size={14} className="text-emerald-100" />
+                            </div>
+
+                            {/* True Hexagonal Boolean Pill */}
+                            <div className="flex items-center gap-1 bg-[#4D6898] px-3 py-1 rounded-lg text-xs font-bold shadow-inner cursor-pointer hover:bg-[#435C87] transition-colors border border-[#384C70]">
+                              <span>true</span>
+                              <ChevronDown size={14} className="text-sky-200" />
+                            </div>
+                          </div>
+
+                          {/* C-Bracket Body */}
+                          <div className="flex items-stretch">
+                            {/* Left Green Spine with 'do' */}
+                            <div className="w-8 sm:w-10 bg-[#72B666] flex flex-col items-center pt-2 shrink-0">
+                              <span className="font-extrabold text-xs text-white">do</span>
+                            </div>
+
+                            {/* Inner Nested Blocks (UV Sensor vs DC Motor) */}
+                            <div className="flex-1 bg-[#E2E8F0]/40 p-2.5 space-y-1.5 rounded-l-md border-l-2 border-[#569C48]/40 min-w-[280px]">
+                              
+                              {/* UV SENSOR BLOCKS */}
+                              {isUvSensor && (
+                                <>
+                                  {/* Print Sensor 1 Label */}
+                                  <div className="bg-[#4AB0A1] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#5DC4B5]">
+                                    <span>print</span>
+                                    <span className="text-teal-200 font-serif font-black">“</span>
+                                    <div className="bg-white text-slate-800 px-3 py-0.5 rounded font-mono font-bold text-xs shadow-inner border border-slate-200">
+                                      sensor 1
+                                    </div>
+                                    <span className="text-teal-200 font-serif font-black">”</span>
+                                  </div>
+
+                                  {/* Print Sensor 1 Value */}
+                                  <div className="bg-[#4AB0A1] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#5DC4B5]">
+                                    <span>print</span>
+                                    <div className="bg-[#5F6CD3] text-white px-2.5 py-1 rounded-md flex items-center gap-2 shadow-sm border border-[#7884E0]">
+                                      <span>Digital Sensor</span>
+                                      <div className="bg-[#4B58B8] px-2 py-0.5 rounded text-[11px] font-mono font-bold flex items-center gap-1">
+                                        <span>S1 (GPIO 2)</span>
+                                        <ChevronDown size={12} />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Print Sensor 2 Label */}
+                                  <div className="bg-[#4AB0A1] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#5DC4B5]">
+                                    <span>print</span>
+                                    <span className="text-teal-200 font-serif font-black">“</span>
+                                    <div className="bg-white text-slate-800 px-3 py-0.5 rounded font-mono font-bold text-xs shadow-inner border border-slate-200">
+                                      sensor 2
+                                    </div>
+                                    <span className="text-teal-200 font-serif font-black">”</span>
+                                  </div>
+
+                                  {/* Print Sensor 2 Value */}
+                                  <div className="bg-[#4AB0A1] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#5DC4B5]">
+                                    <span>print</span>
+                                    <div className="bg-[#5F6CD3] text-white px-2.5 py-1 rounded-md flex items-center gap-2 shadow-sm border border-[#7884E0]">
+                                      <span>Digital Sensor</span>
+                                      <div className="bg-[#4B58B8] px-2 py-0.5 rounded text-[11px] font-mono font-bold flex items-center gap-1">
+                                        <span>S2 (GPIO 1)</span>
+                                        <ChevronDown size={12} />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Print Sensor 3 Label */}
+                                  <div className="bg-[#4AB0A1] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#5DC4B5]">
+                                    <span>print</span>
+                                    <span className="text-teal-200 font-serif font-black">“</span>
+                                    <div className="bg-white text-slate-800 px-3 py-0.5 rounded font-mono font-bold text-xs shadow-inner border border-slate-200">
+                                      sensor 3
+                                    </div>
+                                    <span className="text-teal-200 font-serif font-black">”</span>
+                                  </div>
+
+                                  {/* Print Sensor 3 Value */}
+                                  <div className="bg-[#4AB0A1] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#5DC4B5]">
+                                    <span>print</span>
+                                    <div className="bg-[#5F6CD3] text-white px-2.5 py-1 rounded-md flex items-center gap-2 shadow-sm border border-[#7884E0]">
+                                      <span>Digital Sensor</span>
+                                      <div className="bg-[#4B58B8] px-2 py-0.5 rounded text-[11px] font-mono font-bold flex items-center gap-1">
+                                        <span>S3 (GPIO 3)</span>
+                                        <ChevronDown size={12} />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Wait Milliseconds Block */}
+                                  <div className="bg-[#6580D4] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#8199E8]">
+                                    <span>Wait</span>
+                                    <div className="bg-white text-slate-800 px-2.5 py-0.5 rounded font-mono font-bold text-xs shadow-inner border border-slate-200">
+                                      {uvInterval}
+                                    </div>
+                                    <div className="bg-[#4D6898] px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1">
+                                      <span>milliseconds</span>
+                                      <ChevronDown size={12} />
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* DC MOTOR BLOCKS */}
+                              {isDcMotor && (
+                                <>
+                                  {/* Set Motor M1 Speed & Dir */}
+                                  <div className="bg-[#5F6CD3] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#7884E0] flex-wrap">
+                                    <span>Set Motor</span>
+                                    <div className="bg-[#4B58B8] px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1">
+                                      <span>M1 (GPIO 15,16)</span>
+                                      <ChevronDown size={12} />
+                                    </div>
+                                    <span>Direction</span>
+                                    <div className="bg-[#4B58B8] px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1">
+                                      <span>{motorDirection}</span>
+                                      <ChevronDown size={12} />
+                                    </div>
+                                    <span>Speed</span>
+                                    <div className="bg-white text-slate-800 px-2 py-0.5 rounded font-mono font-bold text-xs shadow-inner border border-slate-200">
+                                      {motorSpeed}%
+                                    </div>
+                                  </div>
+
+                                  {/* Set Motor M2 Speed & Dir */}
+                                  <div className="bg-[#5F6CD3] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#7884E0] flex-wrap">
+                                    <span>Set Motor</span>
+                                    <div className="bg-[#4B58B8] px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1">
+                                      <span>M2 (GPIO 13,14)</span>
+                                      <ChevronDown size={12} />
+                                    </div>
+                                    <span>Direction</span>
+                                    <div className="bg-[#4B58B8] px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1">
+                                      <span>{motorDirection}</span>
+                                      <ChevronDown size={12} />
+                                    </div>
+                                    <span>Speed</span>
+                                    <div className="bg-white text-slate-800 px-2 py-0.5 rounded font-mono font-bold text-xs shadow-inner border border-slate-200">
+                                      {motorSpeed}%
+                                    </div>
+                                  </div>
+
+                                  {/* Wait Stride Duration */}
+                                  <div className="bg-[#6580D4] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#8199E8]">
+                                    <span>Wait</span>
+                                    <div className="bg-white text-slate-800 px-2.5 py-0.5 rounded font-mono font-bold text-xs shadow-inner border border-slate-200">
+                                      {Math.round(motorDuration * 1000)}
+                                    </div>
+                                    <div className="bg-[#4D6898] px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1">
+                                      <span>milliseconds</span>
+                                      <ChevronDown size={12} />
+                                    </div>
+                                  </div>
+
+                                  {/* Stop Motors Block */}
+                                  <div className="bg-[#E05454] text-white px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm border border-[#EF7272]">
+                                    <span>Stop All Motors</span>
+                                    <div className="bg-[#B93838] px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1">
+                                      <span>M1 & M2 (Brake)</span>
+                                      <ChevronDown size={12} />
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+
+                            </div>
+                          </div>
+
+                          {/* Bottom C-Bracket Cap */}
+                          <div className="h-2.5 bg-[#72B666] rounded-br-xl rounded-bl-md"></div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* Interactive Parameter Sliders Toolbar */}
+                    <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex items-center gap-2 text-xs font-extrabold text-slate-300">
+                        <Sliders size={16} className="text-cyan-400" />
+                        <span>Tune Block Parameters:</span>
                       </div>
 
-                      {/* DC Motor Blocks Sequence */}
                       {isDcMotor && (
-                        <div className="pl-4 border-l-4 border-amber-500/40 space-y-3">
-                          
-                          {/* Block 1: Motor Direction Picker */}
-                          <div className="p-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 text-white font-bold text-xs sm:text-sm shadow-md flex flex-wrap items-center justify-between gap-3 border-l-4 border-cyan-300">
-                            <div className="flex items-center gap-2">
-                              <Cpu size={16} />
-                              <span>SET DUAL MOTORS DIRECTION TO</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 p-1 bg-black/30 rounded-lg border border-white/10">
+                        <div className="flex flex-wrap items-center gap-4 text-xs">
+                          {/* Direction Toggle */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-bold">Dir:</span>
+                            <div className="flex items-center p-0.5 bg-slate-900 rounded-lg border border-slate-700">
                               <button
                                 onClick={() => setMotorDirection('FORWARD')}
-                                className={`px-2.5 py-1 rounded-md text-xs font-extrabold transition-all cursor-pointer ${
-                                  motorDirection === 'FORWARD' ? 'bg-cyan-400 text-slate-950 shadow-sm' : 'text-slate-300 hover:text-white'
+                                className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer ${
+                                  motorDirection === 'FORWARD' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
                                 }`}
                               >
-                                FORWARD
+                                FWD
                               </button>
                               <button
                                 onClick={() => setMotorDirection('BACKWARD')}
-                                className={`px-2.5 py-1 rounded-md text-xs font-extrabold transition-all cursor-pointer ${
-                                  motorDirection === 'BACKWARD' ? 'bg-amber-400 text-slate-950 shadow-sm' : 'text-slate-300 hover:text-white'
+                                className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer ${
+                                  motorDirection === 'BACKWARD' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
                                 }`}
                               >
-                                BACKWARD
+                                BWD
                               </button>
                             </div>
                           </div>
 
-                          {/* Block 2: Motor Speed Slider Block */}
-                          <div className="p-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 text-white font-bold text-xs sm:text-sm shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 border-cyan-300">
-                            <div className="flex items-center gap-2">
-                              <Zap size={16} />
-                              <span>SET SPEED (M1 & M2) TO:</span>
-                            </div>
-                            <div className="flex items-center gap-3 w-full sm:w-auto">
-                              <input 
-                                type="range" 
-                                min="20" 
-                                max="100" 
-                                step="5"
-                                value={motorSpeed} 
-                                onChange={(e) => setMotorSpeed(Number(e.target.value))}
-                                className="w-full sm:w-36 accent-cyan-300 cursor-pointer"
-                              />
-                              <span className="px-3 py-1 bg-black/40 rounded-lg font-mono text-cyan-300 font-extrabold text-xs shrink-0 border border-white/10">
-                                {motorSpeed}%
-                              </span>
-                            </div>
+                          {/* Speed Slider */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-bold">Speed:</span>
+                            <input 
+                              type="range" 
+                              min="25" 
+                              max="100" 
+                              step="5"
+                              value={motorSpeed} 
+                              onChange={(e) => setMotorSpeed(Number(e.target.value))}
+                              className="w-24 accent-cyan-400 cursor-pointer"
+                            />
+                            <span className="font-mono text-cyan-300 font-bold">{motorSpeed}%</span>
                           </div>
 
-                          {/* Block 3: Duration / Timing Block */}
-                          <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 border-blue-300">
-                            <div className="flex items-center gap-2">
-                              <Clock size={16} />
-                              <span>RUN MOTOR STRIDE FOR:</span>
-                            </div>
-                            <div className="flex items-center gap-3 w-full sm:w-auto">
-                              <input 
-                                type="range" 
-                                min="0.5" 
-                                max="5.0" 
-                                step="0.5"
-                                value={motorDuration} 
-                                onChange={(e) => setMotorDuration(Number(e.target.value))}
-                                className="w-full sm:w-36 accent-blue-300 cursor-pointer"
-                              />
-                              <span className="px-3 py-1 bg-black/40 rounded-lg font-mono text-blue-300 font-extrabold text-xs shrink-0 border border-white/10">
-                                {motorDuration}s
-                              </span>
-                            </div>
+                          {/* Duration Slider */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-bold">Time:</span>
+                            <input 
+                              type="range" 
+                              min="0.5" 
+                              max="5.0" 
+                              step="0.5"
+                              value={motorDuration} 
+                              onChange={(e) => setMotorDuration(Number(e.target.value))}
+                              className="w-20 accent-blue-400 cursor-pointer"
+                            />
+                            <span className="font-mono text-blue-300 font-bold">{motorDuration}s</span>
                           </div>
-
-                          {/* Block 4: Stop & Sound Block */}
-                          <div className="p-3 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-between border-l-4 border-rose-300">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2 size={16} />
-                              <span>STOP ALL MOTORS & PLAY AUDIO TONE</span>
-                            </div>
-                            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-black/30 text-rose-200">
-                              Safe Stop
-                            </span>
-                          </div>
-
                         </div>
                       )}
 
-                      {/* UV Sensor Blocks Sequence */}
                       {isUvSensor && (
-                        <div className="pl-4 border-l-4 border-amber-500/40 space-y-3">
-                          
-                          {/* Loop Forever Block */}
-                          <div className="p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xs sm:text-sm shadow-md flex items-center gap-2 border-l-4 border-indigo-300">
-                            <RotateCcw size={16} />
-                            <span>REPEAT FOREVER (CONTINUOUS TELEMETRY)</span>
-                          </div>
-
-                          <div className="pl-4 border-l-4 border-indigo-500/40 space-y-3">
-                            {/* Block 1: Read Sensor */}
-                            <div className="p-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-between border-l-4 border-purple-300">
-                              <div className="flex items-center gap-2">
-                                <Sun size={16} className="text-amber-300" />
-                                <span>READ ANALOG UV INTENSITY</span>
-                              </div>
-                              <span className="text-xs font-mono font-extrabold px-2.5 py-1 rounded bg-black/30 text-amber-300 border border-white/10">
-                                Ports S1, S2, S3 (0..4095)
-                              </span>
-                            </div>
-
-                            {/* Block 2: Print to Serial */}
-                            <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-between border-l-4 border-emerald-300">
-                              <div className="flex items-center gap-2">
-                                <Terminal size={16} />
-                                <span>STREAM ADC READINGS TO SERIAL MONITOR</span>
-                              </div>
-                              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-black/30 text-emerald-200">
-                                115200 Baud
-                              </span>
-                            </div>
-
-                            {/* Block 3: Sampling Interval Slider */}
-                            <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 border-blue-300">
-                              <div className="flex items-center gap-2">
-                                <Clock size={16} />
-                                <span>SAMPLING INTERVAL DELAY:</span>
-                              </div>
-                              <div className="flex items-center gap-3 w-full sm:w-auto">
-                                <input 
-                                  type="range" 
-                                  min="50" 
-                                  max="500" 
-                                  step="25"
-                                  value={uvInterval} 
-                                  onChange={(e) => setUvInterval(Number(e.target.value))}
-                                  className="w-full sm:w-36 accent-blue-300 cursor-pointer"
-                                />
-                                <span className="px-3 py-1 bg-black/40 rounded-lg font-mono text-blue-300 font-extrabold text-xs shrink-0 border border-white/10">
-                                  {uvInterval} ms
-                                </span>
-                              </div>
-                            </div>
-
-                          </div>
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="text-slate-400 font-bold">Telemetry Rate (Delay):</span>
+                          <input 
+                            type="range" 
+                            min="50" 
+                            max="500" 
+                            step="25"
+                            value={uvInterval} 
+                            onChange={(e) => setUvInterval(Number(e.target.value))}
+                            className="w-32 accent-blue-400 cursor-pointer"
+                          />
+                          <span className="font-mono text-blue-300 font-bold">{uvInterval} ms</span>
                         </div>
                       )}
-
                     </div>
+
                   </div>
                 )}
 
