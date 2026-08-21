@@ -99,7 +99,7 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#060911] text-white relative overflow-x-hidden">
       {/* Dynamic Interactive WebGL Galaxy Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-85">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-80">
         <Galaxy 
           mouseRepulsion={true}
           mouseInteraction={true}
@@ -107,8 +107,11 @@ function App() {
           glowIntensity={0.45}
           saturation={0.8}
           hueShift={200}
-          starSpeed={0.5}
-          twinkleIntensity={0.4}
+          speed={0.25}
+          starSpeed={0.12}
+          rotationSpeed={0.02}
+          repulsionStrength={1.0}
+          twinkleIntensity={0.25}
           transparent={true}
         />
       </div>
