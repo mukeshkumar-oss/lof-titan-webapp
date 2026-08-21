@@ -80,7 +80,6 @@ export function ProjectStoreDetailModal({
   const navLinks = [
     { id: 'overview', label: 'Overview' },
     { id: 'safety', label: 'Safety' },
-    { id: 'requirements', label: 'BOM Parts' },
     { id: 'components', label: 'Components Lab' },
     { id: 'assembly', label: 'Assembly' },
     { id: 'code', label: 'Firmware' },
@@ -372,57 +371,12 @@ export function ProjectStoreDetailModal({
             </div>
           </div>
 
-          {/* ================= 3. REQUIREMENTS & BOM ================= */}
-          <div id="section-requirements" className="max-w-5xl mx-auto space-y-5">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2.5">
-                <Layers size={24} className="text-indigo-600" />
-                <h2 className="text-2xl font-heading font-extrabold text-slate-900">2. Product Requirements (Bill of Materials)</h2>
-              </div>
-              <span className="text-sm text-slate-500 font-medium">Click items to check off parts during unboxing</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {project.requirements?.map((req, idx) => {
-                const isChecked = !!checkedItems[idx];
-                return (
-                  <div 
-                    key={idx}
-                    onClick={() => toggleCheck(idx)}
-                    className={`p-5 rounded-2xl cursor-pointer transition-all border flex flex-col justify-between space-y-3.5 ${
-                      isChecked 
-                        ? 'bg-emerald-50/90 border-emerald-300 shadow-2xs' 
-                        : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase ${
-                        isChecked ? 'bg-emerald-200 text-emerald-900' : 'bg-slate-100 text-slate-800'
-                      }`}>
-                        {req.qty}
-                      </span>
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
-                        isChecked ? 'bg-emerald-600 text-white' : 'border-2 border-slate-300 text-transparent'
-                      }`}>
-                        <Check size={14} strokeWidth={3} />
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className={`font-bold text-base ${isChecked ? 'text-emerald-950' : 'text-slate-900'}`}>{req.name}</h4>
-                      <p className="text-sm text-slate-600 mt-1.5 leading-relaxed font-normal">{req.desc}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ================= 4. COMPONENTS LAB ================= */}
+          {/* ================= 2. COMPONENTS LAB ================= */}
           <div id="section-components" className="max-w-5xl mx-auto space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2.5">
                 <Cpu size={24} className="text-cyan-600" />
-                <h2 className="text-2xl font-heading font-extrabold text-slate-900">3. Components Introduction & Live Labs</h2>
+                <h2 className="text-2xl font-heading font-extrabold text-slate-900">2. Components Introduction & Live Labs</h2>
               </div>
               <span className="text-sm text-slate-500 font-medium">Interactive Hardware Theory & Serial Experiments</span>
             </div>
@@ -537,11 +491,11 @@ export function ProjectStoreDetailModal({
             })()}
           </div>
 
-          {/* ================= 5. ASSEMBLY GUIDE ================= */}
+          {/* ================= 3. ASSEMBLY GUIDE ================= */}
           <div id="section-assembly" className="max-w-5xl mx-auto space-y-5">
             <div className="flex items-center gap-2.5">
               <Wrench size={24} className="text-indigo-600" />
-              <h2 className="text-2xl font-heading font-extrabold text-slate-900">4. 4-Bar Linkage Mechanical Assembly</h2>
+              <h2 className="text-2xl font-heading font-extrabold text-slate-900">3. 4-Bar Linkage Mechanical Assembly</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -559,12 +513,12 @@ export function ProjectStoreDetailModal({
             </div>
           </div>
 
-          {/* ================= 6. FIRMWARE CODE ================= */}
+          {/* ================= 4. FIRMWARE CODE ================= */}
           <div id="section-code" className="max-w-5xl mx-auto space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2.5">
                 <FileCode size={24} className="text-blue-600" />
-                <h2 className="text-2xl font-heading font-extrabold text-slate-900">5. Production MicroPython Firmware</h2>
+                <h2 className="text-2xl font-heading font-extrabold text-slate-900">4. Production MicroPython Firmware</h2>
               </div>
 
               <div className="flex items-center gap-2.5">
@@ -597,11 +551,11 @@ export function ProjectStoreDetailModal({
             </div>
           </div>
 
-          {/* ================= 7. CODING CHALLENGES ================= */}
+          {/* ================= 5. CODING CHALLENGES ================= */}
           <div id="section-challenges" className="max-w-5xl mx-auto space-y-5">
             <div className="flex items-center gap-2.5">
               <Trophy size={24} className="text-amber-500" />
-              <h2 className="text-2xl font-heading font-extrabold text-slate-900">6. Robotics Mission Challenges</h2>
+              <h2 className="text-2xl font-heading font-extrabold text-slate-900">5. Robotics Mission Challenges</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -636,11 +590,11 @@ export function ProjectStoreDetailModal({
             </div>
           </div>
 
-          {/* ================= 8. FAQ & TROUBLESHOOTING ================= */}
+          {/* ================= 6. FAQ & TROUBLESHOOTING ================= */}
           <div id="section-faq" className="max-w-5xl mx-auto space-y-5">
             <div className="flex items-center gap-2.5">
               <HelpCircle size={24} className="text-purple-600" />
-              <h2 className="text-2xl font-heading font-extrabold text-slate-900">7. FAQ & Hardware Troubleshooting</h2>
+              <h2 className="text-2xl font-heading font-extrabold text-slate-900">6. FAQ & Hardware Troubleshooting</h2>
             </div>
 
             <div className="space-y-4">
