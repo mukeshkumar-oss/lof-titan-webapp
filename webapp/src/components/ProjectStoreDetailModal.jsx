@@ -294,16 +294,16 @@ export function ProjectStoreDetailModal({
                 {/* Key Spec Badges */}
                 <div className="grid grid-cols-3 gap-3 py-3 border-y border-slate-100">
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <span className="block text-xs font-bold text-slate-400 uppercase">Sensors</span>
+                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Sensors</span>
                     <span className="text-sm font-extrabold text-indigo-700">3x UV Photodiodes</span>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <span className="block text-xs font-bold text-slate-400 uppercase">Locomotion</span>
-                    <span className="text-sm font-extrabold text-purple-700">8-Leg 4-Bar Link</span>
+                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Locomotion</span>
+                    <span className="text-sm font-extrabold text-indigo-700">8-Leg 4-Bar Link</span>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <span className="block text-xs font-bold text-slate-400 uppercase">MCU</span>
-                    <span className="text-sm font-extrabold text-emerald-700">ESP32-S3 TITAN</span>
+                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">MCU</span>
+                    <span className="text-sm font-extrabold text-indigo-700">ESP32-S3 TITAN</span>
                   </div>
                 </div>
 
