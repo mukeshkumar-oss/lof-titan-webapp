@@ -742,9 +742,6 @@ while True:
                     <h3 className="font-heading font-extrabold text-base sm:text-lg text-white">
                       {activeExperimentModal.experiment?.title}
                     </h3>
-                    <span className="text-xs text-slate-400 font-medium">
-                      {activeExperimentModal.name} · {activeExperimentModal.pinMapping}
-                    </span>
                   </div>
                 </div>
                 
