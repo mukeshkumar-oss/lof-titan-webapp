@@ -802,9 +802,6 @@ while True:
                       <span className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">
                         Block Studio Visual Workspace
                       </span>
-                      <span className="text-xs text-indigo-400 font-semibold flex items-center gap-1.5 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-800/60">
-                        <Sparkles size={13} className="text-amber-400" /> LOF TITAN Block Code Replica
-                      </span>
                     </div>
 
                     {/* Dotted Grid Blockly Canvas Container */}
