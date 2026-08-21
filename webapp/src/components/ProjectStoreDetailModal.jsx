@@ -729,17 +729,17 @@ while True:
         const activeCode = getDynamicCode();
 
         return (
-          <div className="fixed inset-0 z-[140] flex items-center justify-center p-3 sm:p-6 backdrop-blur-md bg-slate-950/75 animate-fade-in">
-            <div className="relative w-full max-w-3xl rounded-[32px] bg-slate-900 text-slate-100 border border-slate-700/80 shadow-[0_25px_70px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col max-h-[92vh]">
+          <div className="fixed inset-0 z-[140] flex items-center justify-center p-3 sm:p-6 backdrop-blur-md bg-slate-900/40 animate-fade-in">
+            <div className="relative w-full max-w-3xl rounded-[32px] bg-gradient-to-br from-[#FFFFFF] to-[#F8FAFC] text-slate-800 border border-slate-200 shadow-[0_25px_70px_rgba(0,0,0,0.22)] overflow-hidden flex flex-col max-h-[92vh]">
               
-              {/* Top Modal Header */}
-              <div className="h-16 px-6 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between shrink-0">
+              {/* Top Modal Header (Lunar White Theme) */}
+              <div className="h-16 px-6 bg-white/95 backdrop-blur-md border-b border-slate-200 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-bold shadow-md">
-                    <Zap size={20} />
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-500/20">
+                    <Zap size={20} className="text-amber-300 fill-amber-300" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-extrabold text-base sm:text-lg text-white">
+                    <h3 className="font-heading font-extrabold text-base sm:text-lg text-slate-900">
                       {activeExperimentModal.experiment?.title}
                     </h3>
                   </div>
@@ -747,13 +747,13 @@ while True:
                 
                 {/* Visual Blocks vs Code Toggle Pills */}
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center p-1 bg-slate-800 rounded-full border border-slate-700 text-xs font-bold">
+                  <div className="flex items-center p-1 bg-slate-100 rounded-full border border-slate-200 text-xs font-bold">
                     <button
                       onClick={() => setExperimentTab('blocks')}
                       className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
                         experimentTab === 'blocks'
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
+                          ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-black'
+                          : 'text-slate-500 hover:text-slate-900'
                       }`}
                     >
                       <Layers size={14} />
@@ -763,8 +763,8 @@ while True:
                       onClick={() => setExperimentTab('code')}
                       className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
                         experimentTab === 'code'
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
+                          ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/80 font-black'
+                          : 'text-slate-500 hover:text-slate-900'
                       }`}
                     >
                       <Code size={14} />
@@ -774,7 +774,7 @@ while True:
 
                   <button
                     onClick={() => setActiveExperimentModal(null)}
-                    className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                     title="Close Experiment"
                   >
                     <X size={20} />
@@ -783,14 +783,14 @@ while True:
               </div>
 
               {/* Scrollable Modal Body */}
-              <div className="p-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-slate-800">
+              <div className="p-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
                 
-                {/* Protocol & Guide Card */}
-                <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1.5">
-                  <span className="text-xs font-extrabold uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
-                    <Sparkles size={14} /> Experiment Guide & Observation:
+                {/* Protocol & Guide Card (Lunar White Theme) */}
+                <div className="p-4.5 rounded-2xl bg-gradient-to-r from-indigo-50/80 to-blue-50/80 border border-indigo-100/90 space-y-1.5 shadow-2xs">
+                  <span className="text-xs font-extrabold uppercase text-indigo-800 tracking-wider flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-indigo-600" /> Experiment Guide & Observation:
                   </span>
-                  <p className="text-xs sm:text-sm text-slate-300 whitespace-pre-line leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-700 whitespace-pre-line leading-relaxed font-normal">
                     {activeExperimentModal.experiment?.instruction}
                   </p>
                 </div>
@@ -799,20 +799,20 @@ while True:
                 {experimentTab === 'blocks' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">
+                      <span className="text-xs font-extrabold uppercase text-slate-600 tracking-wider">
                         Block Studio Visual Workspace
                       </span>
                     </div>
 
                     {/* Dotted Grid Blockly Canvas Container */}
                     <div 
-                      className="p-6 sm:p-10 rounded-3xl bg-[#F8FAFC] border-2 border-slate-300/80 shadow-2xl overflow-x-auto select-none"
+                      className="p-6 sm:p-10 rounded-3xl bg-[#F8FAFC] border-2 border-slate-200/90 shadow-sm overflow-x-auto select-none"
                       style={{
                         backgroundImage: 'radial-gradient(#94a3b8 1.5px, transparent 1.5px)',
                         backgroundSize: '22px 22px'
                       }}
                     >
-                      <div className="inline-flex flex-col items-start min-w-[340px] drop-shadow-[0_8px_16px_rgba(0,0,0,0.14)]">
+                      <div className="inline-flex flex-col items-start min-w-[340px] drop-shadow-[0_8px_16px_rgba(0,0,0,0.12)]">
                         
                         {/* 1. TITAN Start Cap Block */}
                         <div className="relative z-10 bg-[#6580D4] text-white px-5 py-3 rounded-tl-2xl rounded-tr-md rounded-bl-sm font-black text-sm flex items-center gap-2.5 shadow-sm border-t border-l border-r border-[#8199E8]">
@@ -1007,10 +1007,10 @@ while True:
                       </div>
                     </div>
 
-                    {/* Interactive Parameter Sliders Toolbar */}
-                    <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex items-center gap-2 text-xs font-extrabold text-slate-300">
-                        <Sliders size={16} className="text-cyan-400" />
+                    {/* Interactive Parameter Sliders Toolbar (Lunar White Theme) */}
+                    <div className="p-4.5 rounded-2xl bg-white border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex items-center gap-2 text-xs font-extrabold text-slate-800">
+                        <Sliders size={16} className="text-indigo-600" />
                         <span>Tune Block Parameters:</span>
                       </div>
 
@@ -1018,20 +1018,20 @@ while True:
                         <div className="flex flex-wrap items-center gap-4 text-xs">
                           {/* Direction Toggle */}
                           <div className="flex items-center gap-2">
-                            <span className="text-slate-400 font-bold">Dir:</span>
-                            <div className="flex items-center p-0.5 bg-slate-900 rounded-lg border border-slate-700">
+                            <span className="text-slate-500 font-bold">Dir:</span>
+                            <div className="flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200">
                               <button
                                 onClick={() => setMotorDirection('FORWARD')}
-                                className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer ${
-                                  motorDirection === 'FORWARD' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+                                className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-all ${
+                                  motorDirection === 'FORWARD' ? 'bg-indigo-600 text-white shadow-sm font-extrabold' : 'text-slate-600 hover:text-slate-900'
                                 }`}
                               >
                                 FWD
                               </button>
                               <button
                                 onClick={() => setMotorDirection('BACKWARD')}
-                                className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer ${
-                                  motorDirection === 'BACKWARD' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+                                className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-all ${
+                                  motorDirection === 'BACKWARD' ? 'bg-amber-600 text-white shadow-sm font-extrabold' : 'text-slate-600 hover:text-slate-900'
                                 }`}
                               >
                                 BWD
@@ -1041,7 +1041,7 @@ while True:
 
                           {/* Speed Slider */}
                           <div className="flex items-center gap-2">
-                            <span className="text-slate-400 font-bold">Speed:</span>
+                            <span className="text-slate-500 font-bold">Speed:</span>
                             <input 
                               type="range" 
                               min="25" 
@@ -1049,14 +1049,14 @@ while True:
                               step="5"
                               value={motorSpeed} 
                               onChange={(e) => setMotorSpeed(Number(e.target.value))}
-                              className="w-24 accent-cyan-400 cursor-pointer"
+                              className="w-24 accent-indigo-600 cursor-pointer"
                             />
-                            <span className="font-mono text-cyan-300 font-bold">{motorSpeed}%</span>
+                            <span className="font-mono text-indigo-700 font-extrabold px-2 py-0.5 bg-indigo-50 rounded-md border border-indigo-100">{motorSpeed}%</span>
                           </div>
 
                           {/* Duration Slider */}
                           <div className="flex items-center gap-2">
-                            <span className="text-slate-400 font-bold">Time:</span>
+                            <span className="text-slate-500 font-bold">Time:</span>
                             <input 
                               type="range" 
                               min="0.5" 
@@ -1064,16 +1064,16 @@ while True:
                               step="0.5"
                               value={motorDuration} 
                               onChange={(e) => setMotorDuration(Number(e.target.value))}
-                              className="w-20 accent-blue-400 cursor-pointer"
+                              className="w-20 accent-blue-600 cursor-pointer"
                             />
-                            <span className="font-mono text-blue-300 font-bold">{motorDuration}s</span>
+                            <span className="font-mono text-blue-700 font-extrabold px-2 py-0.5 bg-blue-50 rounded-md border border-blue-100">{motorDuration}s</span>
                           </div>
                         </div>
                       )}
 
                       {isUvSensor && (
                         <div className="flex items-center gap-3 text-xs">
-                          <span className="text-slate-400 font-bold">Telemetry Rate (Delay):</span>
+                          <span className="text-slate-500 font-bold">Telemetry Rate (Delay):</span>
                           <input 
                             type="range" 
                             min="50" 
@@ -1081,9 +1081,9 @@ while True:
                             step="25"
                             value={uvInterval} 
                             onChange={(e) => setUvInterval(Number(e.target.value))}
-                            className="w-32 accent-blue-400 cursor-pointer"
+                            className="w-32 accent-indigo-600 cursor-pointer"
                           />
-                          <span className="font-mono text-blue-300 font-bold">{uvInterval} ms</span>
+                          <span className="font-mono text-indigo-700 font-extrabold px-2.5 py-0.5 bg-indigo-50 rounded-md border border-indigo-100">{uvInterval} ms</span>
                         </div>
                       )}
                     </div>
@@ -1112,16 +1112,16 @@ while True:
 
               </div>
 
-              {/* Bottom Actions Footer */}
-              <div className="p-4 px-6 bg-[#0F172A] border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              {/* Bottom Actions Footer (Lunar White Theme) */}
+              <div className="p-4 px-6 bg-slate-50/90 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
                       onOpenSerialMonitor?.();
                     }}
-                    className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all flex items-center gap-2 cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 shadow-2xs transition-all flex items-center gap-2 cursor-pointer active:scale-95"
                   >
-                    <Terminal size={15} className="text-emerald-400" />
+                    <Terminal size={15} className="text-emerald-600" />
                     <span>Serial Monitor</span>
                   </button>
 
@@ -1130,9 +1130,9 @@ while True:
                       setActiveExperimentModal(null);
                       onOpenBlockCode?.();
                     }}
-                    className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-indigo-300 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-700/60 transition-all flex items-center gap-2 cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 shadow-2xs transition-all flex items-center gap-2 cursor-pointer active:scale-95"
                   >
-                    <Code size={15} className="text-indigo-400" />
+                    <Code size={15} className="text-indigo-600" />
                     <span>Open in Full Block Studio</span>
                   </button>
                 </div>
@@ -1140,14 +1140,14 @@ while True:
                 <div className="flex items-center gap-2.5">
                   <button
                     onClick={() => setActiveExperimentModal(null)}
-                    className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                   >
                     Close
                   </button>
 
                   <button
                     onClick={() => onUploadCode?.(activeCode)}
-                    className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-md hover:shadow-emerald-500/20 transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
                   >
                     <Upload size={15} />
                     <span>Upload & Run on TITAN</span>
