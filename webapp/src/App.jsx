@@ -7,6 +7,7 @@ import { Carousel } from './components/Carousel';
 import { BlocklyIDE } from './components/BlocklyIDE';
 import { AIAssistantIDE } from './components/AIAssistantIDE';
 import { SerialMonitorModal } from './components/SerialMonitorModal';
+import Galaxy from './components/Galaxy';
 
 const carouselItems = [
   {
@@ -96,7 +97,22 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#0B0F19] text-white">
+    <div className="min-h-screen flex flex-col font-sans bg-[#060911] text-white relative overflow-x-hidden">
+      {/* Dynamic Interactive WebGL Galaxy Background */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-85">
+        <Galaxy 
+          mouseRepulsion={true}
+          mouseInteraction={true}
+          density={1.2}
+          glowIntensity={0.45}
+          saturation={0.8}
+          hueShift={200}
+          starSpeed={0.5}
+          twinkleIntensity={0.4}
+          transparent={true}
+        />
+      </div>
+
       {/* Navbar */}
       <nav className="glass-panel mx-4 mt-4 px-6 py-4 flex items-center justify-between rounded-full sticky top-4 z-50">
         <div className="flex items-center gap-4">
