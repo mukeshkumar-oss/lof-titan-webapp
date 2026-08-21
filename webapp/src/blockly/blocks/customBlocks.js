@@ -603,8 +603,8 @@ export function registerCustomBlocks() {
           ]), "BUTTON")
           .appendField("is pressed?");
       this.setOutput(true, "Boolean");
-      this.setStyle('machine_blocks');
-      this.setTooltip("Check if onboard push button is pressed");
+      this.setStyle('logic_blocks');
+      this.setTooltip("Check if onboard push button is pressed for if conditions and while loops");
       this.setHelpUrl("");
     }
   };
