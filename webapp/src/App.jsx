@@ -7,6 +7,7 @@ import { Carousel } from './components/Carousel';
 import { BlocklyIDE } from './components/BlocklyIDE';
 import { AIAssistantIDE } from './components/AIAssistantIDE';
 import { SerialMonitorModal } from './components/SerialMonitorModal';
+import { ProjectStoreDetail } from './components/ProjectStoreDetail';
 import Galaxy from './components/Galaxy';
 
 const carouselItems = [
@@ -213,210 +214,106 @@ function App() {
             <>
               <Carousel items={carouselItems} />
 
-          {/* Projects Gallery */}
-          <section className="glass-panel p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Cpu className="text-primary-start" />
-              <h2 className="text-2xl font-heading font-semibold">Project Store</h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {projects.map(p => (
-                <div 
-                  key={p.id}
-                  onClick={() => handleProjectSelect(p)}
-                  className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border ${
-                    selectedProject.id === p.id 
-                      ? 'bg-primary-start/20 border-primary-start shadow-glow' 
-                      : 'bg-surface/50 border-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <h3 className="font-semibold mb-1 text-sm">{p.name}</h3>
-                  <p className="text-xs text-gray-400 line-clamp-2">{p.description}</p>
+              {/* Play Store Style Projects Gallery */}
+              <section className="p-6 rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-xl shadow-2xl space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md">
+                      <Cpu size={22} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-heading font-extrabold text-white">Project Store & DIY Robotics Kits</h2>
+                      <p className="text-xs text-slate-400">Select a DIY model kit to start building, learning components, and flashing firmware</p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-400/20">
+                    {projects.length} Official Kits Available
+                  </span>
                 </div>
-              ))}
-            </div>
-          </section>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {projects.map(p => (
+                    <div 
+                      key={p.id}
+                      onClick={() => {
+                        setSelectedProject(p);
+                        setCode(p.code);
+                        setViewMode('project');
+                      }}
+                      className="group rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/50 p-5 cursor-pointer transition-all duration-300 shadow-lg hover:shadow-cyan-500/10 flex flex-col justify-between space-y-4 relative overflow-hidden"
+                    >
+                      {/* Top Thumbnail Showcase */}
+                      <div className="w-full h-48 rounded-xl bg-black/40 border border-white/10 overflow-hidden flex items-center justify-center relative">
+                        <img 
+                          src={p.thumbnail || p.heroImage || '/assets/invisible-line/invisible_line_main.png'} 
+                          alt={p.name}
+                          className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
+                          onError={(e) => { e.target.src = '/assets/banners/banner_invisible_diy.png'; }}
+                        />
+                        <div className="absolute top-3 left-3">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 backdrop-blur-md">
+                            {p.badge || 'DIY Kit'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Info & Metadata */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs text-slate-300">
+                          <div className="flex items-center gap-1 text-amber-400 font-bold">
+                            <span>★</span>
+                            <span>{p.rating || 4.9}</span>
+                          </div>
+                          <span className="text-[11px] text-slate-400 font-medium">{p.duration || '45 Mins'}</span>
+                          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] font-semibold text-purple-300">
+                            {p.difficulty || 'Intermediate'}
+                          </span>
+                        </div>
+
+                        <h3 className="font-heading font-extrabold text-base text-white group-hover:text-cyan-300 transition-colors">
+                          {p.name}
+                        </h3>
+
+                        <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                          {p.description}
+                        </p>
+                      </div>
+
+                      {/* Bottom Action Bar */}
+                      <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-bold text-cyan-400 group-hover:text-cyan-300">
+                        <span>Explore Kit & Mission</span>
+                        <div className="w-7 h-7 rounded-full bg-cyan-500/20 flex items-center justify-center group-hover:bg-cyan-500 group-hover:text-white transition-colors">
+                          <ChevronRight size={15} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </>
           )}
 
+          {/* Dedicated Play Store Project Detail View */}
           {viewMode === 'project' && (
-            <>
-              {/* Blockly / Code Editor */}
-          <section className="glass-panel flex-1 flex flex-col overflow-hidden min-h-[400px]">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-surface/30">
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setViewMode('dashboard')}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-white/5 hover:bg-white/10 text-gray-300 transition-all border border-white/10"
-                >
-                  <ArrowLeft size={16} /> Back
-                </button>
-                <div className="w-px h-6 bg-white/20 mx-2"></div>
-                <Code className="text-primary-start" />
-                <h2 className="font-heading font-semibold text-lg">{selectedProject.name} Workspace</h2>
-              </div>
-              <div className="flex gap-2">
-                <button disabled={!device.connected} onClick={handleUpload} className="btn-primary flex items-center gap-2 text-sm px-4">
-                  <Upload size={16} /> Upload & Run
-                </button>
-              </div>
-            </div>
-            
-            {selectedProject?.lesson && !showCode ? (() => {
-              const isChapters = !!selectedProject.lesson.chapters;
-              const currentSlides = isChapters 
-                ? selectedProject.lesson.chapters[currentChapter].slides 
-                : selectedProject.lesson.slides || [];
-              const slide = currentSlides[currentSlide];
-
-              const handleNext = () => {
-                if (currentSlide < currentSlides.length - 1) {
-                  setCurrentSlide(prev => prev + 1);
-                } else if (isChapters && currentChapter < selectedProject.lesson.chapters.length - 1) {
-                  setCurrentChapter(prev => prev + 1);
-                  setCurrentSlide(0);
-                } else {
-                  setShowCode(true);
+            <ProjectStoreDetail
+              project={selectedProject}
+              onBack={() => setViewMode('dashboard')}
+              onUploadCode={async (codeToUpload) => {
+                const src = codeToUpload || selectedProject.code;
+                setCode(src);
+                setUploadProgress(0);
+                try {
+                  await device.uploadProgram("main.py", src, setUploadProgress);
+                } catch (error) {
+                  console.error(error);
+                  alert("Upload to TITAN failed: " + error.message);
                 }
-              };
-
-              const handlePrev = () => {
-                if (currentSlide > 0) {
-                  setCurrentSlide(prev => prev - 1);
-                } else if (isChapters && currentChapter > 0) {
-                  setCurrentChapter(prev => prev - 1);
-                  setCurrentSlide(selectedProject.lesson.chapters[currentChapter - 1].slides.length - 1);
-                }
-              };
-
-              return (
-                <div className="flex-1 overflow-hidden flex bg-surface/30 rounded-b-xl border-t border-white/5">
-                  {isChapters && (
-                    <div className="w-64 bg-surface/80 border-r border-white/5 p-4 flex flex-col gap-2 overflow-y-auto hidden md:flex shrink-0">
-                      <h3 className="font-bold text-lg mb-4 text-transparent bg-clip-text bg-gradient-to-r from-primary-start to-white uppercase tracking-wider text-sm">Table of Contents</h3>
-                      {selectedProject.lesson.chapters.map((chap, cIdx) => (
-                        <div key={cIdx} className="flex flex-col gap-1 mb-2">
-                          <button 
-                            onClick={() => { setCurrentChapter(cIdx); setCurrentSlide(0); }}
-                            className={`text-left font-semibold px-3 py-2 rounded-lg transition-all ${currentChapter === cIdx ? 'bg-gradient-to-r from-primary-start/20 to-transparent text-primary-start border-l-2 border-primary-start' : 'hover:bg-white/5 text-gray-300 border-l-2 border-transparent'}`}
-                          >
-                            {chap.title}
-                          </button>
-                          {currentChapter === cIdx && (
-                             <div className="ml-4 flex flex-col gap-1 border-l border-white/10 pl-2 mt-1">
-                               {chap.slides.map((s, sIdx) => (
-                                 <button 
-                                   key={sIdx}
-                                   onClick={() => setCurrentSlide(sIdx)}
-                                   className={`text-left text-sm px-2 py-1.5 rounded transition-all line-clamp-1 ${currentSlide === sIdx ? 'text-white bg-white/10 font-medium' : 'text-gray-500 hover:text-gray-300'}`}
-                                 >
-                                   {s.title}
-                                 </button>
-                               ))}
-                             </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="flex-1 p-6 overflow-y-auto flex flex-col items-center">
-                    <div className="max-w-3xl w-full text-center flex flex-col h-full">
-                      <h2 className="text-3xl font-heading font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-primary-start to-white">
-                        {isChapters ? selectedProject.lesson.chapters[currentChapter].title : (selectedProject.lesson.title || 'Mission Guide')}
-                      </h2>
-                      
-                      {slide ? (
-                        <div className="flex flex-col items-center flex-1 w-full">
-                          <div className="bg-surface/80 p-8 rounded-3xl border border-white/10 mb-8 text-left w-full shadow-2xl backdrop-blur-md relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-start to-primary-end opacity-50"></div>
-                            <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-start/20 text-primary-start text-sm">{currentSlide + 1}</span>
-                              {slide.title}
-                            </h3>
-                            
-                            {slide.type === 'interactive' ? (
-                              <div className="space-y-6">
-                                {slide.questions && slide.questions.map((q, qIdx) => (
-                                  <div key={qIdx} className="bg-black/30 p-5 rounded-xl border border-white/5">
-                                    <p className="text-gray-200 font-medium mb-3">{q}</p>
-                                    <textarea 
-                                      className="w-full bg-[#0d1117] text-white p-3 rounded-lg border border-white/10 focus:border-primary-start focus:outline-none resize-none"
-                                      rows="3"
-                                      placeholder="Type your answer here..."
-                                    ></textarea>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-lg text-gray-300 mb-6 leading-relaxed">
-                                {slide.content.split('\n').map((line, i) => {
-                                  if (line.includes('**')) {
-                                    const parts = line.split('**');
-                                    return <span key={i} className="block mb-3">{parts.map((part, j) => j % 2 === 1 ? <strong key={j} className="text-primary-start font-bold">{part}</strong> : part)}</span>;
-                                  }
-                                  return <span key={i} className="block mb-3">{line}</span>;
-                                })}
-                              </div>
-                            )}
-
-                            {slide.image && (
-                              <div className="mt-6 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-black/50">
-                                <img src={slide.image} alt={slide.title} className="w-full h-auto object-contain max-h-[350px]" />
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center justify-between w-full mt-auto pt-4">
-                            <button
-                              onClick={handlePrev}
-                              disabled={!isChapters && currentSlide === 0}
-                              className={`px-6 py-3 rounded-full font-bold text-md transition-all text-white shadow-lg ${(!isChapters && currentSlide === 0) || (isChapters && currentChapter === 0 && currentSlide === 0) ? 'bg-surface border border-white/5 opacity-30 cursor-not-allowed' : 'bg-surface border border-white/20 hover:bg-white/10'}`}
-                            >
-                              ← Previous
-                            </button>
-                            
-                            <div className="flex gap-1.5">
-                              {currentSlides.map((_, i) => (
-                                <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === currentSlide ? 'bg-primary-start w-6' : 'bg-white/20'}`} />
-                              ))}
-                            </div>
-
-                            {(!isChapters && currentSlide === currentSlides.length - 1) || (isChapters && currentChapter === selectedProject.lesson.chapters.length - 1 && currentSlide === currentSlides.length - 1) ? (
-                              <button 
-                                onClick={() => setShowCode(true)} 
-                                className="px-8 py-3 rounded-full font-bold text-md bg-gradient-to-r from-green-400 to-emerald-600 hover:shadow-[0_0_20px_rgba(16,185,129,0.6)] text-white transition-all transform hover:-translate-y-1"
-                              >
-                                Start Coding!
-                              </button>
-                            ) : (
-                              <button
-                                onClick={handleNext}
-                                className="px-6 py-3 rounded-full font-bold text-md bg-gradient-to-r from-primary-start to-primary-end hover:shadow-[0_0_15px_rgba(0,229,255,0.6)] text-white transition-all transform hover:-translate-y-1"
-                              >
-                                Next →
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              );
-            })() /* Immediately invoked function to allow variable declarations */ : (
-              <div className="flex-1 p-4 flex gap-4">
-                {/* Python Code Area */}
-                <textarea 
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="w-full bg-[#0d1117] text-[#e6edf3] font-mono p-4 rounded-xl border border-white/5 focus:outline-none focus:border-primary-start/50 resize-none"
-                  spellCheck="false"
-                />
-              </div>
-            )}
-          </section>
-            </>
+                setTimeout(() => setUploadProgress(null), 1000);
+              }}
+              onOpenBlockCode={() => setShowBlockCode(true)}
+              onOpenSerialMonitor={() => setShowSerialMonitor(true)}
+              device={device}
+            />
           )}
 
         </div>
