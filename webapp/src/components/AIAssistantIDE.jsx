@@ -434,7 +434,7 @@ if __name__ == '__main__':
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 backdrop-blur-md bg-slate-900/65 transition-all duration-300">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-2 sm:p-4 backdrop-blur-md bg-slate-900/65 transition-all duration-300">
       
       {/* Hidden File Input for Opening Saved Python Files */}
       <input 

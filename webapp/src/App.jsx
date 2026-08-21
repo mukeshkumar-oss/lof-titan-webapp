@@ -479,7 +479,7 @@ function App() {
 
       {/* Upload Progress Modal */}
       {uploadProgress !== null && (
-        <div className="fixed inset-0 z-[120] bg-black/80 flex items-center justify-center backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-surface p-8 rounded-2xl border border-white/10 max-w-md w-full text-center shadow-2xl">
             <h2 className="text-2xl font-bold mb-6 text-white">Uploading Code to LOF TITAN</h2>
             <div className="h-3 w-full bg-black rounded-full overflow-hidden mb-3">

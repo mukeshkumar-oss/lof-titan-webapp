@@ -44,7 +44,7 @@ export function SerialMonitorModal({ isOpen, onClose, device }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-6 backdrop-blur-md bg-slate-900/65 transition-all duration-300">
+    <div className="fixed inset-0 z-[160] flex items-center justify-center p-3 sm:p-6 backdrop-blur-md bg-slate-900/65 transition-all duration-300">
       
       {/* Main Container Card with Clean White Bezel/Chassis */}
       <div className="relative w-full max-w-4xl h-[86vh] flex flex-col rounded-[22px] bg-white border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.18)] overflow-hidden text-slate-800">
