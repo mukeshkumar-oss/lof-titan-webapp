@@ -381,114 +381,136 @@ export function ProjectStoreDetailModal({
               <span className="text-sm text-slate-500 font-medium">Interactive Hardware Theory & Serial Experiments</span>
             </div>
 
-            {/* Component Selector Tabs */}
-            <div className="flex gap-2.5 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
-              {project.components?.map(comp => (
-                <button
-                  key={comp.id}
-                  onClick={() => setActiveComponentTab(comp.id)}
-                  className={`flex-1 py-3 px-5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2.5 cursor-pointer ${
-                    activeComponentTab === comp.id 
-                      ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/90' 
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-                  }`}
-                >
-                  <Cpu size={16} className={activeComponentTab === comp.id ? 'text-indigo-600' : 'text-slate-400'} />
-                  <span>{comp.name.split('(')[0]}</span>
-                </button>
-              ))}
-            </div>
+            {/* Vertical Sidebar + Deep Dive Content Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+              
+              {/* Left Column: Vertical Component Selector Toolbar */}
+              <div className="md:col-span-4 lg:col-span-3 flex flex-col gap-2 p-2 rounded-2xl bg-slate-100/90 border border-slate-200 shrink-0 shadow-2xs">
+                <span className="px-3 py-1.5 text-[11px] font-extrabold uppercase text-slate-400 tracking-wider">
+                  Select Component
+                </span>
+                {project.components?.map(comp => {
+                  const isActive = activeComponentTab === comp.id;
+                  return (
+                    <button
+                      key={comp.id}
+                      onClick={() => setActiveComponentTab(comp.id)}
+                      className={`w-full p-3 rounded-xl text-left transition-all flex items-center gap-3 cursor-pointer ${
+                        isActive 
+                          ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/90 ring-2 ring-indigo-500/20' 
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        isActive ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'
+                      }`}>
+                        <Cpu size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className={`text-xs truncate ${isActive ? 'font-black text-indigo-900' : 'font-bold text-slate-700'}`}>
+                          {comp.name.split('(')[0]}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono truncate">
+                          {comp.pinMapping.split('·')[0]}
+                        </div>
+                      </div>
+                      <ChevronRight size={14} className={`shrink-0 ${isActive ? 'text-indigo-600' : 'text-slate-300'}`} />
+                    </button>
+                  );
+                })}
+              </div>
 
-            {/* Active Component Deep Dive Card */}
-            {(() => {
-              const comp = project.components?.find(c => c.id === activeComponentTab) || project.components?.[0];
-              if (!comp) return null;
+              {/* Right Column: Active Component Deep Dive Card */}
+              {(() => {
+                const comp = project.components?.find(c => c.id === activeComponentTab) || project.components?.[0];
+                if (!comp) return null;
 
-              return (
-                <div className="p-6 sm:p-9 rounded-3xl bg-white border border-slate-200/90 shadow-md space-y-7">
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+                return (
+                  <div className="md:col-span-8 lg:col-span-9 p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/90 shadow-md space-y-7">
                     
-                    {/* Left Visual & Pinout */}
-                    <div className="md:col-span-5 space-y-5">
-                      <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
-                        <img 
-                          src={comp.image} 
-                          alt={comp.name} 
-                          className="max-h-48 object-contain rounded-lg"
-                          onError={(e) => { e.target.src = '/assets/banners/banner_invisible_diy.png'; }}
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-heading font-extrabold text-xl text-slate-900">{comp.name}</h3>
-                        <span className="inline-block mt-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          {comp.pinMapping}
-                        </span>
-                      </div>
-                      <div className="space-y-3 text-sm text-slate-700 leading-relaxed font-normal">
-                        <div>
-                          <strong className="text-slate-900 block font-bold text-base mb-1">What is it?</strong>
-                          <p className="text-slate-600">{comp.whatIsIt}</p>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+                      
+                      {/* Visual & Theory */}
+                      <div className="lg:col-span-5 space-y-5">
+                        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+                          <img 
+                            src={comp.image} 
+                            alt={comp.name} 
+                            className="max-h-40 object-contain rounded-lg"
+                            onError={(e) => { e.target.src = '/assets/banners/banner_invisible_diy.png'; }}
+                          />
                         </div>
                         <div>
-                          <strong className="text-slate-900 block font-bold text-base mb-1">How it works:</strong>
-                          <p className="text-slate-600">{comp.howItWorks}</p>
+                          <h3 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900">{comp.name}</h3>
+                          <span className="inline-block mt-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            {comp.pinMapping}
+                          </span>
+                        </div>
+                        <div className="space-y-3 text-sm text-slate-700 leading-relaxed font-normal">
+                          <div>
+                            <strong className="text-slate-900 block font-bold text-base mb-1">What is it?</strong>
+                            <p className="text-slate-600">{comp.whatIsIt}</p>
+                          </div>
+                          <div>
+                            <strong className="text-slate-900 block font-bold text-base mb-1">How it works:</strong>
+                            <p className="text-slate-600">{comp.howItWorks}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Right Experiment Lab */}
-                    <div className="md:col-span-7 space-y-5 p-6 rounded-2xl bg-slate-900 text-slate-200 border border-slate-800 shadow-inner">
-                      <div>
-                        <h4 className="font-bold text-base sm:text-lg text-cyan-300 flex items-center gap-2">
-                          <Zap size={18} className="text-amber-400" /> {comp.experiment?.title}
-                        </h4>
-                        <p className="text-sm text-slate-300 mt-2 whitespace-pre-line leading-relaxed font-normal">{comp.experiment?.instruction}</p>
-                      </div>
+                      {/* Right Experiment Lab */}
+                      <div className="lg:col-span-7 space-y-5 p-6 rounded-2xl bg-slate-900 text-slate-200 border border-slate-800 shadow-inner">
+                        <div>
+                          <h4 className="font-bold text-base text-cyan-300 flex items-center gap-2">
+                            <Zap size={18} className="text-amber-400" /> {comp.experiment?.title}
+                          </h4>
+                          <p className="text-sm text-slate-300 mt-2 whitespace-pre-line leading-relaxed font-normal">{comp.experiment?.instruction}</p>
+                        </div>
 
-                      {/* Code Snippet Box */}
-                      <div className="rounded-xl bg-[#060911] border border-slate-800 overflow-hidden">
-                        <div className="px-4 py-2 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                          <span className="font-mono text-cyan-400 text-xs font-semibold">lab_experiment.py</span>
+                        {/* Code Snippet Box */}
+                        <div className="rounded-xl bg-[#060911] border border-slate-800 overflow-hidden">
+                          <div className="px-4 py-2 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                            <span className="font-mono text-cyan-400 text-xs font-semibold">lab_experiment.py</span>
+                            <button
+                              onClick={() => handleCopy(comp.experiment?.testCode)}
+                              className="hover:text-white flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                            >
+                              {copiedCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                              <span>{copiedCode ? 'Copied' : 'Copy Code'}</span>
+                            </button>
+                          </div>
+                          <div className="p-4 font-mono text-xs sm:text-sm text-sky-200 overflow-x-auto max-h-52 scrollbar-thin scrollbar-thumb-slate-800 leading-relaxed">
+                            <pre className="whitespace-pre">{comp.experiment?.testCode}</pre>
+                          </div>
+                        </div>
+
+                        {/* Experiment Execution Buttons */}
+                        <div className="flex flex-wrap gap-2.5 justify-end pt-1">
                           <button
-                            onClick={() => handleCopy(comp.experiment?.testCode)}
-                            className="hover:text-white flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                            onClick={() => onUploadCode?.(comp.experiment?.testCode)}
+                            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-sm transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
                           >
-                            {copiedCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                            <span>{copiedCode ? 'Copied' : 'Copy Code'}</span>
+                            <Upload size={14} />
+                            <span>Run Experiment on TITAN</span>
+                          </button>
+
+                          <button
+                            onClick={() => onOpenSerialMonitor?.()}
+                            className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                          >
+                            <Terminal size={14} className="text-emerald-400" />
+                            <span>Open Serial</span>
                           </button>
                         </div>
-                        <div className="p-4 font-mono text-xs sm:text-sm text-sky-200 overflow-x-auto max-h-56 scrollbar-thin scrollbar-thumb-slate-800 leading-relaxed">
-                          <pre className="whitespace-pre">{comp.experiment?.testCode}</pre>
-                        </div>
-                      </div>
 
-                      {/* Experiment Execution Buttons */}
-                      <div className="flex flex-wrap gap-2.5 justify-end pt-1">
-                        <button
-                          onClick={() => onUploadCode?.(comp.experiment?.testCode)}
-                          className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-sm transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
-                        >
-                          <Upload size={15} />
-                          <span>Run Experiment on TITAN</span>
-                        </button>
-
-                        <button
-                          onClick={() => onOpenSerialMonitor?.()}
-                          className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
-                        >
-                          <Terminal size={15} className="text-emerald-400" />
-                          <span>Open Serial Monitor</span>
-                        </button>
                       </div>
 
                     </div>
 
                   </div>
-
-                </div>
-              );
-            })()}
+                );
+              })()}
+            </div>
           </div>
 
           {/* ================= 3. ASSEMBLY GUIDE ================= */}
