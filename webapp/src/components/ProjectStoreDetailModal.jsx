@@ -30,7 +30,9 @@ import {
   Info,
   ExternalLink,
   SquareCheck,
-  RotateCcw
+  RotateCcw,
+  Sliders,
+  SlidersHorizontal
 } from 'lucide-react';
 
 export function ProjectStoreDetailModal({ 
