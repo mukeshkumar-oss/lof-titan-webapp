@@ -378,12 +378,9 @@ export function ProjectStoreDetailModal({
 
           {/* ================= 2. COMPONENTS LAB ================= */}
           <div id="section-components" className="max-w-5xl mx-auto space-y-5">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2.5">
-                <Cpu size={24} className="text-cyan-600" />
-                <h2 className="text-2xl font-heading font-extrabold text-slate-900">2. Components Introduction & Live Labs</h2>
-              </div>
-              <span className="text-sm text-slate-500 font-medium">Interactive Hardware Theory & Serial Experiments</span>
+            <div className="flex items-center gap-2.5">
+              <Cpu size={24} className="text-cyan-600" />
+              <h2 className="text-2xl font-heading font-extrabold text-slate-900">2. Components Introduction & Live Labs</h2>
             </div>
 
             {/* Vertical Sidebar + Deep Dive Content Grid */}
