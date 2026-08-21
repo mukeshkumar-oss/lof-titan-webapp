@@ -84,8 +84,8 @@ export function ProjectStoreDetailModal({
     { id: 'components', label: 'Components Lab' },
     { id: 'assembly', label: 'Assembly' },
     { id: 'code', label: 'Firmware' },
-    { id: 'challenges', label: 'Challenges' },
-    { id: 'faq', label: 'FAQ' }
+    { id: 'faq', label: 'FAQ' },
+    { id: 'challenges', label: 'Challenges' }
   ];
 
   const currentNavIndex = Math.max(0, navLinks.findIndex(n => n.id === activeNav));
@@ -561,11 +561,31 @@ export function ProjectStoreDetailModal({
             </div>
           </div>
 
-          {/* ================= 5. CODING CHALLENGES ================= */}
+          {/* ================= 5. FAQ & TROUBLESHOOTING ================= */}
+          <div id="section-faq" className="max-w-5xl mx-auto space-y-5">
+            <div className="flex items-center gap-2.5">
+              <HelpCircle size={24} className="text-purple-600" />
+              <h2 className="text-2xl font-heading font-extrabold text-slate-900">5. FAQ & Hardware Troubleshooting</h2>
+            </div>
+
+            <div className="space-y-4">
+              {project.faq?.map((item, idx) => (
+                <div key={idx} className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-2xs space-y-2">
+                  <h4 className="font-bold text-base sm:text-lg text-indigo-900 flex items-center gap-2.5">
+                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-extrabold shrink-0">Q</span>
+                    <span>{item.q}</span>
+                  </h4>
+                  <p className="text-sm sm:text-base text-slate-600 pl-8 leading-relaxed font-normal">{item.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ================= 6. CODING CHALLENGES ================= */}
           <div id="section-challenges" className="max-w-5xl mx-auto space-y-5">
             <div className="flex items-center gap-2.5">
               <Trophy size={24} className="text-amber-500" />
-              <h2 className="text-2xl font-heading font-extrabold text-slate-900">5. Robotics Mission Challenges</h2>
+              <h2 className="text-2xl font-heading font-extrabold text-slate-900">6. Robotics Mission Challenges</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -595,26 +615,6 @@ export function ProjectStoreDetailModal({
                     <Code size={15} />
                     <span>Solve in Block Studio</span>
                   </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ================= 6. FAQ & TROUBLESHOOTING ================= */}
-          <div id="section-faq" className="max-w-5xl mx-auto space-y-5">
-            <div className="flex items-center gap-2.5">
-              <HelpCircle size={24} className="text-purple-600" />
-              <h2 className="text-2xl font-heading font-extrabold text-slate-900">6. FAQ & Hardware Troubleshooting</h2>
-            </div>
-
-            <div className="space-y-4">
-              {project.faq?.map((item, idx) => (
-                <div key={idx} className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-2xs space-y-2">
-                  <h4 className="font-bold text-base sm:text-lg text-indigo-900 flex items-center gap-2.5">
-                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-extrabold shrink-0">Q</span>
-                    <span>{item.q}</span>
-                  </h4>
-                  <p className="text-sm sm:text-base text-slate-600 pl-8 leading-relaxed font-normal">{item.a}</p>
                 </div>
               ))}
             </div>
