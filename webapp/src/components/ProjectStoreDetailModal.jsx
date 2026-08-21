@@ -45,6 +45,7 @@ export function ProjectStoreDetailModal({
   if (!isOpen || !project) return null;
 
   const [activeComponentTab, setActiveComponentTab] = useState(project.components?.[0]?.id || 'uv-sensor');
+  const [activeExperimentModal, setActiveExperimentModal] = useState(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [checkedItems, setCheckedItems] = useState({});
   const [activeNav, setActiveNav] = useState('overview');
@@ -429,85 +430,69 @@ export function ProjectStoreDetailModal({
                 if (!comp) return null;
 
                 return (
-                  <div className="md:col-span-8 lg:col-span-9 p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/90 shadow-md space-y-7">
+                  <div className="md:col-span-8 lg:col-span-9 p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/90 shadow-md space-y-6">
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-7 items-start">
                       
-                      {/* Visual & Theory */}
-                      <div className="lg:col-span-5 space-y-5">
-                        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
+                      {/* Component Visual & Pinout */}
+                      <div className="sm:col-span-5 space-y-4">
+                        <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center shadow-inner">
                           <img 
                             src={comp.image} 
                             alt={comp.name} 
-                            className="max-h-40 object-contain rounded-lg"
+                            className="max-h-48 object-contain rounded-lg transition-transform duration-300 hover:scale-105"
                             onError={(e) => { e.target.src = '/assets/banners/banner_invisible_diy.png'; }}
                           />
                         </div>
                         <div>
-                          <h3 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900">{comp.name}</h3>
-                          <span className="inline-block mt-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <span className="inline-block px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
                             {comp.pinMapping}
                           </span>
                         </div>
-                        <div className="space-y-3 text-sm text-slate-700 leading-relaxed font-normal">
-                          <div>
-                            <strong className="text-slate-900 block font-bold text-base mb-1">What is it?</strong>
+                      </div>
+
+                      {/* Hardware Theory & Working Principles */}
+                      <div className="sm:col-span-7 space-y-5">
+                        <div>
+                          <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-slate-900 leading-tight">
+                            {comp.name}
+                          </h3>
+                        </div>
+
+                        <div className="space-y-4 text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
+                            <strong className="text-slate-900 block font-bold text-base">What is it?</strong>
                             <p className="text-slate-600">{comp.whatIsIt}</p>
                           </div>
-                          <div>
-                            <strong className="text-slate-900 block font-bold text-base mb-1">How it works:</strong>
+
+                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
+                            <strong className="text-slate-900 block font-bold text-base">How it works:</strong>
                             <p className="text-slate-600">{comp.howItWorks}</p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Right Experiment Lab */}
-                      <div className="lg:col-span-7 space-y-5 p-6 rounded-2xl bg-slate-900 text-slate-200 border border-slate-800 shadow-inner">
-                        <div>
-                          <h4 className="font-bold text-base text-cyan-300 flex items-center gap-2">
-                            <Zap size={18} className="text-amber-400" /> {comp.experiment?.title}
-                          </h4>
-                          <p className="text-sm text-slate-300 mt-2 whitespace-pre-line leading-relaxed font-normal">{comp.experiment?.instruction}</p>
-                        </div>
+                    </div>
 
-                        {/* Code Snippet Box */}
-                        <div className="rounded-xl bg-[#060911] border border-slate-800 overflow-hidden">
-                          <div className="px-4 py-2 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                            <span className="font-mono text-cyan-400 text-xs font-semibold">lab_experiment.py</span>
-                            <button
-                              onClick={() => handleCopy(comp.experiment?.testCode)}
-                              className="hover:text-white flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
-                            >
-                              {copiedCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                              <span>{copiedCode ? 'Copied' : 'Copy Code'}</span>
-                            </button>
-                          </div>
-                          <div className="p-4 font-mono text-xs sm:text-sm text-sky-200 overflow-x-auto max-h-52 scrollbar-thin scrollbar-thumb-slate-800 leading-relaxed">
-                            <pre className="whitespace-pre">{comp.experiment?.testCode}</pre>
-                          </div>
-                        </div>
-
-                        {/* Experiment Execution Buttons */}
-                        <div className="flex flex-wrap gap-2.5 justify-end pt-1">
-                          <button
-                            onClick={() => onUploadCode?.(comp.experiment?.testCode)}
-                            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-sm transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
-                          >
-                            <Upload size={14} />
-                            <span>Run Experiment on TITAN</span>
-                          </button>
-
-                          <button
-                            onClick={() => onOpenSerialMonitor?.()}
-                            className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
-                          >
-                            <Terminal size={14} className="text-emerald-400" />
-                            <span>Open Serial</span>
-                          </button>
-                        </div>
-
+                    {/* Bottom Prominent Interactive Experiment Launch Bar */}
+                    <div className="pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-indigo-50/70 via-sky-50/50 to-purple-50/70 p-5 rounded-2xl border">
+                      <div className="space-y-1 text-center sm:text-left">
+                        <span className="text-xs font-extrabold uppercase text-indigo-700 tracking-wider flex items-center gap-1.5 justify-center sm:justify-start">
+                          <Zap size={14} className="text-amber-500 fill-amber-500" /> Interactive Hardware Calibration Lab
+                        </span>
+                        <h4 className="font-bold text-base text-slate-900">
+                          {comp.experiment?.title || 'Live Sensor Experiment & Code Runner'}
+                        </h4>
                       </div>
 
+                      <button
+                        onClick={() => setActiveExperimentModal(comp)}
+                        className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-sm shadow-md hover:shadow-indigo-500/25 transition-all flex items-center justify-center gap-2.5 active:scale-95 cursor-pointer shrink-0"
+                      >
+                        <Zap size={18} className="text-amber-300 fill-amber-300" />
+                        <span>Launch Live Calibration Lab</span>
+                        <ExternalLink size={15} className="text-indigo-200" />
+                      </button>
                     </div>
 
                   </div>
@@ -664,6 +649,101 @@ export function ProjectStoreDetailModal({
         </div>
 
       </div>
+
+      {/* Interactive Live Experiment Modal (Popup Overlay On Top) */}
+      {activeExperimentModal && (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center p-3 sm:p-6 backdrop-blur-md bg-slate-950/75 animate-fade-in">
+          <div className="relative w-full max-w-3xl rounded-[28px] bg-slate-900 text-slate-100 border border-slate-700/80 shadow-[0_25px_70px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Top Modal Header */}
+            <div className="h-16 px-6 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-bold shadow-md">
+                  <Zap size={20} />
+                </div>
+                <div>
+                  <h3 className="font-heading font-extrabold text-base sm:text-lg text-white">
+                    {activeExperimentModal.experiment?.title}
+                  </h3>
+                  <span className="text-xs text-slate-400 font-medium">
+                    {activeExperimentModal.name} · {activeExperimentModal.pinMapping}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveExperimentModal(null)}
+                className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                title="Close Experiment"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Scrollable Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5 scrollbar-thin scrollbar-thumb-slate-800">
+              
+              {/* Protocol & Guide Card */}
+              <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2">
+                <span className="text-xs font-extrabold uppercase text-amber-400 tracking-wider block">
+                  🧪 Experiment Protocol & Observation Guide:
+                </span>
+                <p className="text-sm text-slate-200 whitespace-pre-line leading-relaxed">
+                  {activeExperimentModal.experiment?.instruction}
+                </p>
+              </div>
+
+              {/* Code Snippet Box */}
+              <div className="rounded-2xl bg-[#060911] border border-slate-800 overflow-hidden shadow-inner">
+                <div className="px-5 py-3 bg-[#0B1120] border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                  <span className="font-mono text-cyan-400 font-bold">lab_experiment.py</span>
+                  <button
+                    onClick={() => handleCopy(activeExperimentModal.experiment?.testCode)}
+                    className="hover:text-white flex items-center gap-1.5 font-semibold text-xs cursor-pointer"
+                  >
+                    {copiedCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                    <span>{copiedCode ? 'Copied' : 'Copy Code'}</span>
+                  </button>
+                </div>
+                <div className="p-5 font-mono text-xs sm:text-sm text-sky-200 overflow-x-auto max-h-64 scrollbar-thin scrollbar-thumb-slate-800 leading-relaxed">
+                  <pre className="whitespace-pre">{activeExperimentModal.experiment?.testCode}</pre>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Bottom Actions Footer */}
+            <div className="p-4 px-6 bg-[#0F172A] border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <button
+                onClick={() => {
+                  onOpenSerialMonitor?.();
+                }}
+                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+              >
+                <Terminal size={15} className="text-emerald-400" />
+                <span>Open Serial Monitor</span>
+              </button>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => setActiveExperimentModal(null)}
+                  className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+
+                <button
+                  onClick={() => onUploadCode?.(activeExperimentModal.experiment?.testCode)}
+                  className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                >
+                  <Upload size={15} />
+                  <span>Upload & Run on TITAN</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
