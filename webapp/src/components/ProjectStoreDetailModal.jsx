@@ -339,14 +339,15 @@ export function ProjectStoreDetailModal({
               
               {/* Hardware Safety */}
               <div className="p-7 rounded-3xl bg-amber-50/80 border border-amber-200/90 shadow-2xs space-y-4">
-                <div className="flex items-center gap-2.5 text-amber-950 font-bold text-base">
+                <div className="flex items-center gap-2.5 text-amber-950 font-bold text-base border-b border-amber-200/60 pb-3">
                   <Wrench size={18} className="text-amber-600" />
                   <span>Hardware & Mechanical Precautions</span>
                 </div>
-                <ul className="space-y-3 text-sm sm:text-base text-amber-950/90 leading-relaxed font-medium">
+                <ul className="space-y-3.5 text-sm sm:text-base text-amber-950/90 leading-relaxed font-medium">
                   {project.safetyWarnings?.hardware?.map((item, idx) => (
-                    <li key={idx} className="p-3.5 rounded-2xl bg-white/90 border border-amber-200/70 shadow-2xs">
-                      {item}
+                    <li key={idx} className="flex items-start gap-2.5">
+                      <span className="shrink-0 mt-0.5">⚠️</span>
+                      <span>{item.replace(/^⚠️\s*/, '')}</span>
                     </li>
                   ))}
                 </ul>
@@ -354,14 +355,15 @@ export function ProjectStoreDetailModal({
 
               {/* Electronics Safety */}
               <div className="p-7 rounded-3xl bg-rose-50/80 border border-rose-200/90 shadow-2xs space-y-4">
-                <div className="flex items-center gap-2.5 text-rose-950 font-bold text-base">
+                <div className="flex items-center gap-2.5 text-rose-950 font-bold text-base border-b border-rose-200/60 pb-3">
                   <Zap size={18} className="text-rose-600" />
                   <span>Electronics & UV Radiation Safety</span>
                 </div>
-                <ul className="space-y-3 text-sm sm:text-base text-rose-950/90 leading-relaxed font-medium">
+                <ul className="space-y-3.5 text-sm sm:text-base text-rose-950/90 leading-relaxed font-medium">
                   {project.safetyWarnings?.electronics?.map((item, idx) => (
-                    <li key={idx} className="p-3.5 rounded-2xl bg-white/90 border border-rose-200/70 shadow-2xs">
-                      {item}
+                    <li key={idx} className="flex items-start gap-2.5">
+                      <span className="shrink-0 mt-0.5">{item.startsWith('⚡') ? '⚡' : item.startsWith('🔦') ? '🔦' : '⚠️'}</span>
+                      <span>{item.replace(/^[⚡🔦⚠️]\s*/, '')}</span>
                     </li>
                   ))}
                 </ul>
