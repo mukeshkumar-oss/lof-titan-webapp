@@ -50,6 +50,8 @@ export function ProjectStoreDetailModal({
   const [activeNav, setActiveNav] = useState('overview');
 
   const contentRef = useRef(null);
+  const isProgrammaticScroll = useRef(false);
+  const scrollTimeoutRef = useRef(null);
 
   const toggleCheck = (idx) => {
     setCheckedItems(prev => ({ ...prev, [idx]: !prev[idx] }));
@@ -63,6 +65,12 @@ export function ProjectStoreDetailModal({
 
   const scrollToSection = (sectionId) => {
     setActiveNav(sectionId);
+    isProgrammaticScroll.current = true;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      isProgrammaticScroll.current = false;
+    }, 850);
+
     const element = document.getElementById(`section-${sectionId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -94,16 +102,24 @@ export function ProjectStoreDetailModal({
     }
   };
 
-  // Auto-detect current visible section while scrolling (Scroll Spy)
+  // Auto-detect current visible section while user is manually scrolling (Scroll Spy)
   useEffect(() => {
     const container = contentRef.current;
     if (!container) return;
 
     let isThrottled = false;
     const handleScroll = () => {
+      // Ignore scroll-spy events triggered during programmatic smooth clicks
+      if (isProgrammaticScroll.current) return;
+
       if (isThrottled) return;
       isThrottled = true;
       requestAnimationFrame(() => {
+        if (isProgrammaticScroll.current) {
+          isThrottled = false;
+          return;
+        }
+
         const containerTop = container.getBoundingClientRect().top;
         const triggerPoint = containerTop + 180;
 
@@ -122,9 +138,10 @@ export function ProjectStoreDetailModal({
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-
-    return () => container.removeEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
   }, [isOpen]);
 
   return (
@@ -173,13 +190,13 @@ export function ProjectStoreDetailModal({
 
             <button
               onClick={() => scrollToSection(navLinks[currentNavIndex]?.id)}
-              className="flex items-center gap-2 px-3 py-0.5 rounded-full hover:bg-white/80 transition-colors min-w-[150px] justify-center text-center cursor-pointer"
+              className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-white/90 transition-all w-[150px] sm:w-[180px] justify-center text-center cursor-pointer shadow-2xs overflow-hidden shrink-0"
               title="Jump to Current Section"
             >
-              <span className="text-sm sm:text-base font-extrabold text-indigo-700 tracking-wide">
+              <span className="text-sm sm:text-base font-extrabold text-indigo-700 tracking-wide truncate">
                 {navLinks[currentNavIndex]?.label}
               </span>
-              <span className="text-xs font-bold text-slate-400 font-mono">
+              <span className="text-xs font-bold text-slate-400 font-mono shrink-0">
                 ({currentNavIndex + 1}/{navLinks.length})
               </span>
             </button>
