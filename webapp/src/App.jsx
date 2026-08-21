@@ -36,6 +36,13 @@ const carouselItems = [
     image: "/assets/banners/banner_heatseek_diy.png",
     badge: "DIY Flame Rover",
     buttonText: "Explore Now"
+  },
+  {
+    title: "Heart Beat DJ Bot DIY Kit",
+    description: "Interactive musical bot that detects a person's heartbeat pulse and dynamically generates rhythmic tunes and music beats.",
+    image: "/assets/banners/banner_heartbeat_diy.png",
+    badge: "DIY Music Bot",
+    buttonText: "Explore Now"
   }
 ];
 
