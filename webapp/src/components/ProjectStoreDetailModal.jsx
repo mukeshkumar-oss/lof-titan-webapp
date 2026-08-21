@@ -86,11 +86,11 @@ export function ProjectStoreDetailModal({
       <div className="relative w-full max-w-[1440px] h-[95vh] flex flex-col rounded-[32px] bg-gradient-to-br from-[#FCFDFF] via-[#F8FAFC] to-[#F1F5F9] border border-slate-200/90 shadow-[0_25px_70px_rgba(0,0,0,0.35)] overflow-hidden text-slate-800 font-sans">
         
         {/* Top Lunar Header Bar */}
-        <div className="h-18 px-6 flex items-center justify-between border-b border-slate-200/80 bg-white/95 backdrop-blur-md shrink-0 z-30 gap-3 shadow-xs">
+        <div className="h-16 px-4 sm:px-6 flex items-center justify-between border-b border-slate-200/80 bg-white/95 backdrop-blur-md shrink-0 z-30 gap-2 sm:gap-4 overflow-hidden shadow-xs">
           
           {/* Top Left: Logo & Project Identity */}
-          <div className="flex items-center gap-3.5 shrink-0">
-            <div className="relative w-10 h-10 rounded-full overflow-hidden shadow-[0_0_15px_rgba(186,230,253,0.8)] border border-sky-200 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 min-w-0">
+            <div className="relative w-9 h-9 rounded-full overflow-hidden shadow-[0_0_12px_rgba(186,230,253,0.8)] border border-sky-200 shrink-0">
               <img 
                 src="/assets/lunar_sphere_icon.png" 
                 alt="LOF TITAN Lunar" 
@@ -98,26 +98,23 @@ export function ProjectStoreDetailModal({
                 onError={(e) => { e.target.src = "/logo.webp"; }}
               />
             </div>
-            <div className="hidden sm:flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="font-heading font-extrabold text-base tracking-wider text-slate-900">
-                  {project.name}
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase bg-sky-100 text-sky-800 border border-sky-200">
-                  {project.badge || 'DIY Kit'}
-                </span>
-              </div>
-              <span className="text-xs text-slate-500 font-medium">Interactive Learning & Hardware Guide</span>
+            <div className="flex items-center gap-2 truncate">
+              <span className="font-heading font-extrabold text-base tracking-wide text-slate-900 truncate">
+                {project.name}
+              </span>
+              <span className="hidden md:inline-flex px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase bg-sky-100 text-sky-800 border border-sky-200 shrink-0">
+                {project.badge || 'DIY Kit'}
+              </span>
             </div>
           </div>
 
-          {/* Center: Articulate Section Jump Links */}
-          <div className="hidden lg:flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-full border border-slate-200 text-xs font-semibold text-slate-600">
+          {/* Center: Articulate Section Jump Links (Only on wide screens) */}
+          <div className="hidden 2xl:flex items-center gap-1 p-1 bg-slate-100/90 rounded-full border border-slate-200 text-xs font-semibold text-slate-600">
             {navLinks.map(n => (
               <button
                 key={n.id}
                 onClick={() => scrollToSection(n.id)}
-                className={`px-3.5 py-1.5 rounded-full transition-all text-xs font-bold ${
+                className={`px-3 py-1 rounded-full transition-all text-xs font-bold ${
                   activeNav === n.id 
                     ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80' 
                     : 'hover:text-slate-900 hover:bg-white/60'
@@ -128,43 +125,43 @@ export function ProjectStoreDetailModal({
             ))}
           </div>
 
-          {/* Top Right Actions */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Top Right Actions (Never Overflow) */}
+          <div className="flex items-center gap-2 shrink-0">
             <button 
               onClick={() => onOpenSerialMonitor?.()}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
               title="Open Live Serial Monitor"
             >
-              <Terminal size={15} className="text-emerald-600" />
-              <span className="hidden md:inline">Serial Monitor</span>
+              <Terminal size={14} className="text-emerald-600" />
+              <span className="hidden sm:inline">Serial</span>
             </button>
 
             <button 
               onClick={() => onOpenBlockCode?.()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all shadow-2xs active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
               title="Open in Block Code Studio"
             >
-              <Code size={15} className="text-indigo-600" />
+              <Code size={14} className="text-indigo-600" />
               <span className="hidden sm:inline">Block Studio</span>
             </button>
 
             <button 
               onClick={() => onUploadCode?.(project.code)}
-              className="flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-md transition-all active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-sm transition-all active:scale-95 cursor-pointer shrink-0"
               title="Upload & Run on LOF TITAN"
             >
-              <Upload size={15} />
-              <span>Upload to TITAN</span>
+              <Upload size={14} />
+              <span>Upload & Run</span>
             </button>
 
-            <div className="w-px h-6 bg-slate-200 mx-1" />
+            <div className="w-px h-5 bg-slate-200 mx-0.5 shrink-0" />
 
             <button 
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-slate-200/80 text-slate-400 hover:text-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-full hover:bg-slate-200/80 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer shrink-0"
               title="Close and Return to Store"
             >
-              <X size={20} />
+              <X size={19} />
             </button>
           </div>
 
