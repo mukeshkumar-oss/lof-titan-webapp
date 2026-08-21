@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bluetooth, Usb, Play, Square, RotateCcw, Upload, Terminal, Bot, Code, Cpu, Trash2, ArrowLeft } from 'lucide-react';
+import { Bluetooth, Usb, Play, Square, RotateCcw, Upload, Terminal, Bot, Code, Cpu, Trash2, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useDevice } from './bluetooth/useDevice';
 import { projects } from './projects';
 import { FirmwareFlasherModal } from './components/FirmwareFlasherModal';
