@@ -25,6 +25,7 @@ import {
   FileCode,
   Flame,
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   Info,
   ExternalLink,
@@ -79,6 +80,20 @@ export function ProjectStoreDetailModal({
     { id: 'faq', label: 'FAQ' }
   ];
 
+  const currentNavIndex = Math.max(0, navLinks.findIndex(n => n.id === activeNav));
+
+  const handlePrevNav = () => {
+    if (currentNavIndex > 0) {
+      scrollToSection(navLinks[currentNavIndex - 1].id);
+    }
+  };
+
+  const handleNextNav = () => {
+    if (currentNavIndex < navLinks.length - 1) {
+      scrollToSection(navLinks[currentNavIndex + 1].id);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 backdrop-blur-md bg-slate-950/65 transition-all duration-300 animate-fade-in">
       
@@ -108,21 +123,46 @@ export function ProjectStoreDetailModal({
             </div>
           </div>
 
-          {/* Center: Articulate Section Jump Links (Only on wide screens) */}
-          <div className="hidden 2xl:flex items-center gap-1 p-1 bg-slate-100/90 rounded-full border border-slate-200 text-xs font-semibold text-slate-600">
-            {navLinks.map(n => (
-              <button
-                key={n.id}
-                onClick={() => scrollToSection(n.id)}
-                className={`px-3 py-1 rounded-full transition-all text-xs font-bold ${
-                  activeNav === n.id 
-                    ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80' 
-                    : 'hover:text-slate-900 hover:bg-white/60'
-                }`}
-              >
-                {n.label}
-              </button>
-            ))}
+          {/* Center: Premium Single-Item Stepper Pill (< Safety >) */}
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100/90 rounded-full border border-slate-200/90 shadow-2xs text-slate-700">
+            <button
+              onClick={handlePrevNav}
+              disabled={currentNavIndex === 0}
+              className={`p-1 rounded-full transition-all ${
+                currentNavIndex === 0 
+                  ? 'opacity-30 cursor-not-allowed text-slate-400' 
+                  : 'hover:bg-white hover:text-indigo-600 active:scale-95 text-slate-700 cursor-pointer shadow-2xs'
+              }`}
+              title="Previous Section"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <button
+              onClick={() => scrollToSection(navLinks[currentNavIndex]?.id)}
+              className="flex items-center gap-2 px-3 py-0.5 rounded-full hover:bg-white/80 transition-colors min-w-[130px] justify-center text-center cursor-pointer"
+              title="Jump to Current Section"
+            >
+              <span className="text-xs font-extrabold text-indigo-700 tracking-wide">
+                {navLinks[currentNavIndex]?.label}
+              </span>
+              <span className="text-[11px] font-bold text-slate-400 font-mono">
+                ({currentNavIndex + 1}/{navLinks.length})
+              </span>
+            </button>
+
+            <button
+              onClick={handleNextNav}
+              disabled={currentNavIndex === navLinks.length - 1}
+              className={`p-1 rounded-full transition-all ${
+                currentNavIndex === navLinks.length - 1 
+                  ? 'opacity-30 cursor-not-allowed text-slate-400' 
+                  : 'hover:bg-white hover:text-indigo-600 active:scale-95 text-slate-700 cursor-pointer shadow-2xs'
+              }`}
+              title="Next Section"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
 
           {/* Top Right Actions (Never Overflow) */}
