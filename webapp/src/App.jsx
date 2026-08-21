@@ -7,7 +7,7 @@ import { Carousel } from './components/Carousel';
 import { BlocklyIDE } from './components/BlocklyIDE';
 import { AIAssistantIDE } from './components/AIAssistantIDE';
 import { SerialMonitorModal } from './components/SerialMonitorModal';
-import { ProjectStoreDetail } from './components/ProjectStoreDetail';
+import { ProjectStoreDetailModal } from './components/ProjectStoreDetailModal';
 import Galaxy from './components/Galaxy';
 
 const carouselItems = [
@@ -60,6 +60,7 @@ function App() {
   const [showSerialMonitor, setShowSerialMonitor] = useState(false);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [showBlockCode, setShowBlockCode] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const consoleRef = useRef(null);
@@ -76,7 +77,7 @@ function App() {
     setShowCode(!p.lesson);
     setCurrentSlide(0);
     setCurrentChapter(0);
-    setViewMode('project');
+    setShowProjectModal(true);
   };
 
   const handleUpload = async () => {
@@ -212,7 +213,10 @@ function App() {
           
           {viewMode === 'dashboard' && (
             <>
-              <Carousel items={carouselItems} />
+              <Carousel 
+                items={carouselItems} 
+                onItemClick={() => handleProjectSelect(projects[0])} 
+              />
 
               {/* Play Store Style Projects Gallery */}
               <section className="p-6 rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-xl shadow-2xl space-y-6">
@@ -235,11 +239,7 @@ function App() {
                   {projects.map(p => (
                     <div 
                       key={p.id}
-                      onClick={() => {
-                        setSelectedProject(p);
-                        setCode(p.code);
-                        setViewMode('project');
-                      }}
+                      onClick={() => handleProjectSelect(p)}
                       className="group rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/50 p-5 cursor-pointer transition-all duration-300 shadow-lg hover:shadow-cyan-500/10 flex flex-col justify-between space-y-4 relative overflow-hidden"
                     >
                       {/* Top Thumbnail Showcase */}
@@ -291,29 +291,6 @@ function App() {
                 </div>
               </section>
             </>
-          )}
-
-          {/* Dedicated Play Store Project Detail View */}
-          {viewMode === 'project' && (
-            <ProjectStoreDetail
-              project={selectedProject}
-              onBack={() => setViewMode('dashboard')}
-              onUploadCode={async (codeToUpload) => {
-                const src = codeToUpload || selectedProject.code;
-                setCode(src);
-                setUploadProgress(0);
-                try {
-                  await device.uploadProgram("main.py", src, setUploadProgress);
-                } catch (error) {
-                  console.error(error);
-                  alert("Upload to TITAN failed: " + error.message);
-                }
-                setTimeout(() => setUploadProgress(null), 1000);
-              }}
-              onOpenBlockCode={() => setShowBlockCode(true)}
-              onOpenSerialMonitor={() => setShowSerialMonitor(true)}
-              device={device}
-            />
           )}
 
         </div>
@@ -476,6 +453,28 @@ function App() {
         isOpen={showFlasherModal} 
         onClose={() => setShowFlasherModal(false)} 
         onDisconnectCurrent={device.disconnect} 
+      />
+
+      {/* Project Store Detail & Learning Modal (Articulate-Style Lunar Light Theme) */}
+      <ProjectStoreDetailModal
+        isOpen={showProjectModal}
+        project={selectedProject}
+        onClose={() => setShowProjectModal(false)}
+        onUploadCode={async (codeToUpload) => {
+          const src = codeToUpload || selectedProject.code;
+          setCode(src);
+          setUploadProgress(0);
+          try {
+            await device.uploadProgram("main.py", src, setUploadProgress);
+          } catch (error) {
+            console.error(error);
+            alert("Upload to TITAN failed: " + error.message);
+          }
+          setTimeout(() => setUploadProgress(null), 1000);
+        }}
+        onOpenBlockCode={() => setShowBlockCode(true)}
+        onOpenSerialMonitor={() => setShowSerialMonitor(true)}
+        device={device}
       />
 
       {/* Upload Progress Modal */}

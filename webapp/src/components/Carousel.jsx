@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export function Carousel({ items, autoPlayInterval = 5000 }) {
+export function Carousel({ items, autoPlayInterval = 5000, onItemClick }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -58,7 +58,10 @@ export function Carousel({ items, autoPlayInterval = 5000 }) {
                   {item.description}
                 </p>
                 {item.buttonText && (
-                  <button className="mt-6 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-full transition-all shadow-glow flex items-center gap-2">
+                  <button 
+                    onClick={() => onItemClick?.(item, index)}
+                    className="mt-6 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-full transition-all shadow-glow flex items-center gap-2 active:scale-95 cursor-pointer"
+                  >
                     {item.buttonText} <ChevronRight size={18} />
                   </button>
                 )}
