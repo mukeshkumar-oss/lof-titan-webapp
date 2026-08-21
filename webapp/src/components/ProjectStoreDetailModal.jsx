@@ -197,14 +197,11 @@ export function ProjectStoreDetailModal({
 
             <button
               onClick={() => scrollToSection(navLinks[currentNavIndex]?.id)}
-              className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-white/90 transition-all w-[150px] sm:w-[180px] justify-center text-center cursor-pointer shadow-2xs overflow-hidden shrink-0"
+              className="flex items-center justify-center px-4 py-1 rounded-full hover:bg-white/90 transition-all min-w-[120px] sm:min-w-[150px] text-center cursor-pointer shadow-2xs overflow-hidden shrink-0"
               title="Jump to Current Section"
             >
               <span className="text-sm sm:text-base font-extrabold text-indigo-700 tracking-wide truncate">
                 {navLinks[currentNavIndex]?.label}
-              </span>
-              <span className="text-xs font-bold text-slate-400 font-mono shrink-0">
-                ({currentNavIndex + 1}/{navLinks.length})
               </span>
             </button>
 
