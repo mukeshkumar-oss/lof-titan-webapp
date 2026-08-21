@@ -10,25 +10,11 @@ import { SerialMonitorModal } from './components/SerialMonitorModal';
 
 const carouselItems = [
   {
-    title: "AquaNova: Sense Recovery",
-    description: "Build a fully functional sensing rover that detects motion and water to navigate unpredictable environments.",
-    image: "/assets/banners/banner_aquanova.jpg",
-    badge: "New Arrival",
+    title: "Axes 3",
+    description: "Advanced multi-axis robotics system engineered for precision motion, intelligent telemetry, and autonomous mission control.",
+    image: "/assets/banners/banner_axes3.png",
+    badge: "Featured Kit",
     buttonText: "Explore Now"
-  },
-  {
-    title: "Cosmic Voyager",
-    description: "Advanced space exploration rover designed for rugged terrain and planetary mapping.",
-    image: "/assets/banners/banner_cosmic.jpg",
-    badge: "Advanced Kit",
-    buttonText: "Learn More"
-  },
-  {
-    title: "Invisible Line Patrol",
-    description: "High-speed autonomous line tracking racer with a sleek cyberpunk aesthetic.",
-    image: "/assets/banners/banner_invisible.jpg",
-    badge: "Trending",
-    buttonText: "Start Racing"
   }
 ];
 
