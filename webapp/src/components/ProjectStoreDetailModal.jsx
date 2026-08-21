@@ -280,33 +280,19 @@ export function ProjectStoreDetailModal({
               </div>
 
               {/* Title & Metadata */}
-              <div className="md:col-span-6 space-y-5">
-                <div className="flex items-center gap-3 text-xs sm:text-sm font-semibold text-slate-500 flex-wrap">
-                  <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 font-bold">
-                    <Star size={15} className="fill-current" />
-                    <span>{project.rating || 4.9}</span>
-                    <span className="text-slate-400">({project.reviews || 128} Reviews)</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full border border-slate-200 text-slate-700">
-                    <Clock size={15} className="text-indigo-600" />
-                    <span>{project.duration || '45 Mins'}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full border border-slate-200 text-slate-700">
-                    <Layers size={15} className="text-purple-600" />
-                    <span>{project.difficulty || 'Intermediate'}</span>
-                  </div>
+              <div className="md:col-span-6 space-y-5 flex flex-col justify-between h-full">
+                <div className="space-y-3">
+                  <h1 className="text-3xl sm:text-4xl font-heading font-extrabold text-slate-900 leading-tight">
+                    {project.name}
+                  </h1>
+
+                  <p className="text-slate-700 text-base sm:text-lg leading-relaxed font-normal">
+                    {project.description}
+                  </p>
                 </div>
 
-                <h1 className="text-3xl sm:text-4xl font-heading font-extrabold text-slate-900 leading-tight">
-                  {project.name}
-                </h1>
-
-                <p className="text-slate-700 text-base sm:text-lg leading-relaxed font-normal">
-                  {project.description}
-                </p>
-
                 {/* Key Spec Badges */}
-                <div className="grid grid-cols-3 gap-3 pt-3 border-t border-slate-100">
+                <div className="grid grid-cols-3 gap-3 py-3 border-y border-slate-100">
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
                     <span className="block text-xs font-bold text-slate-400 uppercase">Sensors</span>
                     <span className="text-sm font-extrabold text-indigo-700">3x UV Photodiodes</span>
@@ -318,6 +304,23 @@ export function ProjectStoreDetailModal({
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
                     <span className="block text-xs font-bold text-slate-400 uppercase">MCU</span>
                     <span className="text-sm font-extrabold text-emerald-700">ESP32-S3 TITAN</span>
+                  </div>
+                </div>
+
+                {/* Ratings, Duration & Difficulty Metadata at Bottom */}
+                <div className="flex items-center gap-3 text-xs sm:text-sm font-semibold text-slate-500 flex-wrap pt-1">
+                  <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200 font-bold">
+                    <Star size={15} className="fill-current" />
+                    <span>{project.rating || 4.9}</span>
+                    <span className="text-slate-400 font-normal">({project.reviews || 128} Reviews)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200 text-slate-700 font-bold">
+                    <Clock size={15} className="text-indigo-600" />
+                    <span>{project.duration || '45 Mins'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200 text-slate-700 font-bold">
+                    <Layers size={15} className="text-purple-600" />
+                    <span>{project.difficulty || 'Intermediate'}</span>
                   </div>
                 </div>
               </div>
