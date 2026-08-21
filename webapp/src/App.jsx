@@ -29,6 +29,13 @@ const carouselItems = [
     image: "/assets/banners/banner_invisible_diy.png",
     badge: "DIY Walking Robot",
     buttonText: "Explore Now"
+  },
+  {
+    title: "Heat Seek Rover DIY Kit",
+    description: "Intelligent surrounding scanner with autonomous obstacle avoidance and integrated flame sensing technology for real-time fire detection.",
+    image: "/assets/banners/banner_heatseek_diy.png",
+    badge: "DIY Flame Rover",
+    buttonText: "Explore Now"
   }
 ];
 
