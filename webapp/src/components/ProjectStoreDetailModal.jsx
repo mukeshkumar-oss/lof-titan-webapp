@@ -391,6 +391,12 @@ export function ProjectStoreDetailModal({
                 </span>
                 {project.components?.map(comp => {
                   const isActive = activeComponentTab === comp.id;
+                  const shortName = comp.id === 'uv-sensor' 
+                    ? 'UV Sensor' 
+                    : comp.id === 'dc-motor' 
+                    ? 'Dual DC Motor' 
+                    : comp.name.split('(')[0].trim();
+
                   return (
                     <button
                       key={comp.id}
@@ -401,20 +407,17 @@ export function ProjectStoreDetailModal({
                           : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                       }`}
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                         isActive ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'
                       }`}>
-                        <Cpu size={16} />
+                        <Cpu size={18} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className={`text-xs truncate ${isActive ? 'font-black text-indigo-900' : 'font-bold text-slate-700'}`}>
-                          {comp.name.split('(')[0]}
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono truncate">
-                          {comp.pinMapping.split('·')[0]}
+                        <div className={`text-sm tracking-wide truncate ${isActive ? 'font-extrabold text-indigo-950' : 'font-bold text-slate-700'}`}>
+                          {shortName}
                         </div>
                       </div>
-                      <ChevronRight size={14} className={`shrink-0 ${isActive ? 'text-indigo-600' : 'text-slate-300'}`} />
+                      <ChevronRight size={15} className={`shrink-0 ${isActive ? 'text-indigo-600' : 'text-slate-300'}`} />
                     </button>
                   );
                 })}
