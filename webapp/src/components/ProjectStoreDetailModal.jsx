@@ -46,6 +46,11 @@ export function ProjectStoreDetailModal({
 
   const [activeComponentTab, setActiveComponentTab] = useState(project.components?.[0]?.id || 'uv-sensor');
   const [activeExperimentModal, setActiveExperimentModal] = useState(null);
+  const [experimentTab, setExperimentTab] = useState('blocks'); // 'blocks' | 'code'
+  const [motorSpeed, setMotorSpeed] = useState(75);
+  const [motorDirection, setMotorDirection] = useState('FORWARD');
+  const [motorDuration, setMotorDuration] = useState(2.0);
+  const [uvInterval, setUvInterval] = useState(150);
   const [copiedCode, setCopiedCode] = useState(false);
   const [checkedItems, setCheckedItems] = useState({});
   const [activeNav, setActiveNav] = useState('overview');
@@ -650,100 +655,387 @@ export function ProjectStoreDetailModal({
 
       </div>
 
-      {/* Interactive Live Experiment Modal (Popup Overlay On Top) */}
-      {activeExperimentModal && (
-        <div className="fixed inset-0 z-[140] flex items-center justify-center p-3 sm:p-6 backdrop-blur-md bg-slate-950/75 animate-fade-in">
-          <div className="relative w-full max-w-3xl rounded-[28px] bg-slate-900 text-slate-100 border border-slate-700/80 shadow-[0_25px_70px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col max-h-[90vh]">
-            
-            {/* Top Modal Header */}
-            <div className="h-16 px-6 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-bold shadow-md">
-                  <Zap size={20} />
-                </div>
-                <div>
-                  <h3 className="font-heading font-extrabold text-base sm:text-lg text-white">
-                    {activeExperimentModal.experiment?.title}
-                  </h3>
-                  <span className="text-xs text-slate-400 font-medium">
-                    {activeExperimentModal.name} · {activeExperimentModal.pinMapping}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveExperimentModal(null)}
-                className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                title="Close Experiment"
-              >
-                <X size={20} />
-              </button>
-            </div>
+      {/* Interactive Live Experiment Modal with Visual Blocks (Popup Overlay On Top) */}
+      {activeExperimentModal && (() => {
+        const isDcMotor = activeExperimentModal.id === 'dc-motor';
+        const isUvSensor = activeExperimentModal.id === 'uv-sensor';
 
-            {/* Scrollable Modal Body */}
-            <div className="p-6 overflow-y-auto space-y-5 scrollbar-thin scrollbar-thumb-slate-800">
+        const getDynamicCode = () => {
+          if (isDcMotor) {
+            const isFwd = motorDirection === 'FORWARD';
+            const duty = Math.round(motorSpeed * 10.23);
+            return `# ================= LOF TITAN MOTOR KINEMATICS TEST =================
+import time
+from machine import Pin, PWM
+from supervisor.led_buzzer import hw
+
+_pwm_pool = {}
+def _get_pwm(pin, freq=1000):
+    if pin not in _pwm_pool:
+        _pwm_pool[pin] = PWM(Pin(pin), freq=freq)
+    else:
+        try: _pwm_pool[pin].freq(freq)
+        except Exception: pass
+    return _pwm_pool[pin]
+
+print("--- LOF TITAN MOTOR CALIBRATION TEST ---")
+print("Testing Direction: ${motorDirection} at Speed: ${motorSpeed}% for ${motorDuration}s")
+hw.play_startup_tone()
+
+# 1. Engage Motors (Left M1: GPIO 15/16, Right M2: GPIO 13/14)
+${isFwd 
+  ? `_get_pwm(15).duty(${duty}); Pin(16, Pin.OUT).value(0)
+_get_pwm(13).duty(${duty}); Pin(14, Pin.OUT).value(0)`
+  : `Pin(15, Pin.OUT).value(0); _get_pwm(16).duty(${duty})
+Pin(13, Pin.OUT).value(0); _get_pwm(14).duty(${duty})`}
+
+# 2. Wait for Kinematic Stride Duration
+time.sleep(${motorDuration})
+
+# 3. Stop Motors Safely
+Pin(15, Pin.OUT).value(0); Pin(16, Pin.OUT).value(0)
+Pin(13, Pin.OUT).value(0); Pin(14, Pin.OUT).value(0)
+print("Calibration Complete! Motors Stopped.")
+hw.play_stop_tone()
+`;
+          } else if (isUvSensor) {
+            return `# ================= LOF TITAN UV SENSOR TEST =================
+import time
+from machine import Pin, ADC
+from supervisor.led_buzzer import hw
+
+# Setup 12-bit ADC on Sensor Ports S1 (GPIO 2), S2 (GPIO 1), S3 (GPIO 3)
+uv_left   = ADC(Pin(2), atten=ADC.ATTN_11DB)
+uv_center = ADC(Pin(1), atten=ADC.ATTN_11DB)
+uv_right  = ADC(Pin(3), atten=ADC.ATTN_11DB)
+
+print("--- LOF TITAN UV SENSOR TELEMETRY ---")
+print("Shine UV light on sensor to observe live ADC values (0..4095)!")
+hw.play_startup_tone()
+
+while True:
+    val_l = uv_left.read()
+    val_c = uv_center.read()
+    val_r = uv_right.read()
+    print(f"UV [Left(S1): {val_l:4d} | Center(S2): {val_c:4d} | Right(S3): {val_r:4d}]")
+    time.sleep_ms(${uvInterval})
+`;
+          }
+          return activeExperimentModal.experiment?.testCode || '';
+        };
+
+        const activeCode = getDynamicCode();
+
+        return (
+          <div className="fixed inset-0 z-[140] flex items-center justify-center p-3 sm:p-6 backdrop-blur-md bg-slate-950/75 animate-fade-in">
+            <div className="relative w-full max-w-3xl rounded-[32px] bg-slate-900 text-slate-100 border border-slate-700/80 shadow-[0_25px_70px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col max-h-[92vh]">
               
-              {/* Protocol & Guide Card */}
-              <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2">
-                <span className="text-xs font-extrabold uppercase text-amber-400 tracking-wider block">
-                  🧪 Experiment Protocol & Observation Guide:
-                </span>
-                <p className="text-sm text-slate-200 whitespace-pre-line leading-relaxed">
-                  {activeExperimentModal.experiment?.instruction}
-                </p>
-              </div>
+              {/* Top Modal Header */}
+              <div className="h-16 px-6 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-bold shadow-md">
+                    <Zap size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-extrabold text-base sm:text-lg text-white">
+                      {activeExperimentModal.experiment?.title}
+                    </h3>
+                    <span className="text-xs text-slate-400 font-medium">
+                      {activeExperimentModal.name} · {activeExperimentModal.pinMapping}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Visual Blocks vs Code Toggle Pills */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center p-1 bg-slate-800 rounded-full border border-slate-700 text-xs font-bold">
+                    <button
+                      onClick={() => setExperimentTab('blocks')}
+                      className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                        experimentTab === 'blocks'
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Layers size={14} />
+                      <span>Visual Blocks</span>
+                    </button>
+                    <button
+                      onClick={() => setExperimentTab('code')}
+                      className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                        experimentTab === 'code'
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Code size={14} />
+                      <span>Python Code</span>
+                    </button>
+                  </div>
 
-              {/* Code Snippet Box */}
-              <div className="rounded-2xl bg-[#060911] border border-slate-800 overflow-hidden shadow-inner">
-                <div className="px-5 py-3 bg-[#0B1120] border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                  <span className="font-mono text-cyan-400 font-bold">lab_experiment.py</span>
                   <button
-                    onClick={() => handleCopy(activeExperimentModal.experiment?.testCode)}
-                    className="hover:text-white flex items-center gap-1.5 font-semibold text-xs cursor-pointer"
+                    onClick={() => setActiveExperimentModal(null)}
+                    className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    title="Close Experiment"
                   >
-                    {copiedCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                    <span>{copiedCode ? 'Copied' : 'Copy Code'}</span>
+                    <X size={20} />
                   </button>
                 </div>
-                <div className="p-5 font-mono text-xs sm:text-sm text-sky-200 overflow-x-auto max-h-64 scrollbar-thin scrollbar-thumb-slate-800 leading-relaxed">
-                  <pre className="whitespace-pre">{activeExperimentModal.experiment?.testCode}</pre>
+              </div>
+
+              {/* Scrollable Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-slate-800">
+                
+                {/* Protocol & Guide Card */}
+                <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1.5">
+                  <span className="text-xs font-extrabold uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                    <Sparkles size={14} /> Experiment Guide & Observation:
+                  </span>
+                  <p className="text-xs sm:text-sm text-slate-300 whitespace-pre-line leading-relaxed">
+                    {activeExperimentModal.experiment?.instruction}
+                  </p>
+                </div>
+
+                {/* TAB 1: VISUAL BLOCKS INTERACTIVE VIEW */}
+                {experimentTab === 'blocks' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">
+                        Interactive Block Code Sequence
+                      </span>
+                      <span className="text-[11px] text-cyan-400 font-semibold flex items-center gap-1">
+                        <Sparkles size={12} /> Live interactive parameters
+                      </span>
+                    </div>
+
+                    {/* Visual Blockly Block Container */}
+                    <div className="p-5 rounded-2xl bg-[#070D19] border border-slate-800/90 shadow-inner space-y-3 font-sans">
+                      
+                      {/* Event Start Block */}
+                      <div className="max-w-md p-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs sm:text-sm shadow-md flex items-center gap-2 border-t-2 border-amber-300">
+                        <Play size={16} className="fill-slate-950" />
+                        <span>WHEN LOF TITAN STARTS</span>
+                      </div>
+
+                      {/* DC Motor Blocks Sequence */}
+                      {isDcMotor && (
+                        <div className="pl-4 border-l-4 border-amber-500/40 space-y-3">
+                          
+                          {/* Block 1: Motor Direction Picker */}
+                          <div className="p-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 text-white font-bold text-xs sm:text-sm shadow-md flex flex-wrap items-center justify-between gap-3 border-l-4 border-cyan-300">
+                            <div className="flex items-center gap-2">
+                              <Cpu size={16} />
+                              <span>SET DUAL MOTORS DIRECTION TO</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 p-1 bg-black/30 rounded-lg border border-white/10">
+                              <button
+                                onClick={() => setMotorDirection('FORWARD')}
+                                className={`px-2.5 py-1 rounded-md text-xs font-extrabold transition-all cursor-pointer ${
+                                  motorDirection === 'FORWARD' ? 'bg-cyan-400 text-slate-950 shadow-sm' : 'text-slate-300 hover:text-white'
+                                }`}
+                              >
+                                FORWARD
+                              </button>
+                              <button
+                                onClick={() => setMotorDirection('BACKWARD')}
+                                className={`px-2.5 py-1 rounded-md text-xs font-extrabold transition-all cursor-pointer ${
+                                  motorDirection === 'BACKWARD' ? 'bg-amber-400 text-slate-950 shadow-sm' : 'text-slate-300 hover:text-white'
+                                }`}
+                              >
+                                BACKWARD
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Block 2: Motor Speed Slider Block */}
+                          <div className="p-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 text-white font-bold text-xs sm:text-sm shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 border-cyan-300">
+                            <div className="flex items-center gap-2">
+                              <Zap size={16} />
+                              <span>SET SPEED (M1 & M2) TO:</span>
+                            </div>
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                              <input 
+                                type="range" 
+                                min="20" 
+                                max="100" 
+                                step="5"
+                                value={motorSpeed} 
+                                onChange={(e) => setMotorSpeed(Number(e.target.value))}
+                                className="w-full sm:w-36 accent-cyan-300 cursor-pointer"
+                              />
+                              <span className="px-3 py-1 bg-black/40 rounded-lg font-mono text-cyan-300 font-extrabold text-xs shrink-0 border border-white/10">
+                                {motorSpeed}%
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Block 3: Duration / Timing Block */}
+                          <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 border-blue-300">
+                            <div className="flex items-center gap-2">
+                              <Clock size={16} />
+                              <span>RUN MOTOR STRIDE FOR:</span>
+                            </div>
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                              <input 
+                                type="range" 
+                                min="0.5" 
+                                max="5.0" 
+                                step="0.5"
+                                value={motorDuration} 
+                                onChange={(e) => setMotorDuration(Number(e.target.value))}
+                                className="w-full sm:w-36 accent-blue-300 cursor-pointer"
+                              />
+                              <span className="px-3 py-1 bg-black/40 rounded-lg font-mono text-blue-300 font-extrabold text-xs shrink-0 border border-white/10">
+                                {motorDuration}s
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Block 4: Stop & Sound Block */}
+                          <div className="p-3 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-between border-l-4 border-rose-300">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 size={16} />
+                              <span>STOP ALL MOTORS & PLAY AUDIO TONE</span>
+                            </div>
+                            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-black/30 text-rose-200">
+                              Safe Stop
+                            </span>
+                          </div>
+
+                        </div>
+                      )}
+
+                      {/* UV Sensor Blocks Sequence */}
+                      {isUvSensor && (
+                        <div className="pl-4 border-l-4 border-amber-500/40 space-y-3">
+                          
+                          {/* Loop Forever Block */}
+                          <div className="p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xs sm:text-sm shadow-md flex items-center gap-2 border-l-4 border-indigo-300">
+                            <RotateCcw size={16} />
+                            <span>REPEAT FOREVER (CONTINUOUS TELEMETRY)</span>
+                          </div>
+
+                          <div className="pl-4 border-l-4 border-indigo-500/40 space-y-3">
+                            {/* Block 1: Read Sensor */}
+                            <div className="p-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-between border-l-4 border-purple-300">
+                              <div className="flex items-center gap-2">
+                                <Sun size={16} className="text-amber-300" />
+                                <span>READ ANALOG UV INTENSITY</span>
+                              </div>
+                              <span className="text-xs font-mono font-extrabold px-2.5 py-1 rounded bg-black/30 text-amber-300 border border-white/10">
+                                Ports S1, S2, S3 (0..4095)
+                              </span>
+                            </div>
+
+                            {/* Block 2: Print to Serial */}
+                            <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-between border-l-4 border-emerald-300">
+                              <div className="flex items-center gap-2">
+                                <Terminal size={16} />
+                                <span>STREAM ADC READINGS TO SERIAL MONITOR</span>
+                              </div>
+                              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-black/30 text-emerald-200">
+                                115200 Baud
+                              </span>
+                            </div>
+
+                            {/* Block 3: Sampling Interval Slider */}
+                            <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 border-blue-300">
+                              <div className="flex items-center gap-2">
+                                <Clock size={16} />
+                                <span>SAMPLING INTERVAL DELAY:</span>
+                              </div>
+                              <div className="flex items-center gap-3 w-full sm:w-auto">
+                                <input 
+                                  type="range" 
+                                  min="50" 
+                                  max="500" 
+                                  step="25"
+                                  value={uvInterval} 
+                                  onChange={(e) => setUvInterval(Number(e.target.value))}
+                                  className="w-full sm:w-36 accent-blue-300 cursor-pointer"
+                                />
+                                <span className="px-3 py-1 bg-black/40 rounded-lg font-mono text-blue-300 font-extrabold text-xs shrink-0 border border-white/10">
+                                  {uvInterval} ms
+                                </span>
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: PYTHON CODE RAW VIEW */}
+                {experimentTab === 'code' && (
+                  <div className="rounded-2xl bg-[#060911] border border-slate-800 overflow-hidden shadow-inner">
+                    <div className="px-5 py-3 bg-[#0B1120] border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                      <span className="font-mono text-cyan-400 font-bold">lab_experiment.py</span>
+                      <button
+                        onClick={() => handleCopy(activeCode)}
+                        className="hover:text-white flex items-center gap-1.5 font-semibold text-xs cursor-pointer"
+                      >
+                        {copiedCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                        <span>{copiedCode ? 'Copied' : 'Copy Code'}</span>
+                      </button>
+                    </div>
+                    <div className="p-5 font-mono text-xs sm:text-sm text-sky-200 overflow-x-auto max-h-64 scrollbar-thin scrollbar-thumb-slate-800 leading-relaxed">
+                      <pre className="whitespace-pre">{activeCode}</pre>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Bottom Actions Footer */}
+              <div className="p-4 px-6 bg-[#0F172A] border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      onOpenSerialMonitor?.();
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Terminal size={15} className="text-emerald-400" />
+                    <span>Serial Monitor</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveExperimentModal(null);
+                      onOpenBlockCode?.();
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-indigo-300 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-700/60 transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Code size={15} className="text-indigo-400" />
+                    <span>Open in Full Block Studio</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => setActiveExperimentModal(null)}
+                    className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+
+                  <button
+                    onClick={() => onUploadCode?.(activeCode)}
+                    className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                  >
+                    <Upload size={15} />
+                    <span>Upload & Run on TITAN</span>
+                  </button>
                 </div>
               </div>
 
             </div>
-
-            {/* Bottom Actions Footer */}
-            <div className="p-4 px-6 bg-[#0F172A] border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
-              <button
-                onClick={() => {
-                  onOpenSerialMonitor?.();
-                }}
-                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
-              >
-                <Terminal size={15} className="text-emerald-400" />
-                <span>Open Serial Monitor</span>
-              </button>
-
-              <div className="flex items-center gap-2.5">
-                <button
-                  onClick={() => setActiveExperimentModal(null)}
-                  className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition-colors cursor-pointer"
-                >
-                  Close
-                </button>
-
-                <button
-                  onClick={() => onUploadCode?.(activeExperimentModal.experiment?.testCode)}
-                  className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-md transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
-                >
-                  <Upload size={15} />
-                  <span>Upload & Run on TITAN</span>
-                </button>
-              </div>
-            </div>
-
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );
