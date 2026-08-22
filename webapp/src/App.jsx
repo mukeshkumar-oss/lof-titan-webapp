@@ -103,20 +103,20 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#060911] text-white relative overflow-x-hidden">
       {/* Dynamic Interactive WebGL Galaxy Background (Optimized & Paused during modal workflows) */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-80">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-90">
         <Galaxy 
           mouseRepulsion={true}
           mouseInteraction={!isAnyModalOpen}
           disableAnimation={isAnyModalOpen}
           density={1.0}
-          glowIntensity={0.4}
-          saturation={0.75}
+          glowIntensity={0.45}
+          saturation={0.8}
           hueShift={200}
           speed={0.25}
           starSpeed={0.12}
           rotationSpeed={0.02}
           repulsionStrength={1.0}
-          twinkleIntensity={0.2}
+          twinkleIntensity={0.25}
           transparent={true}
         />
       </div>
@@ -161,37 +161,62 @@ function App() {
             <button 
               onClick={() => setShowAIAssistant(true)}
               className="flex items-center gap-2 px-3 py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-white/5 text-gray-300 transition-all duration-300"
-              title="Open AI Assistant"
+              title="Open AI Studio"
             >
-              <Bot size={18} className="text-orange-400" />
-              <span className="hidden xl:inline">AI Assistant</span>
+              <Bot size={18} className="text-purple-400" />
+              <span className="hidden xl:inline">AI Studio</span>
             </button>
 
             <button 
-              onClick={handleOpenFlasher}
-              className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-gradient-to-r from-purple-600/30 to-indigo-600/30 text-purple-300 hover:from-purple-600/50 hover:to-indigo-600/50 border border-purple-500/40 transition-all duration-300 shadow-sm hover:shadow-[0_0_15px_rgba(168,85,247,0.4)]"
-              title="Open Dedicated Firmware Flasher"
+              onClick={() => setShowFlasherModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-full font-bold bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 shadow-md hover:shadow-orange-500/20 active:scale-95 transition-all duration-300 cursor-pointer"
+              title="Direct Web Serial Firmware Flasher"
             >
-              <Cpu size={18} className="text-purple-400" />
+              <Cpu size={18} />
               <span>Flash Firmware</span>
             </button>
 
-            {device.connected ? (
-              <button 
-                onClick={device.disconnect}
-                className="flex items-center gap-2 px-5 py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-red-500/20 text-red-400 transition-all duration-300"
-              >
-                Disconnect
-              </button>
+            {device.isConnected ? (
+              <>
+                <button 
+                  onClick={device.runCode}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-all duration-300"
+                  title="Run Program"
+                >
+                  <Play size={18} />
+                  Run
+                </button>
+                <button 
+                  onClick={device.stopExecution}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300"
+                  title="Stop Program"
+                >
+                  <Square size={18} />
+                  Stop
+                </button>
+                <button 
+                  onClick={device.softReset}
+                  className="flex items-center gap-2 px-3 py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-white/5 text-gray-300 transition-all duration-300"
+                  title="Soft Reset Board"
+                >
+                  <RotateCcw size={18} />
+                </button>
+                <button 
+                  onClick={device.disconnectBLE}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all duration-300"
+                >
+                  Disconnect
+                </button>
+              </>
             ) : (
               <>
                 <button 
                   onClick={device.connectSerial}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-300 bg-gradient-to-r from-cyan-500 to-blue-600 hover:shadow-glow text-white"
-                  title="Connect via USB Serial COM Port"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-300 bg-surface border border-white/10 hover:bg-white/5 text-gray-300"
+                  title="Connect via Web Serial (USB)"
                 >
                   <Usb size={18} />
-                  Connect COM Port
+                  Connect USB
                 </button>
 
                 <button 
@@ -221,8 +246,8 @@ function App() {
                 onItemClick={() => handleProjectSelect(projects[0])} 
               />
 
-              {/* Play Store Style Projects Gallery - Translucent Glassmorphism allowing Galaxy Background through */}
-              <section className="p-6 rounded-3xl bg-slate-950/25 border border-white/[0.08] backdrop-blur-md shadow-[0_20px_60px_rgba(0,0,0,0.3)] space-y-6">
+              {/* Play Store Style Projects Gallery - Ultra-Sheer Translucent Glassmorphism */}
+              <section className="p-6 rounded-3xl bg-white/[0.02] border border-white/[0.07] backdrop-blur-xs shadow-2xl space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md">
@@ -242,7 +267,7 @@ function App() {
                     <div 
                       key={p.id}
                       onClick={() => handleProjectSelect(p)}
-                      className="group rounded-3xl bg-slate-950/40 hover:bg-slate-900/60 border border-white/[0.08] hover:border-cyan-500/50 p-4 sm:p-5 cursor-pointer transition-all duration-300 shadow-lg hover:shadow-[0_12px_35px_rgba(6,182,212,0.18)] backdrop-blur-xs flex flex-col justify-between gap-4 relative overflow-hidden"
+                      className="group rounded-3xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.07] hover:border-cyan-500/50 p-4 sm:p-5 cursor-pointer transition-all duration-300 shadow-md hover:shadow-[0_12px_35px_rgba(6,182,212,0.18)] backdrop-blur-xs flex flex-col justify-between gap-4 relative overflow-hidden"
                     >
                       {/* Top Thumbnail Showcase - Full Sleek Border Fit */}
                       <div className="w-full h-56 rounded-2xl overflow-hidden relative bg-slate-950 border border-white/10 shadow-inner group-hover:border-cyan-500/30 transition-colors">
