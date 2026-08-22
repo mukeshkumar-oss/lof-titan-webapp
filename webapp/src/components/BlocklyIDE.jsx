@@ -488,8 +488,9 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
           <div className="flex items-center gap-3 shrink-0">
             <div className="relative w-9 h-9 rounded-full overflow-hidden shadow-[0_0_15px_rgba(186,230,253,0.8)] border border-sky-200">
               <img 
-                src="/assets/lunar_sphere_icon.png" 
+                src="/assets/lunar_sphere_icon.webp" 
                 alt="LOF TITAN Lunar" 
+                decoding="async"
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.target.src = "/logo.webp";
@@ -696,15 +697,17 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
                 {/* Official LAB OF FUTURE Logo (Lowered) */}
                 <div className="w-full px-4 pt-2.5 z-10 flex items-center justify-center">
                   <img 
-                    src="/assets/lab_of_future_logo.png" 
+                    src="/assets/lab_of_future_logo.webp" 
                     alt="Lab of Future - Be Curious" 
+                    decoding="async"
                     className="w-32 h-auto object-contain drop-shadow-sm hover:scale-105 transition-transform"
                   />
                 </div>
 
                 <img 
-                  src="/assets/lunar_landscape.png" 
+                  src="/assets/lunar_landscape.webp" 
                   alt="Lunar Landscape" 
+                  decoding="async"
                   className="absolute inset-0 w-full h-full object-cover object-bottom pointer-events-none"
                   onError={(e) => {
                     e.target.style.display = 'none';

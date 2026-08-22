@@ -14,35 +14,35 @@ const carouselItems = [
   {
     title: "Axes 3 DIY Kit",
     description: "Advanced multi-axis robotics system engineered for precision motion, intelligent telemetry, and autonomous mission control.",
-    image: "/assets/banners/banner_axes3.png",
+    image: "/assets/banners/banner_axes3.webp",
     badge: "DIY Robotics Kit",
     buttonText: "Explore Now"
   },
   {
     title: "Aqua Nova DIY Kit",
     description: "Build a fully functional sensing rover that detects motion and water to navigate unpredictable terrain and aquatic environments.",
-    image: "/assets/banners/banner_aquanova_diy.png",
+    image: "/assets/banners/banner_aquanova_diy.webp",
     badge: "DIY Sensing Kit",
     buttonText: "Explore Now"
   },
   {
     title: "Invisible Line Patrol DIY Kit",
     description: "UV light-following 4-bar linkage walking robot engineered for autonomous line detection and kinetic robotic locomotion.",
-    image: "/assets/banners/banner_invisible_diy.png",
+    image: "/assets/banners/banner_invisible_diy.webp",
     badge: "DIY Walking Robot",
     buttonText: "Explore Now"
   },
   {
     title: "Heat Seek Rover DIY Kit",
     description: "Intelligent surrounding scanner with autonomous obstacle avoidance and integrated flame sensing technology for real-time fire detection.",
-    image: "/assets/banners/banner_heatseek_diy.png",
+    image: "/assets/banners/banner_heatseek_diy.webp",
     badge: "DIY Flame Rover",
     buttonText: "Explore Now"
   },
   {
     title: "Heart Beat DJ Bot DIY Kit",
     description: "Interactive musical bot that detects a person's heartbeat pulse and dynamically generates rhythmic tunes and music beats.",
-    image: "/assets/banners/banner_heartbeat_diy.png",
+    image: "/assets/banners/banner_heartbeat_diy.webp",
     badge: "DIY Music Bot",
     buttonText: "Explore Now"
   }
@@ -64,6 +64,8 @@ function App() {
   const [uploadProgress, setUploadProgress] = useState(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const consoleRef = useRef(null);
+
+  const isAnyModalOpen = showProjectModal || showBlockCode || showAIAssistant || showFlasherModal || showSerialMonitor;
 
   useEffect(() => {
     if (autoScroll && consoleRef.current) {
@@ -100,20 +102,21 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#060911] text-white relative overflow-x-hidden">
-      {/* Dynamic Interactive WebGL Galaxy Background */}
+      {/* Dynamic Interactive WebGL Galaxy Background (Optimized & Paused during modal workflows) */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-80">
         <Galaxy 
           mouseRepulsion={true}
-          mouseInteraction={true}
-          density={1.2}
-          glowIntensity={0.45}
-          saturation={0.8}
+          mouseInteraction={!isAnyModalOpen}
+          disableAnimation={isAnyModalOpen}
+          density={1.0}
+          glowIntensity={0.4}
+          saturation={0.75}
           hueShift={200}
           speed={0.25}
           starSpeed={0.12}
           rotationSpeed={0.02}
           repulsionStrength={1.0}
-          twinkleIntensity={0.25}
+          twinkleIntensity={0.2}
           transparent={true}
         />
       </div>
@@ -245,10 +248,12 @@ function App() {
                       {/* Top Thumbnail Showcase */}
                       <div className="w-full h-48 rounded-xl bg-black/40 border border-white/10 overflow-hidden flex items-center justify-center relative">
                         <img 
-                          src={p.thumbnail || p.heroImage || '/assets/invisible-line/invisible_line_main.png'} 
+                          src={p.thumbnail || p.heroImage || '/assets/invisible-line/invisible_line_main.webp'} 
                           alt={p.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
-                          onError={(e) => { e.target.src = '/assets/banners/banner_invisible_diy.png'; }}
+                          onError={(e) => { e.target.src = '/assets/banners/banner_invisible_diy.webp'; }}
                         />
                         <div className="absolute top-3 left-3">
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 backdrop-blur-md">

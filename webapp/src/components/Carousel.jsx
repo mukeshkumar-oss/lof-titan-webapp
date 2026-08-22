@@ -43,6 +43,8 @@ export function Carousel({ items, autoPlayInterval = 5000, onItemClick }) {
             <img 
               src={item.image} 
               alt={item.title} 
+              loading={index === 0 ? "eager" : "lazy"}
+              decoding="async"
               className="w-full h-full object-cover object-center transition-transform duration-10000 scale-100 group-hover:scale-105"
             />
             {/* Gradient Overlay for Text Readability */}
