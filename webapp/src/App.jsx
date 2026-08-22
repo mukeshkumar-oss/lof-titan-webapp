@@ -230,7 +230,6 @@ function App() {
                     </div>
                     <div>
                       <h2 className="text-2xl font-heading font-extrabold text-white">Project Store & DIY Robotics Kits</h2>
-                      <p className="text-xs text-slate-400">Select a DIY model kit to start building, learning components, and flashing firmware</p>
                     </div>
                   </div>
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-400/20">
