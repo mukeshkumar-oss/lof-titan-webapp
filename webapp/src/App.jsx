@@ -169,10 +169,10 @@ function App() {
 
             <button 
               onClick={() => setShowFlasherModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full font-bold bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 shadow-md hover:shadow-orange-500/20 active:scale-95 transition-all duration-300 cursor-pointer"
-              title="Direct Web Serial Firmware Flasher"
+              className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-gradient-to-r from-purple-600/30 to-indigo-600/30 text-purple-300 hover:from-purple-600/50 hover:to-indigo-600/50 border border-purple-500/40 transition-all duration-300 shadow-sm hover:shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+              title="Open Dedicated Firmware Flasher"
             >
-              <Cpu size={18} />
+              <Cpu size={18} className="text-purple-400" />
               <span>Flash Firmware</span>
             </button>
 
