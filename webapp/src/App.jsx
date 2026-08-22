@@ -221,8 +221,8 @@ function App() {
                 onItemClick={() => handleProjectSelect(projects[0])} 
               />
 
-              {/* Play Store Style Projects Gallery */}
-              <section className="p-6 rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-xl shadow-2xl space-y-6">
+              {/* Play Store Style Projects Gallery - Translucent Glassmorphism allowing Galaxy Background through */}
+              <section className="p-6 rounded-3xl bg-slate-950/25 border border-white/[0.08] backdrop-blur-md shadow-[0_20px_60px_rgba(0,0,0,0.3)] space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md">
@@ -232,7 +232,7 @@ function App() {
                       <h2 className="text-2xl font-heading font-extrabold text-white">Project Store & DIY Robotics Kits</h2>
                     </div>
                   </div>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-400/20">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-400/20 backdrop-blur-xs">
                     {projects.length} Official Kits Available
                   </span>
                 </div>
@@ -242,27 +242,27 @@ function App() {
                     <div 
                       key={p.id}
                       onClick={() => handleProjectSelect(p)}
-                      className="group rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/50 p-5 cursor-pointer transition-all duration-300 shadow-lg hover:shadow-cyan-500/10 flex flex-col justify-between space-y-4 relative overflow-hidden"
+                      className="group rounded-3xl bg-slate-950/40 hover:bg-slate-900/60 border border-white/[0.08] hover:border-cyan-500/50 p-4 sm:p-5 cursor-pointer transition-all duration-300 shadow-lg hover:shadow-[0_12px_35px_rgba(6,182,212,0.18)] backdrop-blur-xs flex flex-col justify-between gap-4 relative overflow-hidden"
                     >
-                      {/* Top Thumbnail Showcase */}
-                      <div className="w-full h-48 rounded-xl bg-black/40 border border-white/10 overflow-hidden flex items-center justify-center relative">
+                      {/* Top Thumbnail Showcase - Full Sleek Border Fit */}
+                      <div className="w-full h-56 rounded-2xl overflow-hidden relative bg-slate-950 border border-white/10 shadow-inner group-hover:border-cyan-500/30 transition-colors">
                         <img 
                           src={p.thumbnail || p.heroImage || '/assets/invisible-line/invisible_line_main.webp'} 
                           alt={p.name}
                           loading="lazy"
                           decoding="async"
-                          className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
+                          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                           onError={(e) => { e.target.src = '/assets/banners/banner_invisible_diy.webp'; }}
                         />
                         <div className="absolute top-3 left-3">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 backdrop-blur-md">
+                          <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-slate-950/75 text-cyan-300 border border-cyan-400/40 backdrop-blur-md shadow-sm">
                             {p.badge || 'DIY Kit'}
                           </span>
                         </div>
                       </div>
 
                       {/* Info & Metadata */}
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
                         <div className="flex items-center justify-between text-xs text-slate-300">
                           <div className="flex items-center gap-1 text-amber-400 font-bold">
                             <span>★</span>
@@ -274,7 +274,7 @@ function App() {
                           </span>
                         </div>
 
-                        <h3 className="font-heading font-extrabold text-base text-white group-hover:text-cyan-300 transition-colors">
+                        <h3 className="font-heading font-extrabold text-base sm:text-lg text-white group-hover:text-cyan-300 transition-colors line-clamp-1">
                           {p.name}
                         </h3>
                       </div>
