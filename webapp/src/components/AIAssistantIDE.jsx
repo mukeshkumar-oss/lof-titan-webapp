@@ -237,11 +237,22 @@ if __name__ == '__main__':
     }
   }, [device?.consoleOutput, autoScroll, showSerialMonitor]);
 
-  // Extract python code from markdown
+  // Extract python code from markdown (handles closed, unclosed, and raw code)
   const extractPythonCode = (text) => {
-    const match = text.match(/```python\s*([\s\S]*?)\s*```/) || text.match(/```\s*([\s\S]*?)\s*```/);
-    if (match && match[1]) {
-      return match[1].trim();
+    if (!text) return null;
+    // 1. Try matching closed code block ```python ... ```
+    const matchClosed = text.match(/```(?:python|py)?\s*([\s\S]*?)\s*```/i);
+    if (matchClosed && matchClosed[1]?.trim()) {
+      return matchClosed[1].trim();
+    }
+    // 2. Try matching unclosed code block ```python ...
+    const matchUnclosed = text.match(/```(?:python|py)?\s*([\s\S]*)/i);
+    if (matchUnclosed && matchUnclosed[1]?.trim()) {
+      return matchUnclosed[1].trim();
+    }
+    // 3. Fallback: If text itself is a raw python script
+    if ((text.includes("import ") || text.includes("def main()")) && (text.includes("Pin") || text.includes("machine") || text.includes("hw."))) {
+      return text.trim();
     }
     return null;
   };
@@ -287,7 +298,7 @@ if __name__ == '__main__':
           generationConfig: {
             temperature: 0.2,
             topP: 0.95,
-            maxOutputTokens: 2500
+            maxOutputTokens: 8192
           }
         })
       });
@@ -378,25 +389,38 @@ if __name__ == '__main__':
   // Helper to safely render markdown text and nicely contained code blocks
   const renderFormattedMessage = (text) => {
     if (!text) return null;
+
     const parts = [];
-    const regex = /```(?:python|py)?\n?([\s\S]*?)```/g;
+    // Matches ```python ... ``` or unclosed ```python ...
+    const blockRegex = /```(?:python|py)?\s*([\s\S]*?)(?:```|$)/gi;
     let lastIndex = 0;
     let match;
 
-    while ((match = regex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push({ type: 'text', content: text.substring(lastIndex, match.index) });
+    if (text.includes('```')) {
+      while ((match = blockRegex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+          const preText = text.substring(lastIndex, match.index).trim();
+          if (preText) parts.push({ type: 'text', content: preText });
+        }
+        const codeContent = match[1].trim();
+        if (codeContent) {
+          parts.push({ type: 'code', content: codeContent });
+        }
+        lastIndex = blockRegex.lastIndex;
+        if (match.index + match[0].length >= text.length) break;
       }
-      parts.push({ type: 'code', content: match[1].trim() });
-      lastIndex = regex.lastIndex;
-    }
-
-    if (lastIndex < text.length) {
-      parts.push({ type: 'text', content: text.substring(lastIndex) });
+      if (lastIndex < text.length) {
+        const postText = text.substring(lastIndex).trim();
+        if (postText) parts.push({ type: 'text', content: postText });
+      }
+    } else if (text.includes("import ") && (text.includes("Pin") || text.includes("PWM") || text.includes("time.sleep"))) {
+      parts.push({ type: 'code', content: text.trim() });
+    } else {
+      parts.push({ type: 'text', content: text });
     }
 
     return (
-      <div className="space-y-2.5 break-words overflow-hidden">
+      <div className="space-y-3 break-words overflow-hidden">
         {parts.map((p, idx) => {
           if (p.type === 'text') {
             return (
@@ -406,21 +430,57 @@ if __name__ == '__main__':
             );
           } else {
             return (
-              <div key={idx} className="my-2 rounded-xl bg-[#0B0F19] border border-slate-700/80 overflow-hidden shadow-sm">
-                <div className="px-3 py-1.5 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="font-mono text-cyan-400 font-semibold flex items-center gap-1.5">
-                    <FileCode size={13} /> MicroPython
+              <div key={idx} className="my-2.5 rounded-2xl bg-[#0B0F19] border border-slate-700/80 shadow-lg overflow-hidden">
+                {/* Code Block Top Header with Quick Action Buttons */}
+                <div className="px-3.5 py-2 bg-[#0F172A] border-b border-slate-800 flex items-center justify-between gap-2 flex-wrap text-xs">
+                  <span className="font-mono text-cyan-400 font-bold flex items-center gap-1.5">
+                    <FileCode size={14} className="text-cyan-400" />
+                    <span>MicroPython Code (LOF TITAN)</span>
                   </span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(p.content);
-                    }}
-                    className="hover:text-white flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 transition-colors"
-                  >
-                    <Copy size={11} /> Copy
-                  </button>
+                  
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      onClick={() => {
+                        setEditorCode(p.content);
+                        setShowPythonDrawer(true);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/40 text-[11px] font-semibold transition-all cursor-pointer shadow-xs"
+                      title="Open and edit in Python drawer"
+                    >
+                      <Code size={12} />
+                      <span>Edit in Drawer</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(p.content);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition-all cursor-pointer"
+                      title="Copy code to clipboard"
+                    >
+                      <Copy size={12} />
+                      <span>Copy</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setEditorCode(p.content);
+                        setShowSerialMonitor(true);
+                        if (onUploadCode) onUploadCode(p.content);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-[11px] font-bold shadow-md transition-all active:scale-95 cursor-pointer"
+                      title="Upload and run directly on LOF TITAN board"
+                    >
+                      <Upload size={12} />
+                      <span>Run on TITAN</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="p-3 overflow-x-auto font-mono text-xs text-cyan-200 leading-relaxed scrollbar-thin scrollbar-thumb-slate-700 max-w-full">
+
+                {/* Code Body with High-Contrast Syntax Style */}
+                <div className="p-4 overflow-x-auto font-mono text-xs sm:text-sm text-sky-200 leading-relaxed scrollbar-thin scrollbar-thumb-slate-700 max-h-[420px]">
                   <pre className="whitespace-pre">{p.content}</pre>
                 </div>
               </div>
