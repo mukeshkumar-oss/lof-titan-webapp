@@ -292,9 +292,11 @@ export function ProjectStoreDetailModal({
                     {project.name}
                   </h1>
 
-                  <p className="text-slate-700 text-base sm:text-lg lg:text-xl leading-relaxed font-normal">
-                    {project.description}
-                  </p>
+                  {project.description && (
+                    <p className="text-slate-700 text-base sm:text-lg lg:text-xl leading-relaxed font-normal">
+                      {project.description}
+                    </p>
+                  )}
                 </div>
 
                 {/* Key Spec Badges */}

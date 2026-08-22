@@ -277,10 +277,6 @@ function App() {
                         <h3 className="font-heading font-extrabold text-base text-white group-hover:text-cyan-300 transition-colors">
                           {p.name}
                         </h3>
-
-                        <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                          {p.description}
-                        </p>
                       </div>
 
                       {/* Bottom Action Bar */}
