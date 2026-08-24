@@ -94,17 +94,32 @@
 }
 
 /* Flyout background and styling */
+.lunar-blockly-wrapper .blocklyFlyout {
+  z-index: 40 !important;
+}
+
 .lunar-blockly-wrapper .blocklyFlyoutBackground {
-  fill: rgba(255, 255, 255, 0.95) !important;
-  fill-opacity: 0.95 !important;
-  stroke: rgba(226, 232, 240, 0.8) !important;
-  stroke-width: 1px !important;
-  filter: drop-shadow(4px 0px 12px rgba(0, 0, 0, 0.05));
+  fill: rgba(255, 255, 255, 0.96) !important;
+  fill-opacity: 0.96 !important;
+  stroke: #E2E8F0 !important;
+  stroke-width: 1.5px !important;
+  filter: drop-shadow(4px 0px 16px rgba(0, 0, 0, 0.08)) !important;
+}
+
+.lunar-blockly-wrapper .blocklyFlyoutScrollbar {
+  opacity: 1 !important;
+  display: block !important;
+  z-index: 50 !important;
 }
 
 .lunar-blockly-wrapper .blocklyFlyoutScrollbar .blocklyScrollbarHandle {
-  fill: #CBD5E1 !important;
+  fill: #94A3B8 !important;
   rx: 4px;
+  cursor: pointer;
+}
+
+.lunar-blockly-wrapper .blocklyFlyoutScrollbar:hover .blocklyScrollbarHandle {
+  fill: #64748B !important;
 }
 
 .lunar-blockly-wrapper .blocklyScrollbarHandle {

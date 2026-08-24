@@ -80,6 +80,7 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
   // Category Configuration matching the Lunar Light design
   const categories = [
     { name: "LOF TITAN", icon: Cpu, color: "#38bdf8", bg: "#f0f9ff", customId: "titan" },
+    { name: "Sensors", icon: Sparkles, color: "#06b6d4", bg: "#ecfeff", customId: "sensors" },
     { name: "Motors", icon: Settings, color: "#a855f7", bg: "#faf5ff", customId: "motors" },
     { name: "IOT", icon: Wifi, color: "#0ea5e9", bg: "#f0f9ff", customId: "iot" },
     { name: "Display", icon: Tv, color: "#8b5cf6", bg: "#f5f3ff", customId: "display" },
@@ -227,17 +228,71 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
         }
       }
 
-      // Ensure flyout autoClose is enabled and scale is fixed at 1.0
+      // Ensure flyout scale is strictly fixed at 0.85 independent of main canvas zoom
+      const FIXED_FLYOUT_SCALE = 0.85;
+
       const fixFlyout = () => {
         const fl = workspace.getFlyout() || workspace.getToolbox()?.getFlyout();
         if (fl) {
           fl.autoClose = true;
           if (fl.workspace_) {
-            fl.workspace_.setScale(1.0);
+            fl.workspace_.scale = FIXED_FLYOUT_SCALE;
             // Lock flyout workspace scale so it stays fixed regardless of main canvas zoom
             fl.workspace_.setScale = function() {
-              Blockly.WorkspaceSvg.prototype.setScale.call(this, 1.0);
+              this.scale = FIXED_FLYOUT_SCALE;
+              Blockly.WorkspaceSvg.prototype.setScale.call(this, FIXED_FLYOUT_SCALE);
             };
+          }
+
+          if (!fl._titanScrollFixed) {
+            const origShow = fl.show ? fl.show.bind(fl) : null;
+            if (origShow) {
+              fl.show = function(xmlList) {
+                origShow(xmlList);
+                if (this.workspace_) {
+                  this.workspace_.scale = FIXED_FLYOUT_SCALE;
+                  Blockly.WorkspaceSvg.prototype.setScale.call(this.workspace_, FIXED_FLYOUT_SCALE);
+                  if (typeof this.reflow === 'function') {
+                    this.reflow();
+                  }
+                }
+                if (this.scrollbar_) {
+                  try {
+                    this.scrollbar_.setVisible(true);
+                    this.scrollbar_.resize();
+                  } catch (e) {}
+                }
+              };
+            }
+
+            const origReflow = fl.reflow ? fl.reflow.bind(fl) : null;
+            if (origReflow) {
+              fl.reflow = function() {
+                if (this.workspace_) {
+                  this.workspace_.scale = FIXED_FLYOUT_SCALE;
+                }
+                origReflow();
+                if (this.workspace_) {
+                  this.workspace_.scale = FIXED_FLYOUT_SCALE;
+                  Blockly.WorkspaceSvg.prototype.setScale.call(this.workspace_, FIXED_FLYOUT_SCALE);
+                }
+                if (this.scrollbar_) {
+                  try {
+                    this.scrollbar_.setVisible(true);
+                    this.scrollbar_.resize();
+                  } catch (e) {}
+                }
+              };
+            }
+
+            // Stop wheel events over the flyout from zooming or panning the main canvas
+            if (fl.svgGroup_) {
+              fl.svgGroup_.addEventListener('wheel', (evt) => {
+                evt.stopPropagation();
+              }, { passive: false });
+            }
+
+            fl._titanScrollFixed = true;
           }
         }
       };
@@ -369,9 +424,14 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
         toolbox.selectItemByPosition(targetIndex);
         const fl = workspaceRef.current?.getFlyout() || toolbox?.getFlyout();
         if (fl && fl.workspace_) {
-          if (fl.workspace_.scale !== 1.0) {
-            Blockly.WorkspaceSvg.prototype.setScale.call(fl.workspace_, 1.0);
-            if (typeof fl.reflow === 'function') fl.reflow();
+          fl.workspace_.scale = 0.85;
+          Blockly.WorkspaceSvg.prototype.setScale.call(fl.workspace_, 0.85);
+          if (typeof fl.reflow === 'function') fl.reflow();
+          if (fl.scrollbar_) {
+            try {
+              fl.scrollbar_.setVisible(true);
+              fl.scrollbar_.resize();
+            } catch (e) {}
           }
         }
       }

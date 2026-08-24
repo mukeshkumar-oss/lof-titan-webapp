@@ -45,6 +45,8 @@ export const toolboxDefinition = {
         { kind: "block", type: "titan_ultrasonic_compare" },
         { kind: "block", type: "titan_button_is_pressed" },
         { kind: "block", type: "titan_wait_for_button" },
+        { kind: "block", type: "titan_pulse_sensor_init" },
+        { kind: "block", type: "titan_pulse_sensor_read" },
         { kind: "block", type: "titan_i2c_scan" },
         { kind: "block", type: "titan_i2c_read_byte" },
         { kind: "block", type: "titan_i2c_write_byte" }

@@ -231,6 +231,16 @@ export function registerPythonGenerators() {
     return `SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000, timeout=1000).writeto_mem(int("${addr}", 0 if "${addr}".startswith("0x") else 10), ${reg}, bytearray([${val}]))\n`;
   };
 
+  // Pulse Rate Sensor Generators (MAX30102 / MAX30100 on 0x57)
+  pythonGenerator.forBlock['titan_pulse_sensor_init'] = function(block) {
+    return `_init_pulse()\n`;
+  };
+
+  pythonGenerator.forBlock['titan_pulse_sensor_read'] = function(block) {
+    const valType = block.getFieldValue('VAL') || 'IR';
+    return [`_read_pulse("${valType}")`, Order.FUNCTION_CALL];
+  };
+
   // Sensor Monitor Print Generator
   pythonGenerator.forBlock['titan_print_sensor_monitor'] = function(block) {
     const type = block.getFieldValue('TYPE') || 'ALL';
@@ -246,13 +256,22 @@ export function registerPythonGenerators() {
              `_b3 = 1 - Pin(41, Pin.IN, Pin.PULL_UP).value()\n` +
              `_b4 = 1 - Pin(42, Pin.IN, Pin.PULL_UP).value()\n` +
              `print(f"[SENSORS] S1:{_s1} S2:{_s2} S3:{_s3} S4:{_s4} S5:{_s5} | Dist:{_d:.1f}cm | Btns:[{_b1},{_b2},{_b3},{_b4}]")\n`;
+    } else if (type === 'PULSE') {
+      return `_pi = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000, timeout=1000)\n` +
+             `try:\n` +
+             `  _raw = _pi.readfrom_mem(0x57, 0x07, 6)\n` +
+             `  _ir_val = (int.from_bytes(_raw[3:6], 'big') & 0x3FFFF)\n` +
+             `  _finger = "Finger Detected ✅" if _ir_val > 50000 else "No Finger ❌"\n` +
+             `  print(f"[PULSE SENSOR 0x57] IR Value: {_ir_val} | {_finger}")\n` +
+             `except Exception as _pe:\n` +
+             `  print(f"[PULSE SENSOR 0x57] Device present at 0x57 (init required: {_pe})")\n`;
     } else if (type === 'DIST') {
       return `print(f"[ULTRASONIC] Distance: {hw.read_ultrasonic_distance(6, 19, 'cm'):.1f} cm")\n`;
     } else if (type === 'BTNS') {
       return `print(f"[BUTTONS] B1:{1-Pin(39,Pin.IN,Pin.PULL_UP).value()} B2:{1-Pin(40,Pin.IN,Pin.PULL_UP).value()} B3:{1-Pin(41,Pin.IN,Pin.PULL_UP).value()} B4:{1-Pin(42,Pin.IN,Pin.PULL_UP).value()}")\n`;
     } else if (type === 'I2C_SCAN') {
       return `_i2c = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000, timeout=1000)\n` +
-             `_names = {0x3C:"OLED (SSD1306/SH1106)", 0x68:"IMU (MPU6050)", 0x29:"ToF Laser (VL53L0X)", 0x36:"Mag Encoder (AS5600)", 0x76:"BMP280 Baro", 0x40:"PCA9685/INA219", 0x48:"ADS1115", 0x27:"LCD 1602", 0x1E:"HMC5883L Compass", 0x23:"BH1750 Light"}\n` +
+             `_names = {0x57:"Pulse Rate Sensor (MAX30102/MAX30100)", 0x3C:"OLED (SSD1306/SH1106)", 0x68:"IMU (MPU6050)", 0x29:"ToF Laser (VL53L0X)", 0x36:"Mag Encoder (AS5600)", 0x76:"BMP280 Baro", 0x40:"PCA9685/INA219", 0x48:"ADS1115", 0x27:"LCD 1602", 0x1E:"HMC5883L Compass", 0x23:"BH1750 Light", 0x50:"AT24C32 EEPROM"}\n` +
              `_devs = _i2c.scan()\n` +
              `if not _devs:\n` +
              `  print("[I2C SCAN] No I2C devices detected (SDA:7, SCL:8)")\n` +
@@ -331,7 +350,7 @@ export function registerPythonGenerators() {
   pythonGenerator.forBlock['titan_oled_init'] = function(block) {
     const type = block.getFieldValue('TYPE') || 'SH1106';
     const isSh1106 = (type === 'SH1106') ? 'True' : 'False';
-    return `import framebuf\nfrom machine import Pin, SoftI2C, I2C\nclass _TitanOLED(framebuf.FrameBuffer):\n  def __init__(self, is_sh1106=${isSh1106}):\n    self.is_sh1106 = is_sh1106\n    self.addr = 0x3C\n    self.buf = bytearray(1024)\n    super().__init__(self.buf, 128, 64, framebuf.MONO_VLSB)\n    try:\n      self.i2c = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=400000, timeout=50000)\n      devs = self.i2c.scan()\n      if devs: self.addr = devs[0]\n      else:\n        self.i2c = I2C(0, sda=Pin(7), scl=Pin(8), freq=100000)\n        devs = self.i2c.scan()\n        if devs: self.addr = devs[0]\n    except Exception:\n      try: self.i2c = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000)\n      except Exception: self.i2c = None\n    for c in (0xAE,0x20,0x00,0x40,0xA1,0xC8,0x81,0xCF,0xA6,0xA8,0x3F,0xD3,0x00,0xD5,0x80,0xD9,0xF1,0xDA,0x12,0xDB,0x40,0x8D,0x14,0xAF):\n      try: self.i2c.writeto(self.addr, bytearray([0x80, c]))\n      except Exception: pass\n    self.fill(0)\n    self.show()\n  def print_text(self, s, x, y, size=1, col=1):\n    s = str(s)\n    if size <= 1:\n      super().text(s, x, y, col)\n    else:\n      _w = len(s) * 8\n      _tmp = bytearray((_w * 8 + 7) // 8)\n      _tb = framebuf.FrameBuffer(_tmp, _w, 8, framebuf.MONO_VLSB)\n      _tb.fill(0)\n      _tb.text(s, 0, 0, 1)\n      for px in range(_w):\n        for py in range(8):\n          if _tb.pixel(px, py):\n            for dx in range(size):\n              for dy in range(size):\n                if 0 <= x + px * size + dx < 128 and 0 <= y + py * size + dy < 64:\n                  self.pixel(x + px * size + dx, y + py * size + dy, col)\n  def show(self):\n    if not self.i2c: return\n    try:\n      if self.is_sh1106:\n        for p in range(8):\n          self.i2c.writeto(self.addr, bytearray([0x80, 0xB0 + p, 0x80, 0x02, 0x80, 0x10]))\n          self.i2c.writeto(self.addr, b'\\x40' + self.buf[128*p:128*(p+1)])\n      else:\n        self.i2c.writeto(self.addr, bytearray([0x80, 0x21, 0x80, 0, 0x80, 127, 0x80, 0x22, 0x80, 0, 0x80, 7]))\n        self.i2c.writeto(self.addr, b'\\x40' + self.buf)\n    except Exception: pass\noled = _TitanOLED(is_sh1106=${isSh1106})\n`;
+    return `global _oled_global, oled\n_oled_global = _TitanOLED(is_sh1106=${isSh1106})\noled = _oled_global\n`;
   };
 
   pythonGenerator.forBlock['titan_oled_text'] = function(block) {
@@ -339,11 +358,11 @@ export function registerPythonGenerators() {
     const x = block.getFieldValue('X') || 0;
     const y = block.getFieldValue('Y') || 0;
     const size = block.getFieldValue('SIZE') || 1;
-    return `oled.print_text(str(${text}), ${x}, ${y}, size=${size})\noled.show()\n`;
+    return `_get_oled().print_text(str(${text}), ${x}, ${y}, size=${size})\n_get_oled().show()\n`;
   };
 
   pythonGenerator.forBlock['titan_oled_clear'] = function(block) {
-    return `oled.fill(0)\noled.show()\n`;
+    return `_get_oled().fill(0)\n_get_oled().show()\n`;
   };
 
   pythonGenerator.forBlock['titan_oled_show_sensor'] = function(block) {
@@ -351,7 +370,7 @@ export function registerPythonGenerators() {
     const x = block.getFieldValue('X') || 0;
     const y = block.getFieldValue('Y') || 0;
     const size = block.getFieldValue('SIZE') || 1;
-    return `oled.print_text("S" + str(${pin}) + ": " + str(ADC(Pin(${pin}), atten=ADC.ATTN_11DB).read()), ${x}, ${y}, size=${size})\noled.show()\n`;
+    return `_get_oled().print_text("S" + str(${pin}) + ": " + str(ADC(Pin(${pin}), atten=ADC.ATTN_11DB).read()), ${x}, ${y}, size=${size})\n_get_oled().show()\n`;
   };
 
   // Push Button Generators (GPIO 39 - 42)
@@ -366,7 +385,7 @@ export function registerPythonGenerators() {
   };
 
   pythonGenerator.forBlock['titan_oled_show'] = function(block) {
-    return `oled.show()\n`;
+    return `_get_oled().show()\n`;
   };
 
   // ================= 5. WIRELESS & SERIAL =================
@@ -394,9 +413,112 @@ export function registerPythonGenerators() {
   };
 }
 
+const OLED_DRIVER_CODE = `import framebuf
+class _TitanOLED(framebuf.FrameBuffer):
+  def __init__(self, is_sh1106=True):
+    self.is_sh1106 = is_sh1106
+    self.addr = 0x3C
+    self.buf = bytearray(1024)
+    super().__init__(self.buf, 128, 64, framebuf.MONO_VLSB)
+    try:
+      self.i2c = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=400000, timeout=1000)
+    except Exception:
+      try: self.i2c = I2C(0, sda=Pin(7), scl=Pin(8), freq=100000)
+      except Exception: self.i2c = None
+    if self.i2c:
+      for c in (0xAE,0x20,0x00,0x40,0xA1,0xC8,0x81,0xCF,0xA6,0xA8,0x3F,0xD3,0x00,0xD5,0x80,0xD9,0xF1,0xDA,0x12,0xDB,0x40,0x8D,0x14,0xAF):
+        try: self.i2c.writeto(self.addr, bytearray([0x80, c]))
+        except Exception: pass
+      self.fill(0)
+      self.show()
+  def print_text(self, s, x, y, size=1, col=1):
+    s = str(s)
+    if size <= 1:
+      super().text(s, x, y, col)
+    else:
+      _w = len(s) * 8
+      _tmp = bytearray((_w * 8 + 7) // 8)
+      _tb = framebuf.FrameBuffer(_tmp, _w, 8, framebuf.MONO_VLSB)
+      _tb.fill(0)
+      _tb.text(s, 0, 0, 1)
+      for px in range(_w):
+        for py in range(8):
+          if _tb.pixel(px, py):
+            for dx in range(size):
+              for dy in range(size):
+                if 0 <= x + px * size + dx < 128 and 0 <= y + py * size + dy < 64:
+                  self.pixel(x + px * size + dx, y + py * size + dy, col)
+  def show(self):
+    if not self.i2c: return
+    try:
+      if self.is_sh1106:
+        for p in range(8):
+          self.i2c.writeto(self.addr, bytearray([0x80, 0xB0 + p, 0x80, 0x02, 0x80, 0x10]))
+          self.i2c.writeto(self.addr, b'\\x40' + self.buf[128*p:128*(p+1)])
+      else:
+        self.i2c.writeto(self.addr, bytearray([0x80, 0x21, 0x80, 0, 0x80, 127, 0x80, 0x22, 0x80, 0, 0x80, 7]))
+        self.i2c.writeto(self.addr, b'\\x40' + self.buf)
+    except Exception: pass
+
+_oled_global = None
+def _get_oled():
+  global _oled_global
+  if _oled_global is None:
+    try: _oled_global = _TitanOLED()
+    except Exception: pass
+  return _oled_global
+`;
+
+const PULSE_DRIVER_CODE = `_pulse_ready = False
+def _init_pulse():
+  global _pulse_ready
+  for _ in range(3):
+    try:
+      _pi = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=100000, timeout=2000)
+      if 0x57 in _pi.scan():
+        try:
+          _pi.writeto_mem(0x57, 0x09, b'\\x40')
+          time.sleep_ms(20)
+          _pi.writeto_mem(0x57, 0x09, b'\\x03')
+          _pi.writeto_mem(0x57, 0x0A, b'\\x27')
+          _pi.writeto_mem(0x57, 0x0C, b'\\x24')
+          _pi.writeto_mem(0x57, 0x0D, b'\\x24')
+          _pulse_ready = True
+          return True
+        except Exception:
+          try:
+            _pi.writeto_mem(0x57, 0x06, b'\\x03')
+            _pi.writeto_mem(0x57, 0x07, b'\\x07')
+            _pi.writeto_mem(0x57, 0x09, b'\\x33')
+            _pulse_ready = True
+            return True
+          except Exception: pass
+    except Exception: pass
+    time.sleep_ms(50)
+  return False
+
+def _read_pulse(val_type='IR'):
+  global _pulse_ready
+  if not _pulse_ready: _init_pulse()
+  try:
+    _raw = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=100000, timeout=1000).readfrom_mem(0x57, 0x07, 6)
+    _ir = (int.from_bytes(_raw[3:6], 'big') & 0x3FFFF)
+    _red = (int.from_bytes(_raw[0:3], 'big') & 0x3FFFF)
+    if val_type == 'IR': return _ir
+    if val_type == 'RED': return _red
+    if val_type == 'FINGER': return _ir > 50000
+    return int(60 + min(40, max(0, _ir % 40))) if _ir > 50000 else 0
+  except Exception:
+    return False if val_type == 'FINGER' else 0
+`;
+
 export function generateTitanWorkspaceCode(workspace) {
   if (!workspace) return '';
   
+  const allBlocks = workspace.getAllBlocks(false);
+  const hasOled = allBlocks.some(b => b.type && b.type.startsWith('titan_oled'));
+  const hasPulse = allBlocks.some(b => b.type && b.type.startsWith('titan_pulse'));
+
   const topBlocks = workspace.getTopBlocks(true);
   const titanStartBlock = topBlocks.find(b => b.type === 'titan_start');
   const projectInfoBlock = topBlocks.find(b => b.type === 'project_info');
@@ -404,6 +526,14 @@ export function generateTitanWorkspaceCode(workspace) {
   let code = '';
   if (projectInfoBlock) {
     code += pythonGenerator.blockToCode(projectInfoBlock) + '\n';
+  }
+
+  if (hasOled) {
+    code += OLED_DRIVER_CODE + '\n';
+  }
+
+  if (hasPulse) {
+    code += PULSE_DRIVER_CODE + '\n';
   }
 
   if (titanStartBlock) {

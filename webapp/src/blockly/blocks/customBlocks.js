@@ -407,6 +407,37 @@ export function registerCustomBlocks() {
     }
   };
 
+  // Pulse Rate Sensor (MAX30102 / MAX30100)
+  Blockly.Blocks['titan_pulse_sensor_init'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("❤️ Initialize Pulse Sensor (MAX30102)")
+          .appendField("(I2C SDA: 7, SCL: 8)");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Initialize MAX30102 pulse oximeter & heart rate sensor on I2C port");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_pulse_sensor_read'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("❤️ Pulse Sensor")
+          .appendField(new Blockly.FieldDropdown([
+            ["IR Value (Raw Reflection)", "IR"],
+            ["Red Value (Raw Reflection)", "RED"],
+            ["Finger Placed? (True/False)", "FINGER"],
+            ["Heart Rate Estimated (BPM)", "BPM"]
+          ]), "VAL");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read optical pulse or heart rate values from MAX30102 pulse sensor");
+      this.setHelpUrl("");
+    }
+  };
+
   // Live Sensor Monitor Print Block (Terminal)
   Blockly.Blocks['titan_print_sensor_monitor'] = {
     init: function() {
@@ -414,6 +445,7 @@ export function registerCustomBlocks() {
           .appendField("📊 Print")
           .appendField(new Blockly.FieldDropdown([
             ["All Sensors Live Summary (S1-S5, Dist, Buttons)", "ALL"],
+            ["Pulse Rate Sensor (MAX30102)", "PULSE"],
             ["Analog Sensor S1 (GPIO 2)", "S1"],
             ["Analog Sensor S2 (GPIO 1)", "S2"],
             ["Analog Sensor S3 (GPIO 3)", "S3"],
