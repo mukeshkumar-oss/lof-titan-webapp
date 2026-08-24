@@ -9,13 +9,16 @@ export const toolboxDefinition = {
       contents: [
         { kind: "block", type: "titan_start" },
         { kind: "block", type: "project_info" },
+        { kind: "block", type: "titan_print_sensor_monitor" },
+        { kind: "block", type: "titan_print_labeled" },
         { kind: "block", type: "titan_sensor_read_analog" },
         { kind: "block", type: "titan_sensor_read_digital" },
         { kind: "block", type: "titan_ultrasonic_distance" },
+        { kind: "block", type: "titan_button_is_pressed" },
+        { kind: "block", type: "titan_i2c_scan" },
         { kind: "block", type: "titan_sensor_compare" },
         { kind: "block", type: "titan_digital_sensor_check" },
         { kind: "block", type: "titan_ultrasonic_compare" },
-        { kind: "block", type: "titan_button_is_pressed" },
         { kind: "block", type: "titan_wait_for_button" },
         { kind: "block", type: "titan_motor_dual_drive" },
         { kind: "block", type: "titan_motor_control" },
@@ -23,6 +26,28 @@ export const toolboxDefinition = {
         { kind: "block", type: "titan_onboard_buzzer_tone" },
         { kind: "block", type: "titan_wait" },
         { kind: "block", type: "titan_print" }
+      ]
+    },
+    {
+      kind: "category",
+      name: "Sensors",
+      colour: "#06b6d4",
+      customId: "sensors",
+      contents: [
+        { kind: "block", type: "titan_print_sensor_monitor" },
+        { kind: "block", type: "titan_print_labeled" },
+        { kind: "block", type: "titan_sensor_read_analog" },
+        { kind: "block", type: "titan_sensor_read_digital" },
+        { kind: "block", type: "titan_sensor_write_digital" },
+        { kind: "block", type: "titan_sensor_compare" },
+        { kind: "block", type: "titan_digital_sensor_check" },
+        { kind: "block", type: "titan_ultrasonic_distance" },
+        { kind: "block", type: "titan_ultrasonic_compare" },
+        { kind: "block", type: "titan_button_is_pressed" },
+        { kind: "block", type: "titan_wait_for_button" },
+        { kind: "block", type: "titan_i2c_scan" },
+        { kind: "block", type: "titan_i2c_read_byte" },
+        { kind: "block", type: "titan_i2c_write_byte" }
       ]
     },
     {
@@ -119,6 +144,8 @@ export const toolboxDefinition = {
       contents: [
         { kind: "block", type: "titan_text" },
         { kind: "block", type: "titan_print" },
+        { kind: "block", type: "titan_print_labeled" },
+        { kind: "block", type: "titan_print_sensor_monitor" },
         { kind: "block", type: "text_join" },
         { kind: "block", type: "text_length" }
       ]

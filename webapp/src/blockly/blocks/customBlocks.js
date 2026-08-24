@@ -362,6 +362,93 @@ export function registerCustomBlocks() {
     }
   };
 
+  // I2C Bus Scanner Block (SDA 7, SCL 8)
+  Blockly.Blocks['titan_i2c_scan'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("I2C Scan Devices (SDA: 7, SCL: 8)");
+      this.setOutput(true, "Array");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Scan I2C bus on GPIO 7 (SDA) and GPIO 8 (SCL), returns list of hex addresses");
+      this.setHelpUrl("");
+    }
+  };
+
+  // I2C Read Register Byte
+  Blockly.Blocks['titan_i2c_read_byte'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("I2C Read Byte (SDA 7, SCL 8) from Addr")
+          .appendField(new Blockly.FieldTextInput("0x3C"), "ADDR")
+          .appendField("Reg")
+          .appendField(new Blockly.FieldNumber(0, 0, 255), "REG");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Reads one byte from the specified I2C device address and register");
+      this.setHelpUrl("");
+    }
+  };
+
+  // I2C Write Register Byte
+  Blockly.Blocks['titan_i2c_write_byte'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("I2C Write Byte (SDA 7, SCL 8) to Addr")
+          .appendField(new Blockly.FieldTextInput("0x3C"), "ADDR")
+          .appendField("Reg")
+          .appendField(new Blockly.FieldNumber(0, 0, 255), "REG")
+          .appendField("Val")
+          .appendField(new Blockly.FieldNumber(0, 0, 255), "VAL");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Writes one byte to the specified I2C device address and register");
+      this.setHelpUrl("");
+    }
+  };
+
+  // Live Sensor Monitor Print Block (Terminal)
+  Blockly.Blocks['titan_print_sensor_monitor'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📊 Print")
+          .appendField(new Blockly.FieldDropdown([
+            ["All Sensors Live Summary (S1-S5, Dist, Buttons)", "ALL"],
+            ["Analog Sensor S1 (GPIO 2)", "S1"],
+            ["Analog Sensor S2 (GPIO 1)", "S2"],
+            ["Analog Sensor S3 (GPIO 3)", "S3"],
+            ["Analog Sensor S4 (GPIO 4)", "S4"],
+            ["Analog Sensor S5 (GPIO 5)", "S5"],
+            ["Ultrasonic Distance", "DIST"],
+            ["Push Buttons 1-4 States", "BTNS"],
+            ["I2C Scan Detected Addresses", "I2C_SCAN"]
+          ]), "TYPE")
+          .appendField("to Terminal");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('text_blocks');
+      this.setTooltip("Prints real-time sensor telemetry and diagnostics to the Serial Monitor / Console");
+      this.setHelpUrl("");
+    }
+  };
+
+  // Formatted Labeled Print Block
+  Blockly.Blocks['titan_print_labeled'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("print label")
+          .appendField(new Blockly.FieldTextInput("Sensor reading:"), "LABEL");
+      this.appendValueInput("VALUE")
+          .setCheck(null)
+          .appendField("value");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('text_blocks');
+      this.setTooltip("Prints a text label followed by any sensor value, number, or variable to Terminal");
+      this.setHelpUrl("");
+    }
+  };
+
   // Sensor Condition / Comparison Blocks for While Loops & If Statements
   Blockly.Blocks['titan_sensor_compare'] = {
     init: function() {

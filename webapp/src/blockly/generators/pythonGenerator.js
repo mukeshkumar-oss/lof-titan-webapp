@@ -213,6 +213,59 @@ export function registerPythonGenerators() {
     return [`hw.read_ultrasonic_distance(trig=6, echo=19, unit="${unit}")`, Order.FUNCTION_CALL];
   };
 
+  // I2C Generators (SDA: 7, SCL: 8)
+  pythonGenerator.forBlock['titan_i2c_scan'] = function(block) {
+    return [`[hex(a) for a in SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000).scan()]`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_i2c_read_byte'] = function(block) {
+    const addr = block.getFieldValue('ADDR') || '0x3C';
+    const reg = block.getFieldValue('REG') || 0;
+    return [`int.from_bytes(SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000).readfrom_mem(int("${addr}", 0 if "${addr}".startswith("0x") else 10), ${reg}, 1), 'big')`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_i2c_write_byte'] = function(block) {
+    const addr = block.getFieldValue('ADDR') || '0x3C';
+    const reg = block.getFieldValue('REG') || 0;
+    const val = block.getFieldValue('VAL') || 0;
+    return `SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000).writeto_mem(int("${addr}", 0 if "${addr}".startswith("0x") else 10), ${reg}, bytearray([${val}]))\n`;
+  };
+
+  // Sensor Monitor Print Generator
+  pythonGenerator.forBlock['titan_print_sensor_monitor'] = function(block) {
+    const type = block.getFieldValue('TYPE') || 'ALL';
+    if (type === 'ALL') {
+      return `_s1 = ADC(Pin(2), atten=ADC.ATTN_11DB).read()\n` +
+             `_s2 = ADC(Pin(1), atten=ADC.ATTN_11DB).read()\n` +
+             `_s3 = ADC(Pin(3), atten=ADC.ATTN_11DB).read()\n` +
+             `_s4 = ADC(Pin(4), atten=ADC.ATTN_11DB).read()\n` +
+             `_s5 = ADC(Pin(5), atten=ADC.ATTN_11DB).read()\n` +
+             `_d = hw.read_ultrasonic_distance(6, 19, "cm")\n` +
+             `_b1 = 1 - Pin(39, Pin.IN, Pin.PULL_UP).value()\n` +
+             `_b2 = 1 - Pin(40, Pin.IN, Pin.PULL_UP).value()\n` +
+             `_b3 = 1 - Pin(41, Pin.IN, Pin.PULL_UP).value()\n` +
+             `_b4 = 1 - Pin(42, Pin.IN, Pin.PULL_UP).value()\n` +
+             `print(f"[SENSORS] S1:{_s1} S2:{_s2} S3:{_s3} S4:{_s4} S5:{_s5} | Dist:{_d:.1f}cm | Btns:[{_b1},{_b2},{_b3},{_b4}]")\n`;
+    } else if (type === 'DIST') {
+      return `print(f"[ULTRASONIC] Distance: {hw.read_ultrasonic_distance(6, 19, 'cm'):.1f} cm")\n`;
+    } else if (type === 'BTNS') {
+      return `print(f"[BUTTONS] B1:{1-Pin(39,Pin.IN,Pin.PULL_UP).value()} B2:{1-Pin(40,Pin.IN,Pin.PULL_UP).value()} B3:{1-Pin(41,Pin.IN,Pin.PULL_UP).value()} B4:{1-Pin(42,Pin.IN,Pin.PULL_UP).value()}")\n`;
+    } else if (type === 'I2C_SCAN') {
+      return `_i2c_bus = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000)\nprint(f"[I2C SCAN] Devices found: {[hex(a) for a in _i2c_bus.scan()]}")\n`;
+    } else {
+      const pinMap = { 'S1': 2, 'S2': 1, 'S3': 3, 'S4': 4, 'S5': 5 };
+      const pin = pinMap[type] || 2;
+      return `print(f"[SENSOR ${type}] ADC Value: {ADC(Pin(${pin}), atten=ADC.ATTN_11DB).read()}")\n`;
+    }
+  };
+
+  // Labeled Print Generator
+  pythonGenerator.forBlock['titan_print_labeled'] = function(block) {
+    const label = block.getFieldValue('LABEL') || '';
+    const valCode = pythonGenerator.valueToCode(block, 'VALUE', Order.NONE) || "''";
+    return `print(f"${label} {${valCode}}")\n`;
+  };
+
   // Sensor Comparison / Conditions for If / While
   pythonGenerator.forBlock['titan_sensor_compare'] = function(block) {
     const pin = block.getFieldValue('PIN') || '2';
