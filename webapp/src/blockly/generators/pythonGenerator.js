@@ -4,7 +4,7 @@ export function registerPythonGenerators() {
   // ================= 1. TITAN BASE / START BLOCK (SCRATCH FLAG EQUIVALENT) =================
   pythonGenerator.forBlock['titan_start'] = function(block) {
     const branch = pythonGenerator.statementToCode(block, 'DO') || '    pass\n';
-    return `# ================= LOF TITAN MAIN =================\nimport time\nfrom machine import Pin, PWM, ADC, I2C, UART\nfrom supervisor.led_buzzer import hw\n\n_pwm_pool = {}\ndef _get_pwm(pin, freq=1000):\n    if pin not in _pwm_pool:\n        _pwm_pool[pin] = PWM(Pin(pin), freq=freq)\n    else:\n        try: _pwm_pool[pin].freq(freq)\n        except Exception: pass\n    return _pwm_pool[pin]\n\ndef main():\n${branch}\nif __name__ == '__main__':\n    main()\n`;
+    return `# ================= LOF TITAN MAIN =================\nimport time\nfrom machine import Pin, PWM, ADC, I2C, SoftI2C, UART\nfrom supervisor.led_buzzer import hw\n\n_pwm_pool = {}\ndef _get_pwm(pin, freq=1000):\n    if pin not in _pwm_pool:\n        _pwm_pool[pin] = PWM(Pin(pin), freq=freq)\n    else:\n        try: _pwm_pool[pin].freq(freq)\n        except Exception: pass\n    return _pwm_pool[pin]\n\n_i2c_bus = None\ndef _get_i2c():\n    global _i2c_bus\n    if _i2c_bus is None:\n        try: _i2c_bus = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000)\n        except Exception: _i2c_bus = I2C(0, sda=Pin(7), scl=Pin(8), freq=100000)\n    return _i2c_bus\n\ndef main():\n${branch}\nif __name__ == '__main__':\n    main()\n`;
   };
 
   pythonGenerator.forBlock['project_info'] = function(block) {
@@ -215,20 +215,20 @@ export function registerPythonGenerators() {
 
   // I2C Generators (SDA: 7, SCL: 8)
   pythonGenerator.forBlock['titan_i2c_scan'] = function(block) {
-    return [`[hex(a) for a in SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000).scan()]`, Order.FUNCTION_CALL];
+    return [`[hex(a) for a in _get_i2c().scan()]`, Order.FUNCTION_CALL];
   };
 
   pythonGenerator.forBlock['titan_i2c_read_byte'] = function(block) {
     const addr = block.getFieldValue('ADDR') || '0x3C';
     const reg = block.getFieldValue('REG') || 0;
-    return [`int.from_bytes(SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000).readfrom_mem(int("${addr}", 0 if "${addr}".startswith("0x") else 10), ${reg}, 1), 'big')`, Order.FUNCTION_CALL];
+    return [`int.from_bytes(_get_i2c().readfrom_mem(int("${addr}", 0 if "${addr}".startswith("0x") else 10), ${reg}, 1), 'big')`, Order.FUNCTION_CALL];
   };
 
   pythonGenerator.forBlock['titan_i2c_write_byte'] = function(block) {
     const addr = block.getFieldValue('ADDR') || '0x3C';
     const reg = block.getFieldValue('REG') || 0;
     const val = block.getFieldValue('VAL') || 0;
-    return `SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000).writeto_mem(int("${addr}", 0 if "${addr}".startswith("0x") else 10), ${reg}, bytearray([${val}]))\n`;
+    return `_get_i2c().writeto_mem(int("${addr}", 0 if "${addr}".startswith("0x") else 10), ${reg}, bytearray([${val}]))\n`;
   };
 
   // Sensor Monitor Print Generator
@@ -251,7 +251,7 @@ export function registerPythonGenerators() {
     } else if (type === 'BTNS') {
       return `print(f"[BUTTONS] B1:{1-Pin(39,Pin.IN,Pin.PULL_UP).value()} B2:{1-Pin(40,Pin.IN,Pin.PULL_UP).value()} B3:{1-Pin(41,Pin.IN,Pin.PULL_UP).value()} B4:{1-Pin(42,Pin.IN,Pin.PULL_UP).value()}")\n`;
     } else if (type === 'I2C_SCAN') {
-      return `_i2c_bus = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000)\nprint(f"[I2C SCAN] Devices found: {[hex(a) for a in _i2c_bus.scan()]}")\n`;
+      return `print(f"[I2C SCAN] Devices found: {[hex(a) for a in _get_i2c().scan()]}")\n`;
     } else {
       const pinMap = { 'S1': 2, 'S2': 1, 'S3': 3, 'S4': 4, 'S5': 5 };
       const pin = pinMap[type] || 2;
