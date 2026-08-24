@@ -133,9 +133,20 @@ function App() {
         <div className="flex items-center gap-4">
           <div className="flex flex-col text-right">
             <span className="text-xs text-gray-400 font-medium tracking-wider uppercase">
-              {device.deviceName || 'Device Status'}
+              {device.deviceName || (device.connected ? 'LOF TITAN' : 'Device Offline')}
             </span>
-            <span className={`text-sm font-bold ${device.status === 'CONNECTED_IDLE' ? 'text-green-400' : 'text-primary-start'}`}>
+            <span className={`text-sm font-bold flex items-center justify-end gap-1.5 ${
+              device.status === 'RUNNING' 
+                ? 'text-emerald-400 animate-pulse' 
+                : device.connected || device.status === 'CONNECTED_IDLE'
+                ? 'text-green-400' 
+                : device.status === 'WAITING_FOR_CONNECTION'
+                ? 'text-amber-400'
+                : 'text-gray-400'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${
+                device.connected ? 'bg-green-400 shadow-[0_0_8px_#4ade80]' : 'bg-gray-500'
+              }`} />
               {device.status}
             </span>
           </div>

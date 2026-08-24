@@ -89,6 +89,7 @@ class BLEManager:
         self.ble = None
         self.conn_handle = None
         self.is_connected = False
+        self.is_client_ready = False
         self.handle_ctrl = None
         self.handle_prog_data = None
         self.handle_status = None
@@ -99,6 +100,7 @@ class BLEManager:
         # Pre-allocated closures for micropython.schedule (zero heap allocation during BLE IRQs)
         self._sched_connect_tone = lambda _: hw.play_connect_tone()
         self._sched_disconnect_tone = lambda _: hw.play_disconnect_tone()
+        self._sched_start_advertising = lambda _: self.start_advertising()
         self._sched_ctrl_write = lambda raw: self._handle_control_write(raw)
         self._sched_prog_data_write = lambda raw: self._handle_prog_data_write(raw)
 
@@ -163,6 +165,7 @@ class BLEManager:
             conn_handle, addr_type, addr = data
             self.conn_handle = conn_handle
             self.is_connected = True
+            self.is_client_ready = False  # Wait for client to finish GATT discovery and send CONNECT
             hw.set_leds_connected()   # LED green ON + connect tone built-in
             print(f"[BLE] Connected (handle: {conn_handle})")
             if self.sm:
@@ -172,11 +175,18 @@ class BLEManager:
             conn_handle, addr_type, addr = data
             self.conn_handle = None
             self.is_connected = False
+            self.is_client_ready = False
             hw.set_leds_disconnected()  # LED red ON + disconnect tone built-in
             print(f"[BLE] Disconnected (handle: {conn_handle})")
             if self.runner and self.runner.upload_in_progress:
                 self.runner.cancel_upload()
-            self.start_advertising()
+            if micropython and hasattr(micropython, "schedule"):
+                try:
+                    micropython.schedule(self._sched_start_advertising, 0)
+                except Exception:
+                    self.start_advertising()
+            else:
+                self.start_advertising()
             if self.sm:
                 self.sm.on_ble_disconnected()
 
@@ -237,6 +247,7 @@ class BLEManager:
                 self.send_status_response({"status": state})
 
             elif cmd == "CONNECT":
+                self.is_client_ready = True
                 hw.set_leds_connected()
                 hw.play_connect_tone()
                 if self.sm:
@@ -244,11 +255,22 @@ class BLEManager:
                 self.send_status_response({"status": "CONNECTED_IDLE"})
 
             elif cmd == "DISCONNECT":
+                self.is_client_ready = False
                 hw.set_leds_disconnected()
                 hw.play_disconnect_tone()
                 if self.sm:
                     self.sm.on_ble_disconnected()
-                self.send_status_response({"status": "DISCONNECTED"})
+                conn = self.conn_handle
+                if self.ble and conn is not None:
+                    if micropython and hasattr(micropython, "schedule"):
+                        try:
+                            micropython.schedule(lambda _: self.ble.gap_disconnect(conn), 0)
+                        except Exception:
+                            try: self.ble.gap_disconnect(conn)
+                            except Exception: pass
+                    else:
+                        try: self.ble.gap_disconnect(conn)
+                        except Exception: pass
 
             elif cmd == "RUN":
                 if self.sm:
@@ -340,6 +362,8 @@ class BLEManager:
 
     def send_status_response(self, response_dict):
         """Sends status response via CONTROL notification and STATUS characteristic."""
+        if not self.is_client_ready and response_dict.get("status") != "CONNECTED_IDLE":
+            return
         payload = json.dumps(response_dict).encode("utf-8")
         if self.ble and self.conn_handle is not None:
             try:
@@ -349,11 +373,13 @@ class BLEManager:
                     self.ble.gatts_write(self.handle_status, payload)
                     self.ble.gatts_notify(self.conn_handle, self.handle_status, payload)
             except Exception as e:
-                print(f"[BLE] Notify error: {e}")
+                pass
 
     def send_console_output(self, text):
         """Streams console text to connected webapp via CONSOLE notification."""
-        if self.ble and self.conn_handle is not None and self.handle_console:
+        if not self.is_connected or self.conn_handle is None or not self.handle_console:
+            return
+        if self.ble:
             try:
                 payload = text.encode("utf-8") if isinstance(text, str) else text
                 # Chunk into max 128 bytes if needed

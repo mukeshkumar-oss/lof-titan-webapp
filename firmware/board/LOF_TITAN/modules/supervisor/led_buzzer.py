@@ -236,6 +236,42 @@ class HardwareController:
             except Exception:
                 pass
 
+    def read_ultrasonic_distance(self, trig=6, echo=19, unit="cm"):
+        """
+        Reads ultrasonic distance sensor (HC-SR04 / similar) on Trig and Echo GPIO pins.
+        unit: 'cm', 'inch', or 'mm' (case-insensitive).
+        Returns distance rounded to 2 decimal places, or -1.0 on timeout/error.
+        """
+        try:
+            from machine import time_pulse_us
+            tp = Pin(int(trig), Pin.OUT)
+            ep = Pin(int(echo), Pin.IN)
+
+            # Clean 10us trigger pulse
+            tp.value(0)
+            time.sleep_us(2)
+            tp.value(1)
+            time.sleep_us(10)
+            tp.value(0)
+
+            # Measure echo pulse high duration (timeout 30,000us ~ 5 meters)
+            duration_us = time_pulse_us(ep, 1, 30000)
+            if duration_us <= 0:
+                return -1.0
+
+            # Distance in cm = (duration / 2) / 29.1375 = duration / 58.275
+            dist_cm = duration_us / 58.275
+
+            u = str(unit).strip().lower()
+            if u in ("inch", "in", "inches"):
+                return round(dist_cm / 2.54, 2)
+            elif u in ("mm", "millimeter", "millimeters"):
+                return round(dist_cm * 10.0, 1)
+            else:
+                return round(dist_cm, 2)
+        except Exception as e:
+            return -1.0
+
 
 # Global singleton instance
 hw = HardwareController()

@@ -269,13 +269,13 @@ export function ProjectStoreDetailModal({
           <div id="section-overview" className="max-w-[1360px] mx-auto rounded-3xl bg-white border border-slate-200/90 shadow-md p-6 sm:p-10 lg:p-12 space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               
-              {/* Main Visual Frame */}
-              <div className="lg:col-span-5 rounded-3xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200/80 p-6 flex items-center justify-center relative shadow-inner overflow-hidden min-h-[340px]">
+              {/* Main Visual Frame - Sleek Full Border Fit */}
+              <div className="lg:col-span-5 rounded-3xl bg-slate-950 border border-slate-200/80 p-2 sm:p-2.5 flex items-center justify-center relative shadow-md overflow-hidden min-h-[340px] max-h-[400px]">
                 <img 
                   src={project.heroImage} 
                   alt={project.name} 
                   decoding="async"
-                  className="w-full max-h-[360px] object-contain transition-transform duration-500 hover:scale-105"
+                  className="w-full h-full max-h-[380px] object-cover rounded-2xl transition-transform duration-500 hover:scale-105"
                   onError={(e) => { e.target.src = '/assets/banners/banner_invisible_diy.webp'; }}
                 />
                 <div className="absolute top-4 left-4">

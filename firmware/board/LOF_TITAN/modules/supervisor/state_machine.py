@@ -65,6 +65,11 @@ class SupervisorStateMachine:
 
         print("[AUTORUN] 10-second startup countdown started...")
         for remaining in range(10, 0, -1):
+            # FIX 5: React immediately if a RUN command arrived during countdown.
+            if self.run_pending:
+                print("[AUTORUN] RUN command received during countdown, exiting early.")
+                self.startup_countdown_active = False
+                return
             print(f"[AUTORUN] Starting in {remaining}s... (BLE: WAITING)")
             for _ in range(50):
                 if self.auto_run_cancelled or (self.ble_manager and self.ble_manager.is_connected):
@@ -82,10 +87,12 @@ class SupervisorStateMachine:
                 print("[AUTORUN] Timeout expired. Executing stored /program/user.py autonomously...")
                 self.execute_user_program()
             else:
-                print("[AUTORUN] Timeout expired. No stored program found.")
+                # No stored program — play tone and stay in WAITING_FOR_CONNECTION.
+                # BLE advertising continues; a client can still connect at any time.
+                print("[AUTORUN] Timeout expired. No stored program found. Waiting for BLE connection...")
                 hw.play_error_tone()
                 hw.set_leds_disconnected()
-                self.log_state(STATE_NO_PROGRAM)
+                self.log_state(STATE_WAITING_FOR_CONNECTION)
 
     def on_ble_connected(self):
         """Called when BLE client connects."""

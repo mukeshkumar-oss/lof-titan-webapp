@@ -23,10 +23,33 @@ except ImportError:
     micropython = None
 
 try:
-    from machine import Pin, PWM
+    from machine import Pin, PWM, WDT
 except ImportError:
     Pin = None
     PWM = None
+    WDT = None
+
+_wdt = None
+
+def get_or_enable_wdt(timeout=8000):
+    """Arms hardware WDT only when user program actually runs."""
+    global _wdt
+    if _wdt is None and WDT is not None:
+        try:
+            _wdt = WDT(timeout=timeout)
+            print(f"[WDT] Hardware Watchdog armed for user program ({timeout}ms).")
+        except Exception as e:
+            print(f"[WDT] Warning: could not arm WDT: {e}")
+    return _wdt
+
+def feed_wdt():
+    """Feeds active WDT to prevent resets during normal operation."""
+    global _wdt
+    if _wdt is not None:
+        try:
+            _wdt.feed()
+        except Exception:
+            pass
 
 PROGRAM_DIR = "/program"
 USER_PROGRAM_PATH = "/program/user.py"
@@ -41,18 +64,25 @@ class InterruptibleTime:
         self._rt = real_time
 
     def sleep(self, seconds):
-        if self._runner.stop_requested:
-            raise KeyboardInterrupt("STOP command received from supervisor")
-        end_time = self._rt.ticks_add(self._rt.ticks_ms(), int(seconds * 1000))
-        while self._rt.ticks_diff(end_time, self._rt.ticks_ms()) > 0:
+        # FIX 4: Guard against seconds <= 0 to avoid busy-loop.
+        # Chunk into 1-second slices to prevent 32-bit millisecond overflow.
+        feed_wdt()
+        if seconds <= 0:
+            self._rt.sleep_ms(1)   # always yield at least 1 ms
+            return
+        while seconds > 0:
             if self._runner.stop_requested:
                 raise KeyboardInterrupt("STOP command received from supervisor")
-            rem = self._rt.ticks_diff(end_time, self._rt.ticks_ms())
-            self._rt.sleep_ms(min(20, max(1, rem)))
+            chunk = min(seconds, 1.0)
+            self._rt.sleep(chunk)
+            feed_wdt()
+            seconds -= chunk
+        # Final check after last chunk
         if self._runner.stop_requested:
             raise KeyboardInterrupt("STOP command received from supervisor")
 
     def sleep_ms(self, ms):
+        feed_wdt()
         if self._runner.stop_requested:
             raise KeyboardInterrupt("STOP command received from supervisor")
         end_time = self._rt.ticks_add(self._rt.ticks_ms(), int(ms))
@@ -61,10 +91,12 @@ class InterruptibleTime:
                 raise KeyboardInterrupt("STOP command received from supervisor")
             rem = self._rt.ticks_diff(end_time, self._rt.ticks_ms())
             self._rt.sleep_ms(min(20, max(1, rem)))
+            feed_wdt()
         if self._runner.stop_requested:
             raise KeyboardInterrupt("STOP command received from supervisor")
 
     def sleep_us(self, us):
+        feed_wdt()
         if self._runner.stop_requested:
             raise KeyboardInterrupt("STOP command received from supervisor")
         self._rt.sleep_us(us)
@@ -109,6 +141,8 @@ class ProgramRunner:
         self.upload_in_progress = False
         self.upload_file = None
         self.upload_meta = {}
+        # FIX 3: Mutex to protect all shared flags from UART-thread/main-thread races
+        self._lock = _thread.allocate_lock() if _thread is not None else None
         self._ensure_directories()
 
     def _ensure_directories(self):
@@ -152,64 +186,91 @@ class ProgramRunner:
     # --- Atomic Upload Lifecycle ---
 
     def start_upload(self, filename="user.py", expected_size=0, expected_checksum=""):
-        """Initiates an atomic upload session into /program/user.tmp."""
+        """Initiates an atomic upload session into /program/user.tmp and clears old code."""
         if self.is_running:
             self.log("Stopping active program before starting upload...")
             self.stop_program()
 
         self._cleanup_temp_file()
 
+        # FIX 3: Protect shared upload flags with mutex
+        if self._lock:
+            self._lock.acquire()
         try:
-            self.upload_file = open(TEMP_PROGRAM_PATH, "wb")
-            self.upload_in_progress = True
-            self.upload_meta = {
-                "filename": filename,
-                "expected_size": int(expected_size),
-                "expected_checksum": str(expected_checksum),
-                "received_bytes": 0,
-                "expected_seq": 0,
-                "crc32": 0
-            }
-            self.log(f"Upload initiated for {filename} ({expected_size} bytes)")
-            return True, "READY"
-        except Exception as e:
-            self.upload_in_progress = False
-            self.log(f"Failed to open temp file: {e}")
-            return False, str(e)
+            # Immediately delete old programs so stale code isn't executed during upload
+            for path in (USER_PROGRAM_PATH, BACKUP_PROGRAM_PATH, METADATA_PATH):
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+
+            try:
+                self.upload_file = open(TEMP_PROGRAM_PATH, "wb")
+                self.upload_in_progress = True
+                self.upload_meta = {
+                    "filename": filename,
+                    "expected_size": int(expected_size),
+                    "expected_checksum": str(expected_checksum),
+                    "received_bytes": 0,
+                    "expected_seq": 0,
+                    "crc32": 0
+                }
+                self.log(f"Upload initiated for {filename} ({expected_size} bytes)")
+                return True, "READY"
+            except Exception as e:
+                self.upload_in_progress = False
+                self.log(f"Failed to open temp file: {e}")
+                return False, str(e)
+        finally:
+            if self._lock:
+                self._lock.release()
 
     def write_chunk(self, seq, data):
         """Writes a chunk into user.tmp with sequence checking."""
-        if not self.upload_in_progress or not self.upload_file:
-            return False, "NO_ACTIVE_UPLOAD"
-
-        expected_seq = self.upload_meta["expected_seq"]
-        if seq != expected_seq:
-            self.log(f"Sequence mismatch: expected {expected_seq}, got {seq}")
-            return False, f"SEQ_MISMATCH_{expected_seq}"
-
+        # FIX 3: Lock around shared upload state
+        if self._lock:
+            self._lock.acquire()
         try:
-            if isinstance(data, str):
-                data = data.encode("utf-8")
-            self.upload_file.write(data)
-            self.upload_meta["received_bytes"] += len(data)
-            self.upload_meta["expected_seq"] += 1
-            return True, "CHUNK_OK"
-        except Exception as e:
-            self.log(f"Chunk write error: {e}")
-            return False, str(e)
+            if not self.upload_in_progress or not self.upload_file:
+                return False, "NO_ACTIVE_UPLOAD"
+
+            expected_seq = self.upload_meta["expected_seq"]
+            if seq != expected_seq:
+                self.log(f"Sequence mismatch: expected {expected_seq}, got {seq}")
+                return False, f"SEQ_MISMATCH_{expected_seq}"
+
+            try:
+                if isinstance(data, str):
+                    data = data.encode("utf-8")
+                self.upload_file.write(data)
+                self.upload_meta["received_bytes"] += len(data)
+                self.upload_meta["expected_seq"] += 1
+                return True, "CHUNK_OK"
+            except Exception as e:
+                self.log(f"Chunk write error: {e}")
+                return False, str(e)
+        finally:
+            if self._lock:
+                self._lock.release()
 
     def finish_upload(self):
         """Validates syntax and checksum, backs up old program, and atomically promotes user.tmp."""
-        if not self.upload_in_progress or not self.upload_file:
-            return False, "NO_ACTIVE_UPLOAD"
-
+        # FIX 3: Lock around upload flag mutations
+        if self._lock:
+            self._lock.acquire()
         try:
-            self.upload_file.flush()
-            self.upload_file.close()
-        except Exception:
-            pass
-        self.upload_file = None
-        self.upload_in_progress = False
+            if not self.upload_in_progress or not self.upload_file:
+                return False, "NO_ACTIVE_UPLOAD"
+            try:
+                self.upload_file.flush()
+                self.upload_file.close()
+            except Exception:
+                pass
+            self.upload_file = None
+            self.upload_in_progress = False
+        finally:
+            if self._lock:
+                self._lock.release()
 
         # 1. Verify byte count
         expected_size = self.upload_meta.get("expected_size", 0)
@@ -276,13 +337,20 @@ class ProgramRunner:
 
     def cancel_upload(self):
         """Cancels active transfer and deletes temp file."""
-        if self.upload_file:
-            try:
-                self.upload_file.close()
-            except Exception:
-                pass
-            self.upload_file = None
-        self.upload_in_progress = False
+        # FIX 3: Lock around shared upload state
+        if self._lock:
+            self._lock.acquire()
+        try:
+            if self.upload_file:
+                try:
+                    self.upload_file.close()
+                except Exception:
+                    pass
+                self.upload_file = None
+            self.upload_in_progress = False
+        finally:
+            if self._lock:
+                self._lock.release()
         self._cleanup_temp_file()
         self.log("Upload cancelled and temp file cleaned.")
 
@@ -310,8 +378,16 @@ class ProgramRunner:
                 self.state_callback("NO_PROGRAM")
             return False, "NO_PROGRAM"
 
-        self.is_running = True
-        self.stop_requested = False
+        # FIX 3: Lock around is_running / stop_requested flag mutations
+        if self._lock:
+            self._lock.acquire()
+        try:
+            self.is_running = True
+            self.stop_requested = False
+        finally:
+            if self._lock:
+                self._lock.release()
+
         if self.state_callback:
             self.state_callback("RUNNING")
 
@@ -321,19 +397,13 @@ class ProgramRunner:
             # Prepare execution environment
             original_print = print
             def custom_print(*args, **kwargs):
+                feed_wdt()
                 if self.stop_requested:
                     raise KeyboardInterrupt("STOP command received from supervisor")
-                # Print to real UART
+                # FIX 2: Only print to real UART/dupterm stream.
+                # The dupterm BLEConsoleStream already mirrors stdout to BLE;
+                # calling console_callback here would cause double BLE traffic.
                 original_print(*args, **kwargs)
-                # Send to BLE console
-                if self.console_callback:
-                    try:
-                        sep = kwargs.get('sep', ' ')
-                        end = kwargs.get('end', '\n')
-                        text = sep.join(str(a) for a in args) + end
-                        self.console_callback(text)
-                    except Exception:
-                        pass
                 if self.stop_requested:
                     raise KeyboardInterrupt("STOP command received from supervisor")
                         
@@ -370,6 +440,8 @@ class ProgramRunner:
                 code = f.read()
 
             compiled_code = compile(code, USER_PROGRAM_PATH, "exec")
+            get_or_enable_wdt(8000)
+            feed_wdt()
             exec(compiled_code, user_globals)
 
             self.log("Program finished execution normally.")
@@ -399,8 +471,15 @@ class ProgramRunner:
                     sys.modules['time'] = orig_sys_time
                 except Exception:
                     pass
-            self.is_running = False
-            self.stop_requested = False
+            # FIX 3: Lock around cleanup of shared flags
+            if self._lock:
+                self._lock.acquire()
+            try:
+                self.is_running = False
+                self.stop_requested = False
+            finally:
+                if self._lock:
+                    self._lock.release()
             self.safe_hardware_reset()
             gc.collect()
 
@@ -408,16 +487,22 @@ class ProgramRunner:
 
     def stop_program(self):
         """Requests immediate safe VM interruption and hardware safe reset."""
-        if not self.is_running:
-            self.safe_hardware_reset()
-            if self.state_callback:
-                self.state_callback("STOPPED")
-            return True, "ALREADY_STOPPED"
+        # FIX 3: Lock around is_running check and stop_requested mutation
+        if self._lock:
+            self._lock.acquire()
+        try:
+            if not self.is_running:
+                self.safe_hardware_reset()
+                if self.state_callback:
+                    self.state_callback("STOPPED")
+                return True, "ALREADY_STOPPED"
+            self.stop_requested = True
+        finally:
+            if self._lock:
+                self._lock.release()
 
         self.log("Stopping user program...")
-        self.stop_requested = True
-
-        # Wait briefly for VM to exit
+        # Wait outside the lock so other operations can proceed
         for _ in range(10):
             if not self.is_running:
                 break
@@ -437,14 +522,11 @@ class ProgramRunner:
         if Pin is None:
             return
 
-        # Turn off and deinit all motor PWM pins to free hardware channels
+        # FIX 6: Set each motor pin to output-low directly.
+        # Avoid creating new PWM objects which can raise RuntimeError
+        # (out of PWM timers) or fail on already-deinitialised pins.
         for pin_num in ALL_MOTOR_PINS:
             try:
-                if PWM is not None:
-                    try:
-                        PWM(Pin(pin_num)).deinit()
-                    except Exception:
-                        pass
                 p = Pin(pin_num, Pin.OUT)
                 p.value(0)
             except Exception:

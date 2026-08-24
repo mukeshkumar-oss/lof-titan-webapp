@@ -52,6 +52,11 @@ cp ../../../../../image_info.log ~/projects/lof-titan/dist/baseline/
 
 # Also copy dist to the Windows workspace
 cp -r ~/projects/lof-titan/dist/baseline /mnt/c/Users/TRG-LOF-112-106/Desktop/Lof\ titan\ Firmware/dist/
+# Also mirror files to dist/ root so flash commands work from both dist/ and dist/baseline/
+cp ~/projects/lof-titan/dist/baseline/bootloader.bin /mnt/c/Users/TRG-LOF-112-106/Desktop/Lof\ titan\ Firmware/dist/
+cp ~/projects/lof-titan/dist/baseline/partitions.bin /mnt/c/Users/TRG-LOF-112-106/Desktop/Lof\ titan\ Firmware/dist/
+cp ~/projects/lof-titan/dist/baseline/micropython.bin /mnt/c/Users/TRG-LOF-112-106/Desktop/Lof\ titan\ Firmware/dist/
+cp ~/projects/lof-titan/dist/baseline/firmware.bin /mnt/c/Users/TRG-LOF-112-106/Desktop/Lof\ titan\ Firmware/dist/
 cp -r ~/projects/lof-titan/dist/baseline/* /mnt/c/Users/TRG-LOF-112-106/Desktop/Lof\ titan\ Firmware/webapp/public/firmware/
 
 echo "Build and dist preparation complete."

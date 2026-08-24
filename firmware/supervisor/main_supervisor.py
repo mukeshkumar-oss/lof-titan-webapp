@@ -5,6 +5,12 @@ import select
 import time
 import micropython
 
+# FIX 1: Hardware Watchdog Timer — resets board if main loop stalls
+try:
+    from machine import WDT
+except ImportError:
+    WDT = None
+
 # Completely disable KeyboardInterrupt (Ctrl-C) from the serial port 
 # so the supervisor NEVER drops to the REPL.
 micropython.kbd_intr(-1)
@@ -17,7 +23,7 @@ except ImportError:
 from .pins import *
 from .device_id import get_device_name, get_device_info_dict, print_startup_banner
 from .led_buzzer import hw
-from .program_runner import runner
+from .program_runner import runner, feed_wdt
 from .state_machine import sm
 from .ble_manager import BLEManager
 
@@ -31,6 +37,8 @@ class BLEConsoleStream(io.IOBase):
         self.send_func = send_func
 
     def write(self, buf):
+        # FIX 2: Wrapped in try/except so a blocking/failing BLE TX never
+        # stalls the main thread. Returns immediately on any error.
         if self.send_func and buf:
             try:
                 text = buf.decode("utf-8") if isinstance(buf, (bytes, bytearray)) else str(buf)
@@ -130,7 +138,7 @@ def start_supervisor():
     except Exception as e:
         print(f"[SUPERVISOR] Boot exception: {e}")
         hw.set_leds_error()
-        
+
     # Main thread execution loop
     # Executes user programs and guarantees safe interruption via micropython.schedule
     while True:
@@ -144,6 +152,8 @@ def start_supervisor():
             pass
         except Exception as e:
             print(f"[SUPERVISOR] Main loop exception: {e}")
+        # Feed active WDT during supervisor idle state
+        feed_wdt()
 
 if __name__ == "__main__":
     start_supervisor()

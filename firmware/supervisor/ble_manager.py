@@ -89,15 +89,18 @@ class BLEManager:
         self.ble = None
         self.conn_handle = None
         self.is_connected = False
+        self.is_client_ready = False
         self.handle_ctrl = None
         self.handle_prog_data = None
         self.handle_status = None
         self.handle_console = None
         self.handle_dev_info = None
+        self._control_buffer = ""
 
         # Pre-allocated closures for micropython.schedule (zero heap allocation during BLE IRQs)
         self._sched_connect_tone = lambda _: hw.play_connect_tone()
         self._sched_disconnect_tone = lambda _: hw.play_disconnect_tone()
+        self._sched_start_advertising = lambda _: self.start_advertising()
         self._sched_ctrl_write = lambda raw: self._handle_control_write(raw)
         self._sched_prog_data_write = lambda raw: self._handle_prog_data_write(raw)
 
@@ -125,6 +128,13 @@ class BLEManager:
         )
         services = (service,)
         ((self.handle_ctrl, self.handle_prog_data, self.handle_status, self.handle_console, self.handle_dev_info),) = self.ble.gatts_register_services(services)
+
+        # Increase characteristic buffer sizes to allow Long Writes (>20 bytes)
+        try:
+            self.ble.gatts_set_buffer(self.handle_ctrl, 512, True)
+            self.ble.gatts_set_buffer(self.handle_prog_data, 512, True)
+        except Exception as e:
+            print(f"[BLE] Buffer resize error: {e}")
 
         # Set initial Device Info
         self.update_device_info()
@@ -155,6 +165,7 @@ class BLEManager:
             conn_handle, addr_type, addr = data
             self.conn_handle = conn_handle
             self.is_connected = True
+            self.is_client_ready = False  # Wait for client to finish GATT discovery and send CONNECT
             hw.set_leds_connected()   # LED green ON + connect tone built-in
             print(f"[BLE] Connected (handle: {conn_handle})")
             if self.sm:
@@ -164,11 +175,18 @@ class BLEManager:
             conn_handle, addr_type, addr = data
             self.conn_handle = None
             self.is_connected = False
+            self.is_client_ready = False
             hw.set_leds_disconnected()  # LED red ON + disconnect tone built-in
             print(f"[BLE] Disconnected (handle: {conn_handle})")
             if self.runner and self.runner.upload_in_progress:
                 self.runner.cancel_upload()
-            self.start_advertising()
+            if micropython and hasattr(micropython, "schedule"):
+                try:
+                    micropython.schedule(self._sched_start_advertising, 0)
+                except Exception:
+                    self.start_advertising()
+            else:
+                self.start_advertising()
             if self.sm:
                 self.sm.on_ble_disconnected()
 
@@ -194,19 +212,29 @@ class BLEManager:
                     self._handle_prog_data_write(raw_bytes)
 
     def _handle_control_write(self, raw_bytes):
-        """Processes JSON control commands."""
+        """Processes JSON control commands with buffering for MTU fragmentation."""
         try:
             if isinstance(raw_bytes, str):
-                cmd_str = raw_bytes.strip()
+                chunk_str = raw_bytes
             elif isinstance(raw_bytes, (bytes, bytearray, memoryview)):
-                cmd_str = bytes(raw_bytes).decode("utf-8").strip()
+                chunk_str = bytes(raw_bytes).decode("utf-8")
             else:
-                cmd_str = str(raw_bytes).strip()
+                chunk_str = str(raw_bytes)
 
-            if not cmd_str:
+            if not chunk_str:
                 return
 
-            msg = json.loads(cmd_str)
+            self._control_buffer += chunk_str
+
+            try:
+                msg = json.loads(self._control_buffer)
+                self._control_buffer = ""  # Clear buffer on successful parse
+            except Exception:
+                # Incomplete JSON, wait for more chunks
+                if len(self._control_buffer) > 512:
+                    self._control_buffer = ""  # Safety clear
+                return
+
             cmd = msg.get("cmd", "").upper()
 
             if self.sm and self.sm.startup_countdown_active:
@@ -219,6 +247,7 @@ class BLEManager:
                 self.send_status_response({"status": state})
 
             elif cmd == "CONNECT":
+                self.is_client_ready = True
                 hw.set_leds_connected()
                 hw.play_connect_tone()
                 if self.sm:
@@ -226,11 +255,22 @@ class BLEManager:
                 self.send_status_response({"status": "CONNECTED_IDLE"})
 
             elif cmd == "DISCONNECT":
+                self.is_client_ready = False
                 hw.set_leds_disconnected()
                 hw.play_disconnect_tone()
                 if self.sm:
                     self.sm.on_ble_disconnected()
-                self.send_status_response({"status": "DISCONNECTED"})
+                conn = self.conn_handle
+                if self.ble and conn is not None:
+                    if micropython and hasattr(micropython, "schedule"):
+                        try:
+                            micropython.schedule(lambda _: self.ble.gap_disconnect(conn), 0)
+                        except Exception:
+                            try: self.ble.gap_disconnect(conn)
+                            except Exception: pass
+                    else:
+                        try: self.ble.gap_disconnect(conn)
+                        except Exception: pass
 
             elif cmd == "RUN":
                 if self.sm:
@@ -258,7 +298,7 @@ class BLEManager:
                 if b64data and self.runner and self.runner.upload_in_progress:
                     import binascii
                     try:
-                        chunk_bytes = binascii.a2b_base64(b64data)
+                        chunk_bytes = binascii.a2b_base64(b64data.encode('utf-8'))
                         hw.set_leds_programming()
                         success, res = self.runner.write_chunk(seq, chunk_bytes)
                         if not success:
@@ -322,6 +362,8 @@ class BLEManager:
 
     def send_status_response(self, response_dict):
         """Sends status response via CONTROL notification and STATUS characteristic."""
+        if not self.is_client_ready and response_dict.get("status") != "CONNECTED_IDLE":
+            return
         payload = json.dumps(response_dict).encode("utf-8")
         if self.ble and self.conn_handle is not None:
             try:
@@ -331,11 +373,13 @@ class BLEManager:
                     self.ble.gatts_write(self.handle_status, payload)
                     self.ble.gatts_notify(self.conn_handle, self.handle_status, payload)
             except Exception as e:
-                print(f"[BLE] Notify error: {e}")
+                pass
 
     def send_console_output(self, text):
         """Streams console text to connected webapp via CONSOLE notification."""
-        if self.ble and self.conn_handle is not None and self.handle_console:
+        if not self.is_connected or self.conn_handle is None or not self.handle_console:
+            return
+        if self.ble:
             try:
                 payload = text.encode("utf-8") if isinstance(text, str) else text
                 # Chunk into max 128 bytes if needed
