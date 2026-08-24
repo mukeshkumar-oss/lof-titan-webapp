@@ -4,7 +4,7 @@ export function registerPythonGenerators() {
   // ================= 1. TITAN BASE / START BLOCK (SCRATCH FLAG EQUIVALENT) =================
   pythonGenerator.forBlock['titan_start'] = function(block) {
     const branch = pythonGenerator.statementToCode(block, 'DO') || '    pass\n';
-    return `# ================= LOF TITAN MAIN =================\nimport time\nfrom machine import Pin, PWM, ADC, I2C, SoftI2C, UART\nfrom supervisor.led_buzzer import hw\n\n_pwm_pool = {}\ndef _get_pwm(pin, freq=1000):\n    if pin not in _pwm_pool:\n        _pwm_pool[pin] = PWM(Pin(pin), freq=freq)\n    else:\n        try: _pwm_pool[pin].freq(freq)\n        except Exception: pass\n    return _pwm_pool[pin]\n\n_i2c_bus = None\ndef _get_i2c():\n    global _i2c_bus\n    if _i2c_bus is None:\n        try: _i2c_bus = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000)\n        except Exception: _i2c_bus = I2C(0, sda=Pin(7), scl=Pin(8), freq=100000)\n    return _i2c_bus\n\ndef main():\n${branch}\nif __name__ == '__main__':\n    main()\n`;
+    return `# ================= LOF TITAN MAIN =================\nimport time\nfrom machine import Pin, PWM, ADC, I2C, SoftI2C, UART\nfrom supervisor.led_buzzer import hw\n\n_pwm_pool = {}\ndef _get_pwm(pin, freq=1000):\n    if pin not in _pwm_pool:\n        _pwm_pool[pin] = PWM(Pin(pin), freq=freq)\n    else:\n        try: _pwm_pool[pin].freq(freq)\n        except Exception: pass\n    return _pwm_pool[pin]\n\n_I2C_NAMES = {\n    0x3C: "OLED Display (SSD1306/SH1106 128x64)",\n    0x3D: "OLED Display Alt (SSD1306)",\n    0x68: "IMU Gyro/Accel (MPU6050/MPU9250)",\n    0x69: "IMU Alt (MPU6050/ICM20948)",\n    0x29: "ToF Laser Distance (VL53L0X/VL53L1X)",\n    0x36: "Magnetic Rotary Angle Encoder (AS5600)",\n    0x76: "Barometric Pressure & Temp (BMP280/BME280)",\n    0x77: "Barometric Alt (BMP280/BME680)",\n    0x40: "16-Ch PWM Servo Driver (PCA9685) / INA219",\n    0x48: "16-bit 4-Ch ADC (ADS1115)",\n    0x27: "I2C 1602 LCD Backpack (PCF8574)",\n    0x20: "8-bit I/O Expander (PCF8574)",\n    0x50: "I2C EEPROM Memory (AT24C32/64)",\n    0x1E: "3-Axis Digital Compass (HMC5883L)",\n    0x0D: "3-Axis Compass (QMC5883L)",\n    0x23: "Ambient Light Sensor (BH1750)",\n    0x39: "RGB Gesture & Color Sensor (APDS-9960)",\n    0x44: "Precision Temp/Humidity (SHT30/SHT31)",\n    0x5A: "Contactless Infrared Thermometer (MLX90614)"\n}\ndef _identify_i2c(addr):\n    return _I2C_NAMES.get(addr, "Unknown I2C Device")\n\n_i2c_bus = None\ndef _get_i2c():\n    global _i2c_bus\n    if _i2c_bus is None:\n        try: _i2c_bus = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000)\n        except Exception: _i2c_bus = I2C(0, sda=Pin(7), scl=Pin(8), freq=100000)\n    return _i2c_bus\n\ndef main():\n${branch}\nif __name__ == '__main__':\n    main()\n`;
   };
 
   pythonGenerator.forBlock['project_info'] = function(block) {
@@ -251,7 +251,11 @@ export function registerPythonGenerators() {
     } else if (type === 'BTNS') {
       return `print(f"[BUTTONS] B1:{1-Pin(39,Pin.IN,Pin.PULL_UP).value()} B2:{1-Pin(40,Pin.IN,Pin.PULL_UP).value()} B3:{1-Pin(41,Pin.IN,Pin.PULL_UP).value()} B4:{1-Pin(42,Pin.IN,Pin.PULL_UP).value()}")\n`;
     } else if (type === 'I2C_SCAN') {
-      return `print(f"[I2C SCAN] Devices found: {[hex(a) for a in _get_i2c().scan()]}")\n`;
+      return `_devs = _get_i2c().scan()\n` +
+             `if not _devs:\n` +
+             `  print("[I2C SCAN] No I2C devices detected (SDA:7, SCL:8)")\n` +
+             `else:\n` +
+             `  print(f"[I2C SCAN] Found {len(_devs)} device(s): " + ", ".join([f"{hex(a)} ({_identify_i2c(a)})" for a in _devs]))\n`;
     } else {
       const pinMap = { 'S1': 2, 'S2': 1, 'S3': 3, 'S4': 4, 'S5': 5 };
       const pin = pinMap[type] || 2;
