@@ -382,6 +382,56 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
     };
   }, [isOpen]);
 
+  // Handle automatic workspace SVG resizing on container size changes & window resize
+  useEffect(() => {
+    if (!blocklyDivRef.current || !isOpen) return;
+
+    const resizeWorkspace = () => {
+      if (workspaceRef.current) {
+        try {
+          Blockly.svgResize(workspaceRef.current);
+        } catch (e) {}
+      }
+    };
+
+    const ro = new ResizeObserver(() => {
+      resizeWorkspace();
+    });
+    ro.observe(blocklyDivRef.current);
+
+    window.addEventListener('resize', resizeWorkspace);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', resizeWorkspace);
+    };
+  }, [isOpen]);
+
+  // Trigger SVG resize smoothly during Python Code Drawer and Serial Monitor transitions
+  useEffect(() => {
+    if (!workspaceRef.current) return;
+
+    try {
+      Blockly.svgResize(workspaceRef.current);
+    } catch (e) {}
+
+    const t1 = setTimeout(() => {
+      if (workspaceRef.current) Blockly.svgResize(workspaceRef.current);
+    }, 50);
+    const t2 = setTimeout(() => {
+      if (workspaceRef.current) Blockly.svgResize(workspaceRef.current);
+    }, 150);
+    const t3 = setTimeout(() => {
+      if (workspaceRef.current) Blockly.svgResize(workspaceRef.current);
+    }, 300);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [showPythonDrawer, showSerialMonitor]);
+
   // Handle Category Selection with toggle (click to open, click again to close)
   const handleCategoryClick = (cat) => {
     if (!workspaceRef.current) return;
