@@ -122,16 +122,40 @@ function App() {
       </div>
 
       {/* Navbar */}
-      <nav className="glass-panel mx-4 mt-4 px-6 py-4 flex items-center justify-between rounded-full sticky top-4 z-50">
-        <div className="flex items-center gap-4">
-          <img src="/logo.webp" alt="Lab of Future" className="h-10 w-auto object-contain" />
-          <h1 className="text-xl font-heading font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-start to-white">
-            LOF TITAN Dashboard
-          </h1>
+      <nav className="glass-panel mx-2 md:mx-4 mt-2 md:mt-4 px-3 md:px-6 py-3 md:py-4 flex flex-col xl:flex-row items-center justify-between rounded-3xl xl:rounded-full sticky top-2 md:top-4 z-50 gap-4 xl:gap-0">
+        <div className="flex items-center justify-between w-full xl:w-auto gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
+            <img src="/logo.webp" alt="Lab of Future" className="h-8 md:h-10 w-auto object-contain" />
+            <h1 className="text-base sm:text-lg md:text-xl font-heading font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-start to-white truncate">
+              LOF TITAN <span className="hidden sm:inline">Dashboard</span>
+            </h1>
+          </div>
+          
+          {/* Mobile Status - hidden on desktop */}
+          <div className="flex flex-col text-right xl:hidden">
+            <span className="text-[10px] text-gray-400 font-medium tracking-wider uppercase truncate max-w-[100px] sm:max-w-[150px]">
+              {device.deviceName || (device.connected ? 'TITAN' : 'Offline')}
+            </span>
+            <span className={`text-[11px] sm:text-xs font-bold flex items-center justify-end gap-1.5 ${
+              device.status === 'RUNNING' 
+                ? 'text-emerald-400 animate-pulse' 
+                : device.connected || device.status === 'CONNECTED_IDLE'
+                ? 'text-green-400' 
+                : device.status === 'WAITING_FOR_CONNECTION'
+                ? 'text-amber-400'
+                : 'text-gray-400'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                device.connected ? 'bg-green-400 shadow-[0_0_8px_#4ade80]' : 'bg-gray-500'
+              }`} />
+              <span className="truncate max-w-[80px] sm:max-w-full">{device.status}</span>
+            </span>
+          </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col text-right">
+        <div className="flex flex-col xl:flex-row items-center gap-3 xl:gap-4 w-full xl:w-auto">
+          {/* Desktop Status - hidden on mobile */}
+          <div className="hidden xl:flex flex-col text-right">
             <span className="text-xs text-gray-400 font-medium tracking-wider uppercase">
               {device.deviceName || (device.connected ? 'LOF TITAN' : 'Device Offline')}
             </span>
@@ -151,92 +175,95 @@ function App() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap xl:flex-nowrap items-center justify-center gap-1.5 sm:gap-2 w-full xl:w-auto">
             {/* Dedicated Isolated Flash Firmware Button */}
             <button 
               onClick={() => setShowBlockCode(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-white/5 text-gray-300 transition-all duration-300"
+              className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-white/5 text-gray-300 transition-all duration-300 text-xs sm:text-sm"
               title="Open Block Code Workspace"
             >
-              <Code size={18} className="text-blue-400" />
-              <span className="hidden xl:inline">Block Code</span>
+              <Code size={16} className="text-blue-400 sm:w-[18px] sm:h-[18px]" />
+              <span className="hidden sm:inline">Code</span>
             </button>
             <button 
               onClick={() => setShowSerialMonitor(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-white/5 text-gray-300 transition-all duration-300"
+              className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-white/5 text-gray-300 transition-all duration-300 text-xs sm:text-sm"
               title="Open Serial Monitor"
             >
-              <Terminal size={18} className="text-green-400" />
-              <span className="hidden xl:inline">Serial Monitor</span>
+              <Terminal size={16} className="text-green-400 sm:w-[18px] sm:h-[18px]" />
+              <span className="hidden sm:inline">Monitor</span>
             </button>
             <button 
               onClick={() => setShowAIAssistant(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-white/5 text-gray-300 transition-all duration-300"
+              className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-white/5 text-gray-300 transition-all duration-300 text-xs sm:text-sm"
               title="Open AI Studio"
             >
-              <Bot size={18} className="text-purple-400" />
-              <span className="hidden xl:inline">AI Studio</span>
+              <Bot size={16} className="text-purple-400 sm:w-[18px] sm:h-[18px]" />
+              <span className="hidden sm:inline">AI</span>
             </button>
 
             <button 
               onClick={() => setShowFlasherModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-gradient-to-r from-purple-600/30 to-indigo-600/30 text-purple-300 hover:from-purple-600/50 hover:to-indigo-600/50 border border-purple-500/40 transition-all duration-300 shadow-sm hover:shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+              className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium bg-gradient-to-r from-purple-600/30 to-indigo-600/30 text-purple-300 hover:from-purple-600/50 hover:to-indigo-600/50 border border-purple-500/40 transition-all duration-300 shadow-sm hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] text-xs sm:text-sm"
               title="Open Dedicated Firmware Flasher"
             >
-              <Cpu size={18} className="text-purple-400" />
-              <span>Flash Firmware</span>
+              <Cpu size={16} className="text-purple-400 sm:w-[18px] sm:h-[18px]" />
+              <span className="hidden sm:inline">Flash</span>
             </button>
 
             {device.isConnected ? (
               <>
                 <button 
                   onClick={device.runCode}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-all duration-300"
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-all duration-300 text-xs sm:text-sm"
                   title="Run Program"
                 >
-                  <Play size={18} />
-                  Run
+                  <Play size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden sm:inline">Run</span>
                 </button>
                 <button 
                   onClick={device.stopExecution}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300"
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-300 text-xs sm:text-sm"
                   title="Stop Program"
                 >
-                  <Square size={18} />
-                  Stop
+                  <Square size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden sm:inline">Stop</span>
                 </button>
                 <button 
                   onClick={device.softReset}
-                  className="flex items-center gap-2 px-3 py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-white/5 text-gray-300 transition-all duration-300"
+                  className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full font-medium bg-surface border border-white/10 hover:bg-white/5 text-gray-300 transition-all duration-300 text-xs sm:text-sm"
                   title="Soft Reset Board"
                 >
-                  <RotateCcw size={18} />
+                  <RotateCcw size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </button>
                 <button 
                   onClick={device.disconnectBLE}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all duration-300"
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all duration-300 text-xs sm:text-sm"
+                  title="Disconnect"
                 >
-                  Disconnect
+                  <span className="sm:hidden">Disconnect</span>
+                  <span className="hidden sm:inline">Disconnect</span>
                 </button>
               </>
             ) : (
               <>
                 <button 
                   onClick={device.connectSerial}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-300 bg-surface border border-white/10 hover:bg-white/5 text-gray-300"
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium transition-all duration-300 bg-surface border border-white/10 hover:bg-white/5 text-gray-300 text-xs sm:text-sm"
                   title="Connect via Web Serial (USB)"
                 >
-                  <Usb size={18} />
-                  Connect USB
+                  <Usb size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden sm:inline">USB</span>
                 </button>
 
                 <button 
                   onClick={device.connectBLE}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-300 bg-gradient-to-r from-primary-start to-primary-end hover:shadow-glow text-white"
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium transition-all duration-300 bg-gradient-to-r from-primary-start to-primary-end hover:shadow-glow text-white text-xs sm:text-sm"
                   title="Connect via Bluetooth LE"
                 >
-                  <Bluetooth size={18} />
-                  Connect BLE
+                  <Bluetooth size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden sm:inline">BLE</span>
+                  <span className="sm:hidden">BLE</span>
                 </button>
               </>
             )}

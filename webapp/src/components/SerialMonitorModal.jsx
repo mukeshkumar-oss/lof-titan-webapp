@@ -76,32 +76,32 @@ export function SerialMonitorModal({ isOpen, onClose, device }) {
           </div>
 
           {/* Top Right: Hardware Control Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             
             {/* Run Button */}
             <button 
               onClick={() => device?.sendCommand ? device.sendCommand('RUN') : null}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border border-emerald-300 transition-all shadow-xs active:scale-95"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border border-emerald-300 transition-all shadow-xs active:scale-95"
               title="Run active script"
             >
               <Play size={12} className="fill-current text-emerald-500" />
-              <span>Run</span>
+              <span className="hidden sm:inline">Run</span>
             </button>
 
             {/* Stop Button */}
             <button 
               onClick={() => device?.sendCommand ? device.sendCommand('STOP') : null}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border border-rose-300 transition-all shadow-xs active:scale-95"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border border-rose-300 transition-all shadow-xs active:scale-95"
               title="Stop script execution"
             >
               <Square size={11} className="fill-current text-rose-500" />
-              <span>Stop</span>
+              <span className="hidden sm:inline">Stop</span>
             </button>
 
             {/* Reset Button */}
             <button 
               onClick={() => device?.sendCommand ? device.sendCommand('RESET') : null}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-all active:scale-95"
+              className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-all active:scale-95"
               title="Soft Reset Board"
             >
               <RotateCcw size={11} />
