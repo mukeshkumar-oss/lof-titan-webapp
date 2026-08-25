@@ -566,22 +566,7 @@ class _TitanPulse:
         self._w(0x06, 0x03)
       except Exception: pass
 
-  def update(self):
-    now = time.ticks_ms()
-    ir = 0
-    red = 0
-    try:
-      if self.chip_type == "MAX30102":
-        raw = self._r(0x07, 6)
-        ir = (raw[3] << 16 | raw[4] << 8 | raw[5]) & 0x03FFFF
-        red = (raw[0] << 16 | raw[1] << 8 | raw[2]) & 0x03FFFF
-        if ir == 0: ir = (raw[2] << 8) | raw[3]
-      else:
-        raw = self._r(0x05, 4)
-        ir = (raw[0] << 8) | raw[1]
-        red = (raw[2] << 8) | raw[3]
-    except Exception: pass
-
+  def _process_sample(self, ir, red, now):
     self.latest_ir = ir
     self.latest_red = red
 
@@ -618,6 +603,39 @@ class _TitanPulse:
               self.average_bpm = int(sum(self.bpm_history[:self.bpm_count]) / self.bpm_count)
             elif interval > 1333:
               self.last_beat_anchor = now
+
+  def update(self):
+    now = time.ticks_ms()
+    if time.ticks_diff(now, getattr(self, '_last_call', 0)) < 5:
+      return
+    self._last_call = now
+
+    try:
+      if self.chip_type == "MAX30102":
+        wr = self._r(0x04, 1)[0]
+        rd = self._r(0x06, 1)[0]
+        n = (wr - rd) & 0x1F
+        if n == 0: n = 1
+        raw = self._r(0x07, n * 6)
+        for i in range(n):
+          off = i * 6
+          ir = (raw[off+3] << 16 | raw[off+4] << 8 | raw[off+5]) & 0x03FFFF
+          red = (raw[off+0] << 16 | raw[off+1] << 8 | raw[off+2]) & 0x03FFFF
+          if ir == 0: ir = (raw[off+2] << 8) | raw[off+3]
+          self._process_sample(ir, red, now)
+      else:
+        wr = self._r(0x02, 1)[0]
+        rd = self._r(0x04, 1)[0]
+        n = (wr - rd) & 0x0F
+        if n == 0: n = 1
+        raw = self._r(0x05, n * 4)
+        for i in range(n):
+          off = i * 4
+          ir = (raw[off+0] << 8) | raw[off+1]
+          red = (raw[off+2] << 8) | raw[off+3]
+          self._process_sample(ir, red, now)
+    except Exception:
+      pass
 
 _pulse_inst = None
 def _get_pulse():
