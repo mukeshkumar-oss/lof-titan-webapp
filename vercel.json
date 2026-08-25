@@ -1,5 +1,0 @@
-{
-  "buildCommand": "npm --prefix webapp run build",
-  "outputDirectory": "webapp/dist",
-  "framework": "vite"
-}
