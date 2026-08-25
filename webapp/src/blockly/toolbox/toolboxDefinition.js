@@ -41,6 +41,7 @@ export const toolboxDefinition = {
         { kind: "block", type: "titan_sensor_write_digital" },
         { kind: "block", type: "titan_sensor_compare" },
         { kind: "block", type: "titan_digital_sensor_check" },
+        { kind: "block", type: "titan_motion_sensor_check" },
         { kind: "block", type: "titan_ultrasonic_distance" },
         { kind: "block", type: "titan_ultrasonic_compare" },
         { kind: "block", type: "titan_button_is_pressed" },
@@ -131,9 +132,6 @@ export const toolboxDefinition = {
       customId: "math",
       contents: [
         { kind: "block", type: "titan_number" },
-        { kind: "block", type: "titan_sensor_read_analog" },
-        { kind: "block", type: "titan_sensor_read_digital" },
-        { kind: "block", type: "titan_ultrasonic_distance" },
         { kind: "block", type: "math_arithmetic" },
         { kind: "block", type: "math_single" },
         { kind: "block", type: "math_random_int" }

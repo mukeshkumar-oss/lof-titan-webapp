@@ -449,6 +449,26 @@ export function registerCustomBlocks() {
     }
   };
 
+  // Dedicated PIR Motion Sensor Block
+  Blockly.Blocks['titan_motion_sensor_check'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🚶 Motion Sensor on Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "PIN")
+          .appendField("Motion Detected?");
+      this.setOutput(true, "Boolean");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Returns True if PIR / Microwave Motion sensor on the specified port detects motion (HIGH / 1)");
+      this.setHelpUrl("");
+    }
+  };
+
   // Live Sensor Monitor Print Block (Terminal)
   Blockly.Blocks['titan_print_sensor_monitor'] = {
     init: function() {

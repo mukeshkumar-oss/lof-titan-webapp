@@ -245,6 +245,11 @@ export function registerPythonGenerators() {
     return [`_read_pulse("FINGER")`, Order.FUNCTION_CALL];
   };
 
+  pythonGenerator.forBlock['titan_motion_sensor_check'] = function(block) {
+    const pin = block.getFieldValue('PIN') || '2';
+    return [`(Pin(${pin}, Pin.IN).value() == 1)`, Order.RELATIONAL];
+  };
+
   // Sensor Monitor Print Generator
   pythonGenerator.forBlock['titan_print_sensor_monitor'] = function(block) {
     const type = block.getFieldValue('TYPE') || 'ALL';
