@@ -407,16 +407,16 @@ export function registerCustomBlocks() {
     }
   };
 
-  // Pulse Rate Sensor (MAX30102 / MAX30100)
+  // Pulse Rate Sensor (MAX30100 / MAX30102)
   Blockly.Blocks['titan_pulse_sensor_init'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("❤️ Initialize Pulse Sensor (MAX30102)")
+          .appendField("❤️ Initialize Pulse Sensor (MAX30100)")
           .appendField("(I2C SDA: 7, SCL: 8)");
       this.setPreviousStatement(true, null);
       this.setNextStatement(true, null);
       this.setStyle('machine_blocks');
-      this.setTooltip("Initialize MAX30102 pulse oximeter & heart rate sensor on I2C port");
+      this.setTooltip("Initialize MAX30100 / MAX30102 pulse oximeter & heart rate sensor on I2C port");
       this.setHelpUrl("");
     }
   };
@@ -424,16 +424,27 @@ export function registerCustomBlocks() {
   Blockly.Blocks['titan_pulse_sensor_read'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("❤️ Pulse Sensor")
+          .appendField("❤️ MAX30100 Pulse Sensor")
           .appendField(new Blockly.FieldDropdown([
-            ["IR Value (Raw Reflection)", "IR"],
-            ["Red Value (Raw Reflection)", "RED"],
+            ["Heart Rate (BPM)", "BPM"],
             ["Finger Placed? (True/False)", "FINGER"],
-            ["Heart Rate Estimated (BPM)", "BPM"]
+            ["IR Value (Raw Reflection)", "IR"],
+            ["Red Value (Raw Reflection)", "RED"]
           ]), "VAL");
-      this.setOutput(true, "Number");
+      this.setOutput(true, null);
       this.setStyle('machine_blocks');
-      this.setTooltip("Read optical pulse or heart rate values from MAX30102 pulse sensor");
+      this.setTooltip("Read live heart rate (BPM), finger detection, or raw optical values from MAX30100 sensor");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_pulse_finger_detected'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("❤️ Finger Placed on Pulse Sensor?");
+      this.setOutput(true, "Boolean");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Returns True if finger is placed on MAX30100 pulse sensor, False otherwise");
       this.setHelpUrl("");
     }
   };

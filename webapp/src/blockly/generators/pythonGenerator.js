@@ -241,6 +241,10 @@ export function registerPythonGenerators() {
     return [`_read_pulse("${valType}")`, Order.FUNCTION_CALL];
   };
 
+  pythonGenerator.forBlock['titan_pulse_finger_detected'] = function(block) {
+    return [`_read_pulse("FINGER")`, Order.FUNCTION_CALL];
+  };
+
   // Sensor Monitor Print Generator
   pythonGenerator.forBlock['titan_print_sensor_monitor'] = function(block) {
     const type = block.getFieldValue('TYPE') || 'ALL';
@@ -469,47 +473,168 @@ def _get_oled():
   return _oled_global
 `;
 
-const PULSE_DRIVER_CODE = `_pulse_ready = False
-def _init_pulse():
-  global _pulse_ready
-  for _ in range(3):
-    try:
-      _pi = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=100000, timeout=2000)
-      if 0x57 in _pi.scan():
-        try:
-          _pi.writeto_mem(0x57, 0x09, b'\\x40')
-          time.sleep_ms(20)
-          _pi.writeto_mem(0x57, 0x09, b'\\x03')
-          _pi.writeto_mem(0x57, 0x0A, b'\\x27')
-          _pi.writeto_mem(0x57, 0x0C, b'\\x24')
-          _pi.writeto_mem(0x57, 0x0D, b'\\x24')
-          _pulse_ready = True
-          return True
-        except Exception:
-          try:
-            _pi.writeto_mem(0x57, 0x06, b'\\x03')
-            _pi.writeto_mem(0x57, 0x07, b'\\x07')
-            _pi.writeto_mem(0x57, 0x09, b'\\x33')
-            _pulse_ready = True
-            return True
-          except Exception: pass
+const PULSE_DRIVER_CODE = `class _SparkFunHeartRate:
+  def __init__(self):
+    self.ir_ac_max = 20
+    self.ir_ac_min = -20
+    self.ir_ac_signal_current = 0
+    self.ir_ac_signal_previous = 0
+    self.ir_ac_signal_min = 0
+    self.ir_ac_signal_max = 0
+    self.ir_avg_reg = 0
+    self.positive_edge = 0
+    self.negative_edge = 0
+
+  def check_for_beat(self, sample):
+    beat_detected = False
+    self.ir_ac_signal_previous = self.ir_ac_signal_current
+    self.ir_avg_reg = int((self.ir_avg_reg * 15 + sample) / 16)
+    self.ir_ac_signal_current = sample - self.ir_avg_reg
+
+    if (self.ir_ac_signal_previous < 0 and self.ir_ac_signal_current >= 0):
+      self.ir_ac_max = self.ir_ac_signal_max
+      self.ir_ac_min = self.ir_ac_signal_min
+      self.positive_edge = 1
+      self.negative_edge = 0
+      self.ir_ac_signal_max = 0
+      if (self.ir_ac_max - self.ir_ac_min) > 20 and (self.ir_ac_max - self.ir_ac_min) < 1000:
+        beat_detected = True
+
+    if (self.ir_ac_signal_previous > 0 and self.ir_ac_signal_current <= 0):
+      self.positive_edge = 0
+      self.negative_edge = 1
+      self.ir_ac_signal_min = 0
+
+    if self.positive_edge and (self.ir_ac_signal_current > self.ir_ac_signal_max):
+      self.ir_ac_signal_max = self.ir_ac_signal_current
+
+    if self.negative_edge and (self.ir_ac_signal_current < self.ir_ac_signal_min):
+      self.ir_ac_signal_min = self.ir_ac_signal_current
+
+    return beat_detected
+
+class _TitanPulse:
+  def __init__(self, addr=0x57):
+    self.addr = addr
+    self.i2c = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=400000, timeout=1000)
+    self.chip_type = "UNKNOWN"
+    self.detector = _SparkFunHeartRate()
+    self.finger_detected = False
+    self.finger_detected_at = 0
+    self.last_beat_anchor = 0
+    self.current_bpm = 0.0
+    self.average_bpm = 0
+    self.bpm_history = [0, 0, 0, 0]
+    self.bpm_index = 0
+    self.bpm_count = 0
+    self.latest_ir = 0
+    self.latest_red = 0
+    self.init_sensor()
+
+  def _w(self, reg, val):
+    self.i2c.writeto_mem(self.addr, reg, bytearray([val]))
+
+  def _r(self, reg, n=1):
+    return self.i2c.readfrom_mem(self.addr, reg, n)
+
+  def init_sensor(self):
+    part_id = 0
+    try: part_id = self._r(0xFF, 1)[0]
     except Exception: pass
-    time.sleep_ms(50)
-  return False
+
+    if part_id in (0x15, 0x25):
+      self.chip_type = "MAX30102"
+      try:
+        self._w(0x09, 0x40)
+        time.sleep_ms(100)
+        self._w(0x08, 0x30)
+        self._w(0x09, 0x03)
+        self._w(0x0A, 0x27)
+        self._w(0x0C, 0x1F)
+        self._w(0x0D, 0x3C)
+        self._w(0x04, 0x00)
+        self._w(0x05, 0x00)
+        self._w(0x06, 0x00)
+      except Exception: pass
+    else:
+      self.chip_type = "MAX30100"
+      try:
+        self._w(0x06, 0x40)
+        time.sleep_ms(100)
+        self._w(0x07, 0x03)
+        self._w(0x09, 0x33)
+        self._w(0x06, 0x03)
+      except Exception: pass
+
+  def update(self):
+    now = time.ticks_ms()
+    ir = 0
+    red = 0
+    try:
+      if self.chip_type == "MAX30102":
+        raw = self._r(0x07, 6)
+        ir = (raw[3] << 16 | raw[4] << 8 | raw[5]) & 0x03FFFF
+        red = (raw[0] << 16 | raw[1] << 8 | raw[2]) & 0x03FFFF
+        if ir == 0: ir = (raw[2] << 8) | raw[3]
+      else:
+        raw = self._r(0x05, 4)
+        ir = (raw[0] << 8) | raw[1]
+        red = (raw[2] << 8) | raw[3]
+    except Exception: pass
+
+    self.latest_ir = ir
+    self.latest_red = red
+
+    # Finger placement state (Hysteresis: ON >= 10000, OFF <= 4000)
+    if not self.finger_detected:
+      if ir >= 10000:
+        self.finger_detected = True
+        self.finger_detected_at = now
+        self.last_beat_anchor = 0
+        self.current_bpm = 0.0
+        self.average_bpm = 0
+        self.bpm_history = [0, 0, 0, 0]
+        self.bpm_count = 0
+    else:
+      if ir <= 4000:
+        self.finger_detected = False
+        self.last_beat_anchor = 0
+        self.current_bpm = 0.0
+        self.average_bpm = 0
+
+    if self.finger_detected:
+      if self.detector.check_for_beat(ir):
+        if time.ticks_diff(now, self.finger_detected_at) >= 1200:
+          if self.last_beat_anchor == 0:
+            self.last_beat_anchor = now
+          else:
+            interval = time.ticks_diff(now, self.last_beat_anchor)
+            if 400 <= interval <= 1333:
+              self.last_beat_anchor = now
+              self.current_bpm = 60000.0 / interval
+              self.bpm_history[self.bpm_index] = int(self.current_bpm + 0.5)
+              self.bpm_index = (self.bpm_index + 1) % 4
+              if self.bpm_count < 4: self.bpm_count += 1
+              self.average_bpm = int(sum(self.bpm_history[:self.bpm_count]) / self.bpm_count)
+            elif interval > 1333:
+              self.last_beat_anchor = now
+
+_pulse_inst = None
+def _get_pulse():
+  global _pulse_inst
+  if _pulse_inst is None: _pulse_inst = _TitanPulse()
+  return _pulse_inst
+
+def _init_pulse():
+  _get_pulse().init_sensor()
 
 def _read_pulse(val_type='IR'):
-  global _pulse_ready
-  if not _pulse_ready: _init_pulse()
-  try:
-    _raw = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=100000, timeout=1000).readfrom_mem(0x57, 0x07, 6)
-    _ir = (int.from_bytes(_raw[3:6], 'big') & 0x3FFFF)
-    _red = (int.from_bytes(_raw[0:3], 'big') & 0x3FFFF)
-    if val_type == 'IR': return _ir
-    if val_type == 'RED': return _red
-    if val_type == 'FINGER': return _ir > 50000
-    return int(60 + min(40, max(0, _ir % 40))) if _ir > 50000 else 0
-  except Exception:
-    return False if val_type == 'FINGER' else 0
+  p = _get_pulse()
+  p.update()
+  if val_type == 'IR': return p.latest_ir
+  if val_type == 'RED': return p.latest_red
+  if val_type == 'FINGER': return p.finger_detected
+  return p.average_bpm
 `;
 
 export function generateTitanWorkspaceCode(workspace) {
