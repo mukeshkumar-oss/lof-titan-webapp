@@ -123,6 +123,88 @@ class _TitanOLED(framebuf.FrameBuffer):
 
 oled = _TitanOLED()
 \`\`\`
+- Heart Rate & Pulse Sensor (MAX30100 / MAX30102 / MAX30105):
+  * SDA: GPIO 7 | SCL: GPIO 8 | I2C Address: 0x57
+  * Dual-generation auto-setup with SparkFun AC beat detection algorithm (DC removal filter, finger debounce hysteresis ON >= 10000 / OFF <= 4000, 4-beat rolling average BPM):
+\`\`\`python
+class _SparkFunHeartRate:
+    def __init__(self):
+        self.ir_ac_max = 20; self.ir_ac_min = -20; self.ir_ac_signal_current = 0; self.ir_ac_signal_previous = 0
+        self.ir_ac_signal_min = 0; self.ir_ac_signal_max = 0; self.ir_avg_reg = 0; self.positive_edge = 0; self.negative_edge = 0
+    def check_for_beat(self, sample):
+        beat = False
+        self.ir_ac_signal_previous = self.ir_ac_signal_current
+        self.ir_avg_reg = int((self.ir_avg_reg * 15 + sample) / 16)
+        self.ir_ac_signal_current = sample - self.ir_avg_reg
+        if self.ir_ac_signal_previous < 0 and self.ir_ac_signal_current >= 0:
+            self.ir_ac_max = self.ir_ac_signal_max; self.ir_ac_min = self.ir_ac_signal_min
+            self.positive_edge = 1; self.negative_edge = 0; self.ir_ac_signal_max = 0
+            if 20 < (self.ir_ac_max - self.ir_ac_min) < 1000: beat = True
+        if self.ir_ac_signal_previous > 0 and self.ir_ac_signal_current <= 0:
+            self.positive_edge = 0; self.negative_edge = 1; self.ir_ac_signal_min = 0
+        if self.positive_edge and self.ir_ac_signal_current > self.ir_ac_signal_max: self.ir_ac_signal_max = self.ir_ac_signal_current
+        if self.negative_edge and self.ir_ac_signal_current < self.ir_ac_signal_min: self.ir_ac_signal_min = self.ir_ac_signal_current
+        return beat
+
+class _TitanPulse:
+    def __init__(self, addr=0x57):
+        self.addr = addr; self.i2c = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=400000, timeout=1000)
+        self.chip_type = "MAX30102"; self.detector = _SparkFunHeartRate()
+        self.finger_detected = False; self.finger_detected_at = 0; self.last_beat_anchor = 0
+        self.current_bpm = 0.0; self.average_bpm = 0; self.bpm_history = [0, 0, 0, 0]; self.bpm_index = 0; self.bpm_count = 0
+        self.latest_ir = 0; self.latest_red = 0
+        self.init_sensor()
+    def _w(self, reg, val): self.i2c.writeto_mem(self.addr, reg, bytearray([val]))
+    def _r(self, reg, n=1): return self.i2c.readfrom_mem(self.addr, reg, n)
+    def init_sensor(self):
+        part_id = 0
+        try: part_id = self._r(0xFF, 1)[0]
+        except Exception: pass
+        if part_id in (0x15, 0x25):
+            self.chip_type = "MAX30102"
+            try:
+                self._w(0x09, 0x40); time.sleep_ms(100); self._w(0x08, 0x30); self._w(0x09, 0x03)
+                self._w(0x0A, 0x27); self._w(0x0C, 0x1F); self._w(0x0D, 0x3C)
+                self._w(0x04, 0); self._w(0x05, 0); self._w(0x06, 0)
+            except Exception: pass
+        else:
+            self.chip_type = "MAX30100"
+            try:
+                self._w(0x06, 0x40); time.sleep_ms(100); self._w(0x07, 0x03); self._w(0x09, 0x33); self._w(0x06, 0x03)
+            except Exception: pass
+    def update(self):
+        now = time.ticks_ms()
+        ir = 0; red = 0
+        try:
+            if self.chip_type == "MAX30102":
+                raw = self._r(0x07, 6); ir = (raw[3] << 16 | raw[4] << 8 | raw[5]) & 0x03FFFF; red = (raw[0] << 16 | raw[1] << 8 | raw[2]) & 0x03FFFF
+                if ir == 0: ir = (raw[2] << 8) | raw[3]
+            else:
+                raw = self._r(0x05, 4); ir = (raw[0] << 8) | raw[1]; red = (raw[2] << 8) | raw[3]
+        except Exception: pass
+        self.latest_ir = ir; self.latest_red = red
+        if not self.finger_detected:
+            if ir >= 10000:
+                self.finger_detected = True; self.finger_detected_at = now; self.last_beat_anchor = 0; self.current_bpm = 0.0; self.average_bpm = 0
+                self.bpm_history = [0, 0, 0, 0]; self.bpm_count = 0
+        else:
+            if ir <= 4000:
+                self.finger_detected = False; self.last_beat_anchor = 0; self.current_bpm = 0.0; self.average_bpm = 0
+        if self.finger_detected and self.detector.check_for_beat(ir):
+            if time.ticks_diff(now, self.finger_detected_at) >= 1200:
+                if self.last_beat_anchor == 0: self.last_beat_anchor = now
+                else:
+                    interval = time.ticks_diff(now, self.last_beat_anchor)
+                    if 400 <= interval <= 1333:
+                        self.last_beat_anchor = now; self.current_bpm = 60000.0 / interval
+                        self.bpm_history[self.bpm_index] = int(self.current_bpm + 0.5)
+                        self.bpm_index = (self.bpm_index + 1) % 4
+                        if self.bpm_count < 4: self.bpm_count += 1
+                        self.average_bpm = int(sum(self.bpm_history[:self.bpm_count]) / self.bpm_count)
+                    elif interval > 1333: self.last_beat_anchor = now
+
+pulse = _TitanPulse()
+\`\`\`
 - UART Port:
   * TX: GPIO 17 | RX: GPIO 18 (UART(1, baudrate=115200, tx=17, rx=18))
 
@@ -156,6 +238,7 @@ if __name__ == '__main__':
 3. Always wrap your code inside a \`\`\`python ... \`\`\` markdown code block so the IDE can parse and load it into the live editor.`;
 
 const PROMPT_SUGGESTIONS = [
+  { label: "Heart Rate Monitor (MAX30100)", prompt: "Write a complete heart rate and pulse oximeter monitor program using the MAX30100/MAX30102 sensor on I2C (SDA 7, SCL 8) with live finger detection, raw IR telemetry, and smoothed BPM displayed on the OLED screen." },
   { label: "Obstacle Avoidance (Ultrasonic)", prompt: "Write an autonomous obstacle avoidance program using the Ultrasonic sensor on Trig 6 and Echo 19 with dual motors M1 (left) and M2 (right). Turn when distance < 20cm." },
   { label: "5-Sensor Line Follower", prompt: "Write a high-speed line following robot program using analog sensors S1 (GPIO 2), S2 (GPIO 1), and S3 (GPIO 3) with proportional differential motor steering on M1 and M2." },
   { label: "OLED Live Dashboard", prompt: "Write an OLED display dashboard program that initializes the 1.3 inch display on SDA 7 and SCL 8, showing live readings for S1-S5 and Ultrasonic distance with 2x font size." },

@@ -40,7 +40,8 @@ npm run dev
 | **Ultrasonic Sensor** | `GPIO 6 (Trig), 19 (Echo)` | Distance via `hw.read_ultrasonic_distance(6, 19, "cm")` |
 | **Status LEDs** | `GPIO 47 (Red), 48 (Green)` | `Pin(47, Pin.OUT).value(1)` |
 | **Buzzer** | `GPIO 20` | `from supervisor.led_buzzer import hw` (Startup, Run, Confirm, Stop, Error tones) |
-| **I2C Display (1.3" / 0.96" OLED)** | `GPIO 7 (SDA), 8 (SCL)` | `from supervisor.oled import TitanOLED` or native `framebuf` driver |
+| **I2C Display (1.3" / 0.96" OLED)** | `GPIO 7 (SDA), 8 (SCL)` | `from supervisor.oled import TitanOLED` or native `framebuf` driver (Addr: `0x3C`) |
+| **Pulse & Heart Rate Sensor (MAX30100 / MAX30102)** | `GPIO 7 (SDA), 8 (SCL)` | Optical SpO2 & BPM sensor (Addr: `0x57`), SparkFun AC beat detector with DC removal filter |
 | **UART Port** | `GPIO 17 (TX), 18 (RX)` | `UART(1, baudrate=115200, tx=17, rx=18)` |
 
 ---
