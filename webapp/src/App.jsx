@@ -102,11 +102,11 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#060911] text-white relative overflow-x-hidden">
-      {/* Dynamic Interactive WebGL Galaxy Background (Optimized & Paused during modal workflows) */}
+      {/* Dynamic WebGL Galaxy Background (Mouse interaction disabled for performance) */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-90">
         <Galaxy 
-          mouseRepulsion={true}
-          mouseInteraction={!isAnyModalOpen}
+          mouseRepulsion={false}
+          mouseInteraction={false}
           disableAnimation={isAnyModalOpen}
           density={1.0}
           glowIntensity={0.45}
@@ -115,7 +115,7 @@ function App() {
           speed={0.25}
           starSpeed={0.12}
           rotationSpeed={0.02}
-          repulsionStrength={1.0}
+          repulsionStrength={0}
           twinkleIntensity={0.25}
           transparent={true}
         />

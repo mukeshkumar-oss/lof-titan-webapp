@@ -27,12 +27,12 @@ import {
   ArrowRight
 } from 'lucide-react';
 
-const DEFAULT_API_KEY = "AQ.Ab8RN6LFbUaNH-QJ-VwkXnrJ4GrAVQmCliw7giapWEf7MkvQCQ";
+const DEFAULT_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 // Only Latest 3.5 and 3.6 Models
 const GEMINI_MODELS = [
+  { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash Live", desc: "Latest real-time low-latency robotics model (Recommended)" },
   { id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash Lite", desc: "Ultra lightweight and lightning fast response model" },
-  { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash Live", desc: "Latest real-time low-latency robotics model" },
   { id: "gemini-3.6-pro", name: "Gemini 3.6 Pro", desc: "Deep reasoning step-by-step autonomous robotics logic" }
 ];
 
@@ -247,12 +247,21 @@ const PROMPT_SUGGESTIONS = [
 ];
 
 export function AIAssistantIDE({ isOpen, onClose, device, onUploadCode }) {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("titan_gemini_api_key") || DEFAULT_API_KEY);
+  const [apiKey, setApiKey] = useState(() => {
+    const saved = localStorage.getItem("titan_gemini_api_key");
+    // If the saved key is not the new verified key, automatically update to it
+    if (!saved || saved !== DEFAULT_API_KEY) {
+      localStorage.setItem("titan_gemini_api_key", DEFAULT_API_KEY);
+      return DEFAULT_API_KEY;
+    }
+    return saved;
+  });
   const [selectedModel, setSelectedModel] = useState(() => {
     const saved = localStorage.getItem("titan_gemini_model");
-    if (!saved || saved.includes("2.") || saved.includes("1.")) {
-      localStorage.setItem("titan_gemini_model", "gemini-3.5-flash-lite");
-      return "gemini-3.5-flash-lite";
+    // Always default to gemini-3.6-flash (confirmed working)
+    if (!saved || saved.includes("2.") || saved.includes("1.") || saved === "gemini-3.5-flash-lite") {
+      localStorage.setItem("titan_gemini_model", "gemini-3.6-flash");
+      return "gemini-3.6-flash";
     }
     return saved;
   });
@@ -375,7 +384,10 @@ if __name__ == '__main__':
 
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
         body: JSON.stringify({
           contents: contents,
           generationConfig: {
