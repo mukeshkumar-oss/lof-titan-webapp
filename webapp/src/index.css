@@ -21,3 +21,14 @@
     @apply bg-surface/50 hover:bg-surface border border-white/10 rounded-full p-2 transition-all duration-300;
   }
 }
+
+@keyframes spin-clockwise {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin-counterclockwise {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
