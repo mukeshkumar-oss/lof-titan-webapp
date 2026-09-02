@@ -40,6 +40,7 @@ import { registerCustomBlocks } from '../blockly/blocks/customBlocks';
 import { registerPythonGenerators, generateTitanWorkspaceCode } from '../blockly/generators/pythonGenerator';
 import { LunarTheme } from '../blockly/theme/lunarTheme';
 import { toolboxDefinition } from '../blockly/toolbox/toolboxDefinition';
+import { TitanSimulatorModal } from '../simulator';
 import '../blockly/blocklyCustom.css';
 
 // Register custom blocks and generators once
@@ -62,6 +63,7 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
   const [pythonCode, setPythonCode] = useState('');
   const [showPythonDrawer, setShowPythonDrawer] = useState(false);
   const [showSerialMonitor, setShowSerialMonitor] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [copied, setCopied] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
@@ -735,6 +737,22 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
               <span className="hidden xl:inline">Python</span>
             </button>
 
+            {/* Simulate Virtual TITAN Button */}
+            <button 
+              onClick={() => {
+                if (workspaceRef.current) {
+                  const generated = generateTitanWorkspaceCode(workspaceRef.current);
+                  setPythonCode(generated);
+                }
+                setShowSimulator(true);
+              }}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-md hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all active:scale-95 shrink-0 cursor-pointer"
+              title="Open Interactive LOF TITAN Visual Simulator"
+            >
+              <Play size={13} fill="currentColor" />
+              <span>Simulate</span>
+            </button>
+
             {/* Run on TITAN Button */}
             <button 
               onClick={handleUploadToTitan}
@@ -972,6 +990,15 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
 
         </div>
       </div>
+
+      {/* Integrated LOF TITAN Visual Simulator Modal */}
+      <TitanSimulatorModal
+        isOpen={showSimulator}
+        onClose={() => setShowSimulator(false)}
+        workspace={workspaceRef.current}
+        pythonCode={pythonCode}
+        sourceTitle="Blockly Workspace"
+      />
     </div>
   );
 }

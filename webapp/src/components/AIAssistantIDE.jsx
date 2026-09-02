@@ -205,6 +205,12 @@ class _TitanPulse:
 
 pulse = _TitanPulse()
 \`\`\`
+- QMC5883L 3-Axis Electronic Compass:
+  * SDA: GPIO 7 | SCL: GPIO 8 | I2C Address: 0x0D
+  * Heading (0-360°), 8-point cardinal direction, raw X/Y/Z magnetometer axes, temperature
+- AMG8833 8x8 IR Grid-EYE Thermal Camera:
+  * SDA: GPIO 7 | SCL: GPIO 8 | I2C Address: 0x69
+  * 64-pixel infrared temperature array, Max/Min/Avg temperature, human body heat detection
 - UART Port:
   * TX: GPIO 17 | RX: GPIO 18 (UART(1, baudrate=115200, tx=17, rx=18))
 
@@ -226,7 +232,6 @@ def _get_pwm(pin, freq=1000):
     return _pwm_pool[pin]
 
 def main():
-    # Setup & Logic
     while True:
         # Loop body
         time.sleep_ms(5)  # Auto CPU safety yield to prevent lockup
@@ -238,6 +243,8 @@ if __name__ == '__main__':
 3. Always wrap your code inside a \`\`\`python ... \`\`\` markdown code block so the IDE can parse and load it into the live editor.`;
 
 const PROMPT_SUGGESTIONS = [
+  { label: "Digital Compass (QMC5883L)", prompt: "Write a complete navigation compass program using the QMC5883L sensor on I2C (SDA 7, SCL 8, Addr 0x0D) that calculates the live azimuth heading angle (0-360°) and cardinal direction (N, NE, E, SE, S, SW, W, NW) and displays it on the OLED screen." },
+  { label: "8x8 Thermal Camera (AMG8833)", prompt: "Write a thermal imaging and human body heat detection program using the AMG8833 8x8 IR sensor on I2C (SDA 7, SCL 8, Addr 0x69) that renders an 8x8 thermal heatmap on the OLED screen and sounds the buzzer if a person (temperature > 32°C) is detected." },
   { label: "Heart Rate Monitor (MAX30100)", prompt: "Write a complete heart rate and pulse oximeter monitor program using the MAX30100/MAX30102 sensor on I2C (SDA 7, SCL 8) with live finger detection, raw IR telemetry, and smoothed BPM displayed on the OLED screen." },
   { label: "Obstacle Avoidance (Ultrasonic)", prompt: "Write an autonomous obstacle avoidance program using the Ultrasonic sensor on Trig 6 and Echo 19 with dual motors M1 (left) and M2 (right). Turn when distance < 20cm." },
   { label: "5-Sensor Line Follower", prompt: "Write a high-speed line following robot program using analog sensors S1 (GPIO 2), S2 (GPIO 1), and S3 (GPIO 3) with proportional differential motor steering on M1 and M2." },

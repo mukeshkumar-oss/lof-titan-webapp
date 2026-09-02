@@ -245,6 +245,52 @@ export function registerPythonGenerators() {
     return [`_read_pulse("FINGER")`, Order.FUNCTION_CALL];
   };
 
+  // QMC5883L 3-Axis Electronic Compass Generators (0x0D)
+  pythonGenerator.forBlock['titan_qmc5883l_init'] = function(block) {
+    return `_init_qmc5883l()\n`;
+  };
+
+  pythonGenerator.forBlock['titan_qmc5883l_read'] = function(block) {
+    const valType = block.getFieldValue('VAL') || 'HEADING';
+    if (valType === 'DIR') {
+      return [`_read_qmc5883l("DIR")`, Order.FUNCTION_CALL];
+    }
+    return [`_read_qmc5883l("${valType}")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_qmc5883l_heading'] = function(block) {
+    return [`_read_qmc5883l("HEADING")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_qmc5883l_direction'] = function(block) {
+    return [`_read_qmc5883l("DIR")`, Order.FUNCTION_CALL];
+  };
+
+  // AMG8833 8x8 IR Grid-EYE Thermal Camera Generators (0x69)
+  pythonGenerator.forBlock['titan_amg8833_init'] = function(block) {
+    return `_init_amg8833()\n`;
+  };
+
+  pythonGenerator.forBlock['titan_amg8833_read'] = function(block) {
+    const valType = block.getFieldValue('VAL') || 'MAX';
+    return [`_read_amg8833("${valType}")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_amg8833_read_pixel'] = function(block) {
+    const row = block.getFieldValue('ROW') || 1;
+    const col = block.getFieldValue('COL') || 1;
+    return [`_read_amg8833_pixel(${row}, ${col})`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_amg8833_heat_detected'] = function(block) {
+    const thresh = block.getFieldValue('THRESH') ?? 30;
+    return [`(_read_amg8833("MAX") > ${thresh})`, Order.RELATIONAL];
+  };
+
+  pythonGenerator.forBlock['titan_amg8833_oled_heatmap'] = function(block) {
+    return `_draw_amg8833_oled()\n`;
+  };
+
   pythonGenerator.forBlock['titan_motion_sensor_check'] = function(block) {
     const pin = block.getFieldValue('PIN') || '2';
     return [`(Pin(${pin}, Pin.IN).value() == 1)`, Order.RELATIONAL];
@@ -265,6 +311,14 @@ export function registerPythonGenerators() {
              `_b3 = 1 - Pin(41, Pin.IN, Pin.PULL_UP).value()\n` +
              `_b4 = 1 - Pin(42, Pin.IN, Pin.PULL_UP).value()\n` +
              `print(f"[SENSORS] S1:{_s1} S2:{_s2} S3:{_s3} S4:{_s4} S5:{_s5} | Dist:{_d:.1f}cm | Btns:[{_b1},{_b2},{_b3},{_b4}]")\n`;
+    } else if (type === 'QMC5883L') {
+      return `_q = _get_qmc5883l()\n` +
+             `_q.update()\n` +
+             `print(f"[QMC5883L COMPASS] Heading: {_q.heading}° ({_q.direction}) | X:{_q.x} Y:{_q.y} Z:{_q.z} | Temp: {_q.temp}°C")\n`;
+    } else if (type === 'AMG8833') {
+      return `_cam = _get_amg8833()\n` +
+             `_cam.update()\n` +
+             `print(f"[AMG8833 THERMAL] Max: {_cam.max_temp:.1f}°C | Min: {_cam.min_temp:.1f}°C | Avg: {_cam.avg_temp:.1f}°C | Thermistor: {_cam.thermistor:.1f}°C")\n`;
     } else if (type === 'PULSE') {
       return `_pi = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000, timeout=1000)\n` +
              `try:\n` +
@@ -280,7 +334,7 @@ export function registerPythonGenerators() {
       return `print(f"[BUTTONS] B1:{1-Pin(39,Pin.IN,Pin.PULL_UP).value()} B2:{1-Pin(40,Pin.IN,Pin.PULL_UP).value()} B3:{1-Pin(41,Pin.IN,Pin.PULL_UP).value()} B4:{1-Pin(42,Pin.IN,Pin.PULL_UP).value()}")\n`;
     } else if (type === 'I2C_SCAN') {
       return `_i2c = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000, timeout=1000)\n` +
-             `_names = {0x57:"Pulse Rate Sensor (MAX30102/MAX30100)", 0x3C:"OLED (SSD1306/SH1106)", 0x68:"IMU (MPU6050)", 0x29:"ToF Laser (VL53L0X)", 0x36:"Mag Encoder (AS5600)", 0x76:"BMP280 Baro", 0x40:"PCA9685/INA219", 0x48:"ADS1115", 0x27:"LCD 1602", 0x1E:"HMC5883L Compass", 0x23:"BH1750 Light", 0x50:"AT24C32 EEPROM"}\n` +
+             `_names = {0x0D:"QMC5883L 3-Axis Compass", 0x69:"AMG8833 8x8 IR Thermal", 0x57:"Pulse Rate Sensor (MAX30102/MAX30100)", 0x3C:"OLED (SSD1306/SH1106)", 0x68:"IMU (MPU6050)", 0x29:"ToF Laser (VL53L0X)", 0x36:"Mag Encoder (AS5600)", 0x76:"BMP280 Baro", 0x40:"PCA9685/INA219", 0x48:"ADS1115", 0x27:"LCD 1602", 0x1E:"HMC5883L Compass", 0x23:"BH1750 Light", 0x50:"AT24C32 EEPROM"}\n` +
              `_devs = _i2c.scan()\n` +
              `if not _devs:\n` +
              `  print("[I2C SCAN] No I2C devices detected (SDA:7, SCL:8)")\n` +
@@ -660,12 +714,186 @@ def _read_pulse(val_type='IR'):
   return p.average_bpm
 `;
 
+const QMC5883L_DRIVER_CODE = `import math, struct
+class _TitanQMC5883L:
+  def __init__(self, addr=0x0D):
+    self.addr = addr
+    try:
+      self.i2c = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=100000, timeout=1000)
+    except Exception:
+      self.i2c = None
+    self.x = 0
+    self.y = 0
+    self.z = 0
+    self.heading = 0.0
+    self.direction = "N"
+    self.temp = 25.0
+    self.init_sensor()
+
+  def _w(self, reg, val):
+    if self.i2c:
+      try: self.i2c.writeto_mem(self.addr, reg, bytearray([val]))
+      except Exception: pass
+
+  def _r(self, reg, n=1):
+    if self.i2c:
+      try: return self.i2c.readfrom_mem(self.addr, reg, n)
+      except Exception: pass
+    return bytearray(n)
+
+  def init_sensor(self):
+    self._w(0x0A, 0x80)
+    time.sleep_ms(20)
+    self._w(0x0B, 0x01)
+    self._w(0x09, 0x1D)
+
+  def update(self):
+    data = self._r(0x00, 6)
+    if len(data) == 6:
+      raw_x, raw_y, raw_z = struct.unpack('<hhh', data)
+      self.x, self.y, self.z = raw_x, raw_y, raw_z
+      rad = math.atan2(self.y, self.x)
+      deg = math.degrees(rad)
+      if deg < 0: deg += 360.0
+      self.heading = round(deg, 1)
+      dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+      idx = int((self.heading + 22.5) / 45.0) % 8
+      self.direction = dirs[idx]
+    t_data = self._r(0x07, 2)
+    if len(t_data) == 2:
+      raw_t = struct.unpack('<h', t_data)[0]
+      self.temp = round(25.0 + (raw_t / 100.0), 1)
+
+_qmc_inst = None
+def _get_qmc5883l():
+  global _qmc_inst
+  if _qmc_inst is None: _qmc_inst = _TitanQMC5883L()
+  return _qmc_inst
+
+def _init_qmc5883l():
+  _get_qmc5883l().init_sensor()
+
+def _read_qmc5883l(val_type="HEADING"):
+  q = _get_qmc5883l()
+  q.update()
+  if val_type == "HEADING": return q.heading
+  if val_type == "DIR": return q.direction
+  if val_type == "X": return q.x
+  if val_type == "Y": return q.y
+  if val_type == "Z": return q.z
+  if val_type == "TEMP": return q.temp
+  return q.heading
+`;
+
+const AMG8833_DRIVER_CODE = `class _TitanAMG8833:
+  def __init__(self, addr=0x69):
+    self.addr = addr
+    try:
+      self.i2c = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=100000, timeout=1000)
+    except Exception:
+      self.i2c = None
+    self.pixels = [0.0] * 64
+    self.thermistor = 25.0
+    self.max_temp = 0.0
+    self.min_temp = 0.0
+    self.avg_temp = 0.0
+    self.init_sensor()
+
+  def _w(self, reg, val):
+    if self.i2c:
+      try: self.i2c.writeto_mem(self.addr, reg, bytearray([val]))
+      except Exception: pass
+
+  def _r(self, reg, n=1):
+    if self.i2c:
+      try: return self.i2c.readfrom_mem(self.addr, reg, n)
+      except Exception: pass
+    return bytearray(n)
+
+  def init_sensor(self):
+    self._w(0x00, 0x00)
+    self._w(0x01, 0x3F)
+    self._w(0x02, 0x00)
+    time.sleep_ms(50)
+
+  def update(self):
+    t_data = self._r(0x0E, 2)
+    if len(t_data) == 2:
+      raw_t = (t_data[1] << 8) | t_data[0]
+      if raw_t & 0x800: raw_t -= 0x1000
+      self.thermistor = round(raw_t * 0.0625, 2)
+    data = self._r(0x80, 128)
+    if len(data) == 128:
+      for i in range(64):
+        raw = (data[2*i + 1] << 8) | data[2*i]
+        if raw & 0x800: raw -= 0x1000
+        self.pixels[i] = round(raw * 0.25, 1)
+      self.max_temp = max(self.pixels)
+      self.min_temp = min(self.pixels)
+      self.avg_temp = round(sum(self.pixels) / 64.0, 1)
+
+_amg_inst = None
+def _get_amg8833():
+  global _amg_inst
+  if _amg_inst is None: _amg_inst = _TitanAMG8833()
+  return _amg_inst
+
+def _init_amg8833():
+  _get_amg8833().init_sensor()
+
+def _read_amg8833(val_type="MAX"):
+  cam = _get_amg8833()
+  cam.update()
+  if val_type == "MAX": return cam.max_temp
+  if val_type == "MIN": return cam.min_temp
+  if val_type == "AVG": return cam.avg_temp
+  if val_type == "CENTER": return round((cam.pixels[27] + cam.pixels[28] + cam.pixels[35] + cam.pixels[36]) / 4.0, 1)
+  if val_type == "THERMISTOR": return cam.thermistor
+  if val_type == "PIXELS": return cam.pixels
+  return cam.max_temp
+
+def _read_amg8833_pixel(row, col):
+  cam = _get_amg8833()
+  cam.update()
+  r = max(1, min(8, int(row))) - 1
+  c = max(1, min(8, int(col))) - 1
+  return cam.pixels[r * 8 + c]
+
+def _draw_amg8833_oled():
+  cam = _get_amg8833()
+  cam.update()
+  try:
+    oled = _TitanOLED()
+    oled.fill(0)
+    mn, mx = cam.min_temp, cam.max_temp
+    diff = mx - mn if mx > mn else 1.0
+    for r in range(8):
+      for c in range(8):
+        val = cam.pixels[r * 8 + c]
+        intensity = int(((val - mn) / diff) * 3)
+        x0, y0 = c * 8, r * 8
+        oled.rect(x0, y0, 7, 7, 1)
+        if intensity >= 2:
+          oled.fill_rect(x0 + 1, y0 + 1, 5, 5, 1)
+        elif intensity == 1:
+          oled.pixel(x0 + 2, y0 + 2, 1)
+          oled.pixel(x0 + 4, y0 + 4, 1)
+    oled.print_text(f"Mx:{mx:.1f}C", 68, 8, 1)
+    oled.print_text(f"Mn:{mn:.1f}C", 68, 24, 1)
+    oled.print_text(f"Av:{cam.avg_temp:.1f}C", 68, 40, 1)
+    oled.show()
+  except Exception: pass
+`;
+
 export function generateTitanWorkspaceCode(workspace) {
   if (!workspace) return '';
   
   const allBlocks = workspace.getAllBlocks(false);
-  const hasOled = allBlocks.some(b => b.type && b.type.startsWith('titan_oled'));
-  const hasPulse = allBlocks.some(b => b.type && b.type.startsWith('titan_pulse'));
+  const hasAmgHeatmap = allBlocks.some(b => b.type === 'titan_amg8833_oled_heatmap');
+  const hasOled = allBlocks.some(b => b.type && b.type.startsWith('titan_oled')) || hasAmgHeatmap;
+  const hasPulse = allBlocks.some(b => b.type && (b.type.startsWith('titan_pulse') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'PULSE')));
+  const hasQmc = allBlocks.some(b => b.type && (b.type.startsWith('titan_qmc5883l') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'QMC5883L')));
+  const hasAmg = allBlocks.some(b => b.type && (b.type.startsWith('titan_amg8833') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'AMG8833')));
 
   const topBlocks = workspace.getTopBlocks(true);
   const titanStartBlock = topBlocks.find(b => b.type === 'titan_start');
@@ -682,6 +910,14 @@ export function generateTitanWorkspaceCode(workspace) {
 
   if (hasPulse) {
     code += PULSE_DRIVER_CODE + '\n';
+  }
+
+  if (hasQmc) {
+    code += QMC5883L_DRIVER_CODE + '\n';
+  }
+
+  if (hasAmg) {
+    code += AMG8833_DRIVER_CODE + '\n';
   }
 
   if (titanStartBlock) {

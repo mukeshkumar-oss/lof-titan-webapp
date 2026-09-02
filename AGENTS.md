@@ -42,6 +42,8 @@ npm run dev
 | **Buzzer** | `GPIO 20` | `from supervisor.led_buzzer import hw` (Startup, Run, Confirm, Stop, Error tones) |
 | **I2C Display (1.3" / 0.96" OLED)** | `GPIO 7 (SDA), 8 (SCL)` | `from supervisor.oled import TitanOLED` or native `framebuf` driver (Addr: `0x3C`) |
 | **Pulse & Heart Rate Sensor (MAX30100 / MAX30102)** | `GPIO 7 (SDA), 8 (SCL)` | Optical SpO2 & BPM sensor (Addr: `0x57`), SparkFun AC beat detector with DC removal filter |
+| **Digital Compass & Magnetometer (QMC5883L)** | `GPIO 7 (SDA), 8 (SCL)` | 3-axis electronic compass & heading angle (Addr: `0x0D`), range ±8G, 200Hz ODR |
+| **8x8 IR Thermal Camera (AMG8833)** | `GPIO 7 (SDA), 8 (SCL)` | Grid-EYE 64-pixel thermal infrared matrix (Addr: `0x69`), range 0–80°C (0.25°C res) |
 | **UART Port** | `GPIO 17 (TX), 18 (RX)` | `UART(1, baudrate=115200, tx=17, rx=18)` |
 
 ---

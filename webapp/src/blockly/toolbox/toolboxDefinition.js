@@ -15,6 +15,9 @@ export const toolboxDefinition = {
         { kind: "block", type: "titan_sensor_read_digital" },
         { kind: "block", type: "titan_ultrasonic_distance" },
         { kind: "block", type: "titan_button_is_pressed" },
+        { kind: "block", type: "titan_qmc5883l_read" },
+        { kind: "block", type: "titan_amg8833_read" },
+        { kind: "block", type: "titan_amg8833_heat_detected" },
         { kind: "block", type: "titan_i2c_scan" },
         { kind: "block", type: "titan_sensor_compare" },
         { kind: "block", type: "titan_digital_sensor_check" },
@@ -49,6 +52,15 @@ export const toolboxDefinition = {
         { kind: "block", type: "titan_pulse_sensor_init" },
         { kind: "block", type: "titan_pulse_sensor_read" },
         { kind: "block", type: "titan_pulse_finger_detected" },
+        { kind: "block", type: "titan_qmc5883l_init" },
+        { kind: "block", type: "titan_qmc5883l_read" },
+        { kind: "block", type: "titan_qmc5883l_heading" },
+        { kind: "block", type: "titan_qmc5883l_direction" },
+        { kind: "block", type: "titan_amg8833_init" },
+        { kind: "block", type: "titan_amg8833_read" },
+        { kind: "block", type: "titan_amg8833_read_pixel" },
+        { kind: "block", type: "titan_amg8833_heat_detected" },
+        { kind: "block", type: "titan_amg8833_oled_heatmap" },
         { kind: "block", type: "titan_i2c_scan" },
         { kind: "block", type: "titan_i2c_read_byte" },
         { kind: "block", type: "titan_i2c_write_byte" }
@@ -90,7 +102,8 @@ export const toolboxDefinition = {
         { kind: "block", type: "titan_oled_text" },
         { kind: "block", type: "titan_oled_show_sensor" },
         { kind: "block", type: "titan_oled_clear" },
-        { kind: "block", type: "titan_oled_show" }
+        { kind: "block", type: "titan_oled_show" },
+        { kind: "block", type: "titan_amg8833_oled_heatmap" }
       ]
     },
     {

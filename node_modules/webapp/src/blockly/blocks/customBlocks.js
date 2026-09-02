@@ -449,6 +449,132 @@ export function registerCustomBlocks() {
     }
   };
 
+  // ================= QMC5883L 3-AXIS COMPASS (I2C 0x0D) =================
+  Blockly.Blocks['titan_qmc5883l_init'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🧭 Initialize QMC5883L Compass (I2C SDA: 7, SCL: 8, Addr: 0x0D)");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Initialize QMC5883L 3-axis digital compass & magnetometer sensor on I2C port (Addr: 0x0D)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_qmc5883l_read'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🧭 QMC5883L Compass")
+          .appendField(new Blockly.FieldDropdown([
+            ["Heading Angle (0 - 360°)", "HEADING"],
+            ["Compass Direction (N, NE, E...)", "DIR"],
+            ["Raw X-Axis Field", "X"],
+            ["Raw Y-Axis Field", "Y"],
+            ["Raw Z-Axis Field", "Z"],
+            ["Sensor Temp (°C)", "TEMP"]
+          ]), "VAL");
+      this.setOutput(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read electronic compass heading angle (0-360°), 8-point cardinal direction (N, NE, E, SE, S, SW, W, NW), raw magnetometer axes, or temperature");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_qmc5883l_heading'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🧭 Compass Heading Angle (°)");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Get 3-axis electronic compass heading angle between 0° and 360°");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_qmc5883l_direction'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🧭 Compass Cardinal Direction");
+      this.setOutput(true, "String");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Get current 8-point compass cardinal direction string ('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW')");
+      this.setHelpUrl("");
+    }
+  };
+
+  // ================= AMG8833 8x8 IR THERMAL CAMERA (I2C 0x69) =================
+  Blockly.Blocks['titan_amg8833_init'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🌡️ Initialize AMG8833 8x8 Thermal Camera (I2C SDA: 7, SCL: 8, Addr: 0x69)");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Initialize Panasonic AMG8833 8x8 IR Grid-EYE Thermal Camera sensor on I2C port (Addr: 0x69)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_amg8833_read'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🌡️ AMG8833 Thermal Camera")
+          .appendField(new Blockly.FieldDropdown([
+            ["Max Temperature (°C)", "MAX"],
+            ["Min Temperature (°C)", "MIN"],
+            ["Average Temperature (°C)", "AVG"],
+            ["Center Temperature (°C)", "CENTER"],
+            ["Body Thermistor Temp (°C)", "THERMISTOR"],
+            ["8x8 Temperature Array", "PIXELS"]
+          ]), "VAL");
+      this.setOutput(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read thermal values across the 64-pixel IR thermal sensor matrix");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_amg8833_read_pixel'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🌡️ AMG8833 Pixel Temp at Row")
+          .appendField(new Blockly.FieldNumber(1, 1, 8), "ROW")
+          .appendField("Col")
+          .appendField(new Blockly.FieldNumber(1, 1, 8), "COL")
+          .appendField("(°C)");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read infrared temperature of a specific pixel in the 8x8 thermal matrix (Row 1-8, Column 1-8)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_amg8833_heat_detected'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🌡️ Thermal Heat Detected? (Max Temp >")
+          .appendField(new Blockly.FieldNumber(30, 0, 100), "THRESH")
+          .appendField("°C)");
+      this.setOutput(true, "Boolean");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Returns True if any pixel in the 8x8 thermal matrix detects temperature higher than threshold (e.g. human body heat)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_amg8833_oled_heatmap'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🌡️ Display AMG8833 Thermal Heatmap on OLED Screen");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Render real-time 8x8 thermal heat map with min/max telemetry directly on the I2C OLED display");
+      this.setHelpUrl("");
+    }
+  };
+
   // Dedicated PIR Motion Sensor Block
   Blockly.Blocks['titan_motion_sensor_check'] = {
     init: function() {
@@ -476,6 +602,8 @@ export function registerCustomBlocks() {
           .appendField("📊 Print")
           .appendField(new Blockly.FieldDropdown([
             ["All Sensors Live Summary (S1-S5, Dist, Buttons)", "ALL"],
+            ["QMC5883L Compass (0x0D)", "QMC5883L"],
+            ["AMG8833 8x8 IR Thermal (0x69)", "AMG8833"],
             ["Pulse Rate Sensor (MAX30102)", "PULSE"],
             ["Analog Sensor S1 (GPIO 2)", "S1"],
             ["Analog Sensor S2 (GPIO 1)", "S2"],
