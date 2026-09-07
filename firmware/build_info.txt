@@ -47,4 +47,4 @@ Copyright (C) 2024 Free Software Foundation, Inc.
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-MicroPython v1.28.0-dirty on 2026-08-19; mpy-cross emitting mpy v6.3
+MicroPython v1.28.0-dirty on 2026-08-24; mpy-cross emitting mpy v6.3
