@@ -33,7 +33,8 @@ import {
   Trash2,
   Send,
   Save,
-  FolderOpen
+  FolderOpen,
+  Volume2
 } from 'lucide-react';
 
 import { registerCustomBlocks } from '../blockly/blocks/customBlocks';
@@ -86,6 +87,7 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
     { name: "Motors", icon: Settings, color: "#a855f7", bg: "#faf5ff", customId: "motors" },
     { name: "IOT", icon: Wifi, color: "#0ea5e9", bg: "#f0f9ff", customId: "iot" },
     { name: "Display", icon: Tv, color: "#8b5cf6", bg: "#f5f3ff", customId: "display" },
+    { name: "Audio", icon: Volume2, color: "#f59e0b", bg: "#fffbeb", customId: "audio" },
     { name: "Logic", icon: SlidersHorizontal, color: "#64748b", bg: "#f8fafc", customId: "logic" },
     { name: "Loops", icon: Repeat, color: "#22c55e", bg: "#f0fdf4", customId: "loops" },
     { name: "Math", icon: Sigma, color: "#8b5cf6", bg: "#f5f3ff", customId: "math" },

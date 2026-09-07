@@ -44,6 +44,21 @@ def _raw_m2(duty_pct, fwd=True):
     elif fwd: p13.duty(duty); p14.duty(0)
     else: p13.duty(0); p14.duty(duty)
 
+def _raw_m3(duty_pct, fwd=True):
+    # M3 Motor/LED Channel (GPIO 11, 12)
+    capped_pct = max(0.0, min(100.0, duty_pct))
+    duty = int(capped_pct * 1023 / 100) if capped_pct > 0 else 0
+    p11 = _get_pwm(11); p12 = _get_pwm(12)
+    if duty == 0: p11.duty(0); p12.duty(0)
+    elif fwd: p11.duty(duty); p12.duty(0)
+    else: p11.duty(0); p12.duty(duty)
+
+def set_m3_led(active, speed=20):
+    if active:
+        _raw_m3(speed, fwd=True)
+    else:
+        _raw_m3(0)
+
 def set_buzzer(active):
     buz = _get_pwm(20, freq=2400)
     buz.duty(512 if active else 0)
@@ -443,12 +458,25 @@ def run_patrol_leg(target_heading, target_name, duration_sec=20.0, s_sock=None, 
             set_buzzer(True)
             print(f"🚨 [HEAT ALARM] {max_t:.1f}°C detected (>30°C)! Patrol PAUSED at {duration_sec - elapsed_active_time:.1f}s")
             
+            led_state = True
+            set_m3_led(True, speed=20)
+            last_blink = time.ticks_ms()
+
             while True:
                 process_web_requests(s_sock, mission_state)
+
+                # Blink M3 LED every 0.2s (200ms) with forward speed 20
+                now_blink = time.ticks_ms()
+                if time.ticks_diff(now_blink, last_blink) >= 200:
+                    led_state = not led_state
+                    set_m3_led(led_state, speed=20)
+                    last_blink = now_blink
+
                 if thermal.max_temp <= 30.0:
                     break
                 time.sleep_ms(20)
 
+            set_m3_led(False)
             set_buzzer(False)
             mission_state["alarm"] = False
             print(f"✅ [HEAT CLEARED] Temp: {thermal.max_temp:.1f}°C. Re-aligning & Resuming...")
@@ -513,6 +541,7 @@ def main():
     }
 
     set_buzzer(True); time.sleep_ms(80); set_buzzer(False)
+    set_m3_led(False)
 
     try:
         while True:
@@ -532,6 +561,7 @@ def main():
     except KeyboardInterrupt:
         stop_smooth()
         set_buzzer(False)
+        set_m3_led(False)
         print("[ROVER STOPPED BY OPERATOR]")
 
 if __name__ == '__main__':

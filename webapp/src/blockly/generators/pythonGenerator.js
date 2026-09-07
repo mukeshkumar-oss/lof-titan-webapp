@@ -245,6 +245,39 @@ export function registerPythonGenerators() {
     return [`_read_pulse("FINGER")`, Order.FUNCTION_CALL];
   };
 
+  pythonGenerator.forBlock['titan_pulse_oled_ecg'] = function(block) {
+    return `_draw_pulse_oled_ecg()\n`;
+  };
+
+  // ================= MPU6050 6-AXIS IMU GYRO & ACCELEROMETER (0x68) =================
+  pythonGenerator.forBlock['titan_mpu6050_init'] = function(block) {
+    return `_init_mpu6050()\n`;
+  };
+
+  pythonGenerator.forBlock['titan_mpu6050_read_accel'] = function(block) {
+    const axis = block.getFieldValue('AXIS') || 'TOTAL';
+    return [`_read_mpu6050_accel("${axis}")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_mpu6050_read_gyro'] = function(block) {
+    const axis = block.getFieldValue('AXIS') || 'X';
+    return [`_read_mpu6050_gyro("${axis}")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_mpu6050_read_angle'] = function(block) {
+    const angle = block.getFieldValue('ANGLE') || 'PITCH';
+    return [`_read_mpu6050_angle("${angle}")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_mpu6050_read_temp'] = function(block) {
+    return [`_read_mpu6050_temp()`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_mpu6050_gesture'] = function(block) {
+    const gesture = block.getFieldValue('GESTURE') || 'SHAKE';
+    return [`_check_mpu6050_gesture("${gesture}")`, Order.FUNCTION_CALL];
+  };
+
   // QMC5883L 3-Axis Electronic Compass Generators (0x0D)
   pythonGenerator.forBlock['titan_qmc5883l_init'] = function(block) {
     return `_init_qmc5883l()\n`;
@@ -291,9 +324,82 @@ export function registerPythonGenerators() {
     return `_draw_amg8833_oled()\n`;
   };
 
+  // AS5600 12-Bit Magnetic Rotary Encoder Generators (0x36)
+  pythonGenerator.forBlock['titan_as5600_init'] = function(block) {
+    return `_init_as5600()\n`;
+  };
+
+  pythonGenerator.forBlock['titan_as5600_read_angle'] = function(block) {
+    const valType = block.getFieldValue('VAL') || 'DEG';
+    return [`_read_as5600_angle("${valType}")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_as5600_read_rotations'] = function(block) {
+    const valType = block.getFieldValue('VAL') || 'TURNS';
+    return [`_read_as5600_rotations("${valType}")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_as5600_reset_zero'] = function(block) {
+    return `_reset_as5600_zero()\n`;
+  };
+
+  pythonGenerator.forBlock['titan_as5600_magnet_status'] = function(block) {
+    const valType = block.getFieldValue('VAL') || 'IS_DETECTED';
+    return [`_read_as5600_magnet("${valType}")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_as5600_compare'] = function(block) {
+    const metric = block.getFieldValue('METRIC') || 'DEG';
+    const op = block.getFieldValue('OP') || 'GT';
+    const val = block.getFieldValue('VAL') ?? 180;
+    const opMap = { 'GT': '>', 'GTE': '>=', 'LT': '<', 'LTE': '<=', 'EQ': '==', 'NEQ': '!=' };
+    const pyOp = opMap[op] || '>';
+    return [`_compare_as5600("${metric}", "${pyOp}", ${val})`, Order.RELATIONAL];
+  };
+
   pythonGenerator.forBlock['titan_motion_sensor_check'] = function(block) {
     const pin = block.getFieldValue('PIN') || '2';
     return [`(Pin(${pin}, Pin.IN).value() == 1)`, Order.RELATIONAL];
+  };
+
+  // ================= MQ-135 AIR QUALITY & HAZARDOUS GAS SENSOR =================
+  pythonGenerator.forBlock['titan_mq135_read'] = function(block) {
+    const pin = block.getFieldValue('PIN') || '2';
+    const valType = block.getFieldValue('VAL') || 'PPM';
+    return [`_read_mq135_ppm(${pin}, "${valType}")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_mq135_quality_status'] = function(block) {
+    const pin = block.getFieldValue('PIN') || '2';
+    return [`_read_mq135_quality(${pin})`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_mq135_gas_detected'] = function(block) {
+    const pin = block.getFieldValue('PIN') || '2';
+    const thresh = block.getFieldValue('THRESH') || 800;
+    return [`_check_mq135_gas(${pin}, ${thresh})`, Order.RELATIONAL];
+  };
+
+  pythonGenerator.forBlock['titan_mq135_calibrate'] = function(block) {
+    const pin = block.getFieldValue('PIN') || '2';
+    return `_calibrate_mq135(${pin})\n`;
+  };
+
+  // ================= DHT22 / DHT11 DIGITAL TEMPERATURE & HUMIDITY =================
+  pythonGenerator.forBlock['titan_dht_read'] = function(block) {
+    const type = block.getFieldValue('TYPE') || 'DHT22';
+    const pin = block.getFieldValue('PIN') || '2';
+    const valType = block.getFieldValue('VAL') || 'TEMP_C';
+    return [`_read_dht(${pin}, "${type}", "${valType}")`, Order.FUNCTION_CALL];
+  };
+
+  pythonGenerator.forBlock['titan_dht_compare'] = function(block) {
+    const type = block.getFieldValue('TYPE') || 'DHT22';
+    const pin = block.getFieldValue('PIN') || '2';
+    const valType = block.getFieldValue('VAL') || 'TEMP_C';
+    const op = block.getFieldValue('OP') || '>';
+    const val = block.getFieldValue('VALUE') ?? 30;
+    return [`(_read_dht(${pin}, "${type}", "${valType}") ${op} ${val})`, Order.RELATIONAL];
   };
 
   // Sensor Monitor Print Generator
@@ -311,6 +417,17 @@ export function registerPythonGenerators() {
              `_b3 = 1 - Pin(41, Pin.IN, Pin.PULL_UP).value()\n` +
              `_b4 = 1 - Pin(42, Pin.IN, Pin.PULL_UP).value()\n` +
              `print(f"[SENSORS] S1:{_s1} S2:{_s2} S3:{_s3} S4:{_s4} S5:{_s5} | Dist:{_d:.1f}cm | Btns:[{_b1},{_b2},{_b3},{_b4}]")\n`;
+    } else if (type === 'DHT22') {
+      return `_dht_t = _read_dht(2, "DHT22", "TEMP_C")\n` +
+             `_dht_h = _read_dht(2, "DHT22", "HUMIDITY")\n` +
+             `print(f"[DHT22 SENSOR S1] Temp: {_dht_t:.1f}°C | Humidity: {_dht_h:.1f}% RH")\n`;
+    } else if (type === 'MQ135') {
+      return `_mq = _get_mq135(2)\n` +
+             `print(f"[MQ-135 AIR QUALITY] PPM: {_mq.read_ppm('PPM'):.1f} | CO2: {_mq.read_ppm('CO2'):.1f} | Status: {_mq.get_air_quality()} | Raw: {_mq.last_adc}")\n`;
+    } else if (type === 'MPU6050') {
+      return `_m = _get_mpu6050()\n` +
+             `_m.update()\n` +
+             `print(f"[MPU6050 IMU] Accel: ({_m.ax:.2f}, {_m.ay:.2f}, {_m.az:.2f})g (Tot:{_m.total_g:.2f}g) | Gyro: ({_m.gx:.1f}, {_m.gy:.1f}, {_m.gz:.1f})°/s | Pitch:{_m.pitch}° Roll:{_m.roll}° | Temp:{_m.temp}°C")\n`;
     } else if (type === 'QMC5883L') {
       return `_q = _get_qmc5883l()\n` +
              `_q.update()\n` +
@@ -319,6 +436,10 @@ export function registerPythonGenerators() {
       return `_cam = _get_amg8833()\n` +
              `_cam.update()\n` +
              `print(f"[AMG8833 THERMAL] Max: {_cam.max_temp:.1f}°C | Min: {_cam.min_temp:.1f}°C | Avg: {_cam.avg_temp:.1f}°C | Thermistor: {_cam.thermistor:.1f}°C")\n`;
+    } else if (type === 'AS5600') {
+      return `_enc = _get_as5600()\n` +
+             `_enc.update()\n` +
+             `print(f"[AS5600 ENCODER] Angle: {_enc.angle:.1f}° | Raw: {_enc.raw_angle} | Turns: {_enc.turns} | RPM: {_enc.rpm:.1f} | Magnet: {_enc.get_status_str()}")\n`;
     } else if (type === 'PULSE') {
       return `_pi = SoftI2C(sda=Pin(7), scl=Pin(8), freq=100000, timeout=1000)\n` +
              `try:\n` +
@@ -473,6 +594,87 @@ export function registerPythonGenerators() {
     const text = pythonGenerator.valueToCode(block, 'TEXT', Order.NONE) || "''";
     const baud = block.getFieldValue('BAUD') || 115200;
     return `_uart = UART(1, baudrate=${baud}, tx=17, rx=18)\n_uart.write(str(${text}) + '\\r\\n')\n`;
+  };
+
+  // ================= 6. DFPLAYER MINI AUDIO MODULE =================
+  pythonGenerator.forBlock['titan_dfplayer_init'] = function(block) {
+    const tx = block.getFieldValue('TX') || 17;
+    const rx = block.getFieldValue('RX') || 18;
+    const volume = block.getFieldValue('VOLUME') || 20;
+    return `_dfplayer_init(tx=${tx}, rx=${rx}, volume=${volume})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_dfplayer_play_track'] = function(block) {
+    const track = block.getFieldValue('TRACK') || 1;
+    return `_get_dfplayer().play_track(${track})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_dfplayer_play_folder'] = function(block) {
+    const folder = block.getFieldValue('FOLDER') || 1;
+    const track = block.getFieldValue('TRACK') || 1;
+    return `_get_dfplayer().play_folder(${folder}, ${track})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_dfplayer_play_mp3'] = function(block) {
+    const track = block.getFieldValue('TRACK') || 1;
+    return `_get_dfplayer().play_mp3(${track})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_dfplayer_play_wait'] = function(block) {
+    const track = block.getFieldValue('TRACK') || 1;
+    const seconds = block.getFieldValue('SECONDS') || 3;
+    return `_get_dfplayer().play_track(${track})\ntime.sleep(${seconds})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_dfplayer_control'] = function(block) {
+    const action = block.getFieldValue('ACTION') || 'PLAY';
+    switch (action) {
+      case 'PLAY': return `_get_dfplayer().play()\n`;
+      case 'PAUSE': return `_get_dfplayer().pause()\n`;
+      case 'STOP': return `_get_dfplayer().stop()\n`;
+      case 'NEXT': return `_get_dfplayer().next()\n`;
+      case 'PREV': return `_get_dfplayer().prev()\n`;
+      case 'VOL_UP': return `_get_dfplayer().volume_up()\n`;
+      case 'VOL_DOWN': return `_get_dfplayer().volume_down()\n`;
+      case 'RESET': return `_get_dfplayer().reset()\n`;
+      default: return `_get_dfplayer().play()\n`;
+    }
+  };
+
+  pythonGenerator.forBlock['titan_dfplayer_set_volume'] = function(block) {
+    const vol = block.getFieldValue('VOLUME') || 20;
+    return `_get_dfplayer().set_volume(${vol})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_dfplayer_volume_change'] = function(block) {
+    const dir = block.getFieldValue('DIR') || 'UP';
+    if (dir === 'UP') {
+      return `_get_dfplayer().volume_up()\n`;
+    } else {
+      return `_get_dfplayer().volume_down()\n`;
+    }
+  };
+
+  pythonGenerator.forBlock['titan_dfplayer_set_eq'] = function(block) {
+    const eq = block.getFieldValue('EQ') || 0;
+    return `_get_dfplayer().set_eq(${eq})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_dfplayer_loop'] = function(block) {
+    const mode = block.getFieldValue('MODE') || 'CURRENT';
+    const track = block.getFieldValue('TRACK') || 1;
+    if (mode === 'CURRENT') {
+      return `_get_dfplayer().loop_track(${track})\n`;
+    } else if (mode === 'ALL') {
+      return `_get_dfplayer().loop_all(True)\n`;
+    } else {
+      return `_get_dfplayer().loop_all(False)\n`;
+    }
+  };
+
+  pythonGenerator.forBlock['titan_dfplayer_is_busy'] = function(block) {
+    const pin = block.getFieldValue('PIN') || 2;
+    return [`(Pin(${pin}, Pin.IN).value() == 0)`, Order.RELATIONAL];
   };
 }
 
@@ -712,6 +914,55 @@ def _read_pulse(val_type='IR'):
   if val_type == 'RED': return p.latest_red
   if val_type == 'FINGER': return p.finger_detected
   return p.average_bpm
+
+def _draw_pulse_oled_ecg():
+  p = _get_pulse()
+  p.update()
+  try:
+    oled = _get_oled()
+    if not oled: return
+    oled.fill(0)
+    
+    # Top status bar
+    if p.finger_detected:
+      bpm_str = f"BPM:{p.average_bpm}" if p.average_bpm > 0 else "BPM:--"
+      oled.print_text(bpm_str, 0, 0, 1)
+      oled.print_text("LIVE ECG", 70, 0, 1)
+      # Heart indicator
+      oled.pixel(122, 1, 1); oled.pixel(124, 1, 1)
+      oled.pixel(121, 2, 1); oled.pixel(123, 2, 1); oled.pixel(125, 2, 1)
+      oled.pixel(122, 3, 1); oled.pixel(124, 3, 1)
+      oled.pixel(123, 4, 1)
+    else:
+      oled.print_text("BPM:--", 0, 0, 1)
+      oled.print_text("NO FINGER", 64, 0, 1)
+
+    oled.hline(0, 10, 128, 1)
+    
+    # Live Waveform Canvas (Y: 13 to 62, Baseline: 38)
+    if not hasattr(p, 'wave_buf'):
+      p.wave_buf = [38] * 128
+      
+    if p.finger_detected:
+      ac = getattr(p.detector, 'ir_ac_signal_current', 0)
+      y_point = 38 - int(ac * 0.08)
+      if y_point < 13: y_point = 13
+      if y_point > 62: y_point = 62
+      p.wave_buf.pop(0)
+      p.wave_buf.append(y_point)
+      
+      for x in range(127):
+        oled.line(x, p.wave_buf[x], x + 1, p.wave_buf[x + 1], 1)
+    else:
+      p.wave_buf.pop(0)
+      p.wave_buf.append(38)
+      oled.hline(0, 38, 128, 1)
+      oled.print_text("PLACE FINGER", 16, 24, 1)
+      oled.print_text("ON SENSOR", 28, 42, 1)
+      
+    oled.show()
+  except Exception:
+    pass
 `;
 
 const QMC5883L_DRIVER_CODE = `import math, struct
@@ -885,15 +1136,497 @@ def _draw_amg8833_oled():
   except Exception: pass
 `;
 
+const AS5600_DRIVER_CODE = `import math, struct
+class _TitanAS5600:
+  def __init__(self, addr=0x36):
+    self.addr = addr
+    try:
+      self.i2c = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=100000, timeout=1000)
+    except Exception:
+      self.i2c = None
+    self.raw_angle = 0
+    self.angle = 0.0
+    self.rad = 0.0
+    self.zero_offset = 0
+    self.turns = 0
+    self.last_raw = 0
+    self.cumulative_deg = 0.0
+    self.rpm = 0.0
+    self.deg_per_sec = 0.0
+    self.last_time_ms = 0
+    self.magnet_detected = False
+    self.magnet_status = "Unknown"
+    self.agc = 0
+    self.magnitude = 0
+    self.init_sensor()
+
+  def _w(self, reg, val):
+    if self.i2c:
+      try: self.i2c.writeto_mem(self.addr, reg, bytearray([val]))
+      except Exception: pass
+
+  def _r(self, reg, n=1):
+    if self.i2c:
+      try: return self.i2c.readfrom_mem(self.addr, reg, n)
+      except Exception: pass
+    return bytearray(n)
+
+  def init_sensor(self):
+    self.update()
+    self.last_raw = self.raw_angle
+    self.last_time_ms = time.ticks_ms()
+
+  def reset_zero(self):
+    self.update()
+    self.zero_offset = self.raw_angle
+    self.turns = 0
+    self.cumulative_deg = 0.0
+
+  def update(self):
+    raw_data = self._r(0x0C, 2)
+    if len(raw_data) == 2:
+      raw = ((raw_data[0] & 0x0F) << 8) | raw_data[1]
+      self.raw_angle = raw
+      adj = (raw - self.zero_offset) % 4096
+      self.angle = round((adj * 360.0) / 4096.0, 2)
+      self.rad = round((adj * 2.0 * math.pi) / 4096.0, 4)
+
+      diff = raw - self.last_raw
+      if diff < -2048:
+        self.turns += 1
+      elif diff > 2048:
+        self.turns -= 1
+      self.last_raw = raw
+
+      self.cumulative_deg = round(self.turns * 360.0 + self.angle, 2)
+
+      now = time.ticks_ms()
+      dt_ms = time.ticks_diff(now, self.last_time_ms)
+      if dt_ms >= 100:
+        d_deg = (diff if abs(diff) <= 2048 else (diff - 4096 if diff > 0 else diff + 4096)) * (360.0 / 4096.0)
+        self.deg_per_sec = round((d_deg / (dt_ms / 1000.0)), 1)
+        self.rpm = round(self.deg_per_sec / 6.0, 1)
+        self.last_time_ms = now
+
+    st = self._r(0x0B, 1)
+    if len(st) == 1:
+      status_byte = st[0]
+      md = bool(status_byte & 0x20)
+      ml = bool(status_byte & 0x10)
+      mh = bool(status_byte & 0x08)
+      self.magnet_detected = md
+      if not md:
+        self.magnet_status = "Magnet Missing"
+      elif ml:
+        self.magnet_status = "Magnet Weak"
+      elif mh:
+        self.magnet_status = "Magnet Too Strong"
+      else:
+        self.magnet_status = "Optimal / Detected"
+
+    agc_data = self._r(0x1A, 1)
+    if len(agc_data) == 1:
+      self.agc = agc_data[0]
+
+    mag_data = self._r(0x1B, 2)
+    if len(mag_data) == 2:
+      self.magnitude = ((mag_data[0] & 0x0F) << 8) | mag_data[1]
+
+  def get_status_str(self):
+    return self.magnet_status
+
+_as5600_inst = None
+def _get_as5600():
+  global _as5600_inst
+  if _as5600_inst is None: _as5600_inst = _TitanAS5600()
+  return _as5600_inst
+
+def _init_as5600():
+  _get_as5600().init_sensor()
+
+def _read_as5600_angle(val_type="DEG"):
+  enc = _get_as5600()
+  enc.update()
+  if val_type == "DEG": return enc.angle
+  if val_type == "RAW": return enc.raw_angle
+  if val_type == "RAD": return enc.rad
+  return enc.angle
+
+def _read_as5600_rotations(val_type="TURNS"):
+  enc = _get_as5600()
+  enc.update()
+  if val_type == "TURNS": return enc.turns
+  if val_type == "CUMULATIVE_DEG": return enc.cumulative_deg
+  if val_type == "RPM": return enc.rpm
+  if val_type == "DEG_PER_SEC": return enc.deg_per_sec
+  return enc.turns
+
+def _reset_as5600_zero():
+  _get_as5600().reset_zero()
+
+def _read_as5600_magnet(val_type="IS_DETECTED"):
+  enc = _get_as5600()
+  enc.update()
+  if val_type == "IS_DETECTED": return enc.magnet_detected
+  if val_type == "STATUS_STR": return enc.magnet_status
+  if val_type == "AGC": return enc.agc
+  if val_type == "MAGNITUDE": return enc.magnitude
+  return enc.magnet_detected
+
+def _compare_as5600(metric="DEG", op=">", val=180):
+  enc = _get_as5600()
+  enc.update()
+  curr = enc.angle if metric == "DEG" else (enc.raw_angle if metric == "RAW" else (enc.turns if metric == "TURNS" else enc.rpm))
+  v = float(val)
+  if op == ">": return curr > v
+  if op == ">=": return curr >= v
+  if op == "<": return curr < v
+  if op == "<=": return curr <= v
+  if op == "==": return curr == v
+  if op == "!=": return curr != v
+  return curr > v
+`;
+
+const DFPLAYER_DRIVER_CODE = `class _TitanDFPlayer:
+  def __init__(self, uart_id=1, tx=17, rx=18):
+    self.uart_id = uart_id
+    self.tx = tx
+    self.rx = rx
+    try:
+      self.uart = UART(uart_id, baudrate=9600, tx=tx, rx=rx)
+    except Exception:
+      try: self.uart = UART(uart_id, baudrate=9600)
+      except Exception: self.uart = None
+    time.sleep_ms(100)
+
+  def _send_cmd(self, cmd, param1=0, param2=0):
+    if not self.uart: return
+    buf = bytearray(10)
+    buf[0] = 0x7E
+    buf[1] = 0xFF
+    buf[2] = 0x06
+    buf[3] = cmd
+    buf[4] = 0x00
+    buf[5] = param1 & 0xFF
+    buf[6] = param2 & 0xFF
+    chk = 0 - (0xFF + 0x06 + cmd + 0x00 + param1 + param2)
+    buf[7] = (chk >> 8) & 0xFF
+    buf[8] = chk & 0xFF
+    buf[9] = 0xEF
+    try:
+      self.uart.write(buf)
+      time.sleep_ms(30)
+    except Exception: pass
+
+  def play_track(self, track_num):
+    t = int(track_num)
+    self._send_cmd(0x03, (t >> 8) & 0xFF, t & 0xFF)
+
+  def play_folder(self, folder, track):
+    self._send_cmd(0x0F, int(folder) & 0xFF, int(track) & 0xFF)
+
+  def play_mp3(self, track_num):
+    t = int(track_num)
+    self._send_cmd(0x12, (t >> 8) & 0xFF, t & 0xFF)
+
+  def play(self):
+    self._send_cmd(0x0D, 0, 0)
+
+  def pause(self):
+    self._send_cmd(0x0E, 0, 0)
+
+  def stop(self):
+    self._send_cmd(0x16, 0, 0)
+
+  def next(self):
+    self._send_cmd(0x01, 0, 0)
+
+  def prev(self):
+    self._send_cmd(0x02, 0, 0)
+
+  def set_volume(self, vol):
+    v = max(0, min(30, int(vol)))
+    self._send_cmd(0x06, 0, v)
+
+  def volume_up(self):
+    self._send_cmd(0x04, 0, 0)
+
+  def volume_down(self):
+    self._send_cmd(0x05, 0, 0)
+
+  def set_eq(self, eq_type):
+    self._send_cmd(0x07, 0, int(eq_type) & 0x07)
+
+  def loop_track(self, track_num):
+    t = int(track_num)
+    self._send_cmd(0x08, (t >> 8) & 0xFF, t & 0xFF)
+
+  def loop_all(self, enable=True):
+    self._send_cmd(0x11, 0, 1 if enable else 0)
+
+  def reset(self):
+    self._send_cmd(0x0C, 0, 0)
+    time.sleep_ms(300)
+
+_df_inst = None
+def _get_dfplayer(tx=17, rx=18):
+  global _df_inst
+  if _df_inst is None: _df_inst = _TitanDFPlayer(uart_id=1, tx=tx, rx=rx)
+  return _df_inst
+
+def _dfplayer_init(tx=17, rx=18, volume=20):
+  global _df_inst
+  _df_inst = _TitanDFPlayer(uart_id=1, tx=int(tx), rx=int(rx))
+  _df_inst.set_volume(volume)
+`;
+
+const MPU6050_DRIVER_CODE = `import math
+
+class _TitanMPU6050:
+  def __init__(self, addr=0x68):
+    self.addr = addr
+    self.i2c = SoftI2C(sda=Pin(7, Pin.OUT), scl=Pin(8, Pin.OUT), freq=400000, timeout=1000)
+    self.ax = 0.0
+    self.ay = 0.0
+    self.az = 0.0
+    self.gx = 0.0
+    self.gy = 0.0
+    self.gz = 0.0
+    self.temp = 0.0
+    self.pitch = 0.0
+    self.roll = 0.0
+    self.total_g = 1.0
+    self.init_sensor()
+
+  def _w(self, reg, val):
+    try:
+      self.i2c.writeto_mem(self.addr, reg, bytearray([val]))
+    except Exception: pass
+
+  def _r(self, reg, n):
+    try:
+      return self.i2c.readfrom_mem(self.addr, reg, n)
+    except Exception:
+      return bytearray(n)
+
+  def init_sensor(self):
+    self._w(0x6B, 0x00)
+    time.sleep_ms(30)
+    self._w(0x19, 0x00)
+    self._w(0x1A, 0x03)
+    self._w(0x1B, 0x08)
+    self._w(0x1C, 0x08)
+    time.sleep_ms(20)
+
+  def update(self):
+    data = self._r(0x3B, 14)
+    if len(data) == 14:
+      def _to_i16(hi, lo):
+        v = (hi << 8) | lo
+        return v - 65536 if v >= 32768 else v
+      raw_ax = _to_i16(data[0], data[1])
+      raw_ay = _to_i16(data[2], data[3])
+      raw_az = _to_i16(data[4], data[5])
+      raw_t  = _to_i16(data[6], data[7])
+      raw_gx = _to_i16(data[8], data[9])
+      raw_gy = _to_i16(data[10], data[11])
+      raw_gz = _to_i16(data[12], data[13])
+
+      self.ax = round(raw_ax / 8192.0, 3)
+      self.ay = round(raw_ay / 8192.0, 3)
+      self.az = round(raw_az / 8192.0, 3)
+      self.total_g = round(math.sqrt(self.ax*self.ax + self.ay*self.ay + self.az*self.az), 3)
+
+      self.gx = round(raw_gx / 65.5, 2)
+      self.gy = round(raw_gy / 65.5, 2)
+      self.gz = round(raw_gz / 65.5, 2)
+
+      self.temp = round(36.53 + (raw_t / 340.0), 1)
+
+      try:
+        self.pitch = round(math.atan2(self.ax, math.sqrt(self.ay*self.ay + self.az*self.az)) * 57.2957795, 1)
+        self.roll  = round(math.atan2(self.ay, math.sqrt(self.ax*self.ax + self.az*self.az)) * 57.2957795, 1)
+      except Exception: pass
+
+_mpu_inst = None
+def _get_mpu6050():
+  global _mpu_inst
+  if _mpu_inst is None: _mpu_inst = _TitanMPU6050()
+  return _mpu_inst
+
+def _init_mpu6050():
+  _get_mpu6050().init_sensor()
+
+def _read_mpu6050_accel(axis="TOTAL"):
+  m = _get_mpu6050(); m.update()
+  if axis == "X": return m.ax
+  if axis == "Y": return m.ay
+  if axis == "Z": return m.az
+  if axis == "TOTAL": return m.total_g
+  return m.total_g
+
+def _read_mpu6050_gyro(axis="X"):
+  m = _get_mpu6050(); m.update()
+  if axis == "X": return m.gx
+  if axis == "Y": return m.gy
+  if axis == "Z": return m.gz
+  return m.gx
+
+def _read_mpu6050_angle(angle="PITCH"):
+  m = _get_mpu6050(); m.update()
+  if angle == "PITCH": return m.pitch
+  if angle == "ROLL": return m.roll
+  return m.pitch
+
+def _read_mpu6050_temp():
+  m = _get_mpu6050(); m.update()
+  return m.temp
+
+def _check_mpu6050_gesture(gesture="SHAKE"):
+  m = _get_mpu6050(); m.update()
+  if gesture == "SHAKE":
+    return (abs(m.gx) > 200 or abs(m.gy) > 200 or abs(m.gz) > 200 or m.total_g > 2.0)
+  elif gesture == "TILT_LEFT":
+    return m.roll < -25.0
+  elif gesture == "TILT_RIGHT":
+    return m.roll > 25.0
+  elif gesture == "TILT_FORWARD":
+    return m.pitch > 25.0
+  elif gesture == "TILT_BACKWARD":
+    return m.pitch < -25.0
+  elif gesture == "FREE_FALL":
+    return m.total_g < 0.25
+  elif gesture == "FLAT":
+    return (abs(m.pitch) < 10.0 and abs(m.roll) < 10.0 and 0.8 <= m.total_g <= 1.2)
+  return False
+`;
+
+const MQ135_DRIVER_CODE = `class _TitanMQ135:
+  def __init__(self, pin=2, r0=76.63, rl=10.0):
+    self.pin = int(pin)
+    self.r0 = r0
+    self.rl = rl
+    self.adc = ADC(Pin(self.pin), atten=ADC.ATTN_11DB)
+    self.last_adc = 0
+    self.last_ppm = 400.0
+
+  def read_raw(self):
+    total = 0
+    for _ in range(5):
+      total += self.adc.read()
+      time.sleep_ms(2)
+    self.last_adc = total // 5
+    return self.last_adc
+
+  def read_voltage(self):
+    return round((self.read_raw() / 4095.0) * 3.3, 3)
+
+  def get_rs(self):
+    raw = max(1, min(4094, self.read_raw()))
+    v_out = (raw / 4095.0) * 3.3
+    if v_out <= 0.05: return 999.0
+    return ((3.3 - v_out) / v_out) * self.rl
+
+  def read_ppm(self, gas_type="PPM"):
+    rs = self.get_rs()
+    ratio = rs / self.r0 if self.r0 > 0 else 1.0
+    try:
+      ppm = 116.602 * (ratio ** -2.769)
+      ppm = max(350.0, min(10000.0, ppm))
+    except Exception:
+      ppm = 400.0
+    self.last_ppm = round(ppm, 1)
+
+    if gas_type == "RAW": return self.last_adc
+    if gas_type == "VOLT": return self.read_voltage()
+    if gas_type == "CO2": return round(ppm, 1)
+    if gas_type == "SMOKE": return round(max(0.0, (self.last_adc - 800) * 1.5), 1)
+    return self.last_ppm
+
+  def get_air_quality(self):
+    ppm = self.read_ppm("PPM")
+    if ppm < 600: return "Good / Clean"
+    if ppm < 1000: return "Moderate"
+    if ppm < 1800: return "Unhealthy / Poor"
+    return "Hazardous / Alert"
+
+  def calibrate(self, samples=20):
+    total_rs = 0.0
+    for _ in range(samples):
+      total_rs += self.get_rs()
+      time.sleep_ms(50)
+    self.r0 = max(1.0, (total_rs / samples) / 3.6)
+    return round(self.r0, 2)
+
+_mq135_pool = {}
+def _get_mq135(pin=2):
+  p = int(pin)
+  if p not in _mq135_pool: _mq135_pool[p] = _TitanMQ135(pin=p)
+  return _mq135_pool[p]
+
+def _read_mq135_ppm(pin=2, gas_type="PPM"):
+  return _get_mq135(pin).read_ppm(gas_type)
+
+def _read_mq135_quality(pin=2):
+  return _get_mq135(pin).get_air_quality()
+
+def _check_mq135_gas(pin=2, thresh=800):
+  return _get_mq135(pin).read_ppm("PPM") > float(thresh)
+
+def _calibrate_mq135(pin=2):
+  return _get_mq135(pin).calibrate()
+`;
+
+const DHT_DRIVER_CODE = `import dht
+
+_dht_pool = {}
+def _get_dht(pin, dht_type="DHT22"):
+  key = (int(pin), dht_type)
+  if key not in _dht_pool:
+    p = Pin(int(pin))
+    if dht_type == "DHT11":
+      _dht_pool[key] = (dht.DHT11(p), 0, 0.0, 0.0)
+    else:
+      _dht_pool[key] = (dht.DHT22(p), 0, 0.0, 0.0)
+  return _dht_pool[key]
+
+def _read_dht(pin, dht_type="DHT22", val_type="TEMP_C"):
+  key = (int(pin), dht_type)
+  sensor, last_t_ms, cached_temp, cached_hum = _get_dht(pin, dht_type)
+  now = time.ticks_ms()
+  if time.ticks_diff(now, last_t_ms) > 1000 or last_t_ms == 0:
+    try:
+      sensor.measure()
+      cached_temp = sensor.temperature()
+      cached_hum = sensor.humidity()
+      _dht_pool[key] = (sensor, now, cached_temp, cached_hum)
+    except Exception: pass
+
+  if val_type == "TEMP_C": return float(cached_temp)
+  if val_type == "TEMP_F": return round(cached_temp * 1.8 + 32.0, 1)
+  if val_type == "HUMIDITY": return float(cached_hum)
+  if val_type == "HEAT_INDEX":
+    t = float(cached_temp); r = float(cached_hum)
+    hi = 0.5 * (t + 61.0 + ((t - 68.0) * 1.2) + (r * 0.094))
+    return round(hi if t > 20 else t, 1)
+  return float(cached_temp)
+`;
+
 export function generateTitanWorkspaceCode(workspace) {
   if (!workspace) return '';
   
   const allBlocks = workspace.getAllBlocks(false);
   const hasAmgHeatmap = allBlocks.some(b => b.type === 'titan_amg8833_oled_heatmap');
-  const hasOled = allBlocks.some(b => b.type && b.type.startsWith('titan_oled')) || hasAmgHeatmap;
-  const hasPulse = allBlocks.some(b => b.type && (b.type.startsWith('titan_pulse') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'PULSE')));
+  const hasPulseEcg = allBlocks.some(b => b.type === 'titan_pulse_oled_ecg');
+  const hasOled = allBlocks.some(b => b.type && b.type.startsWith('titan_oled')) || hasAmgHeatmap || hasPulseEcg;
+  const hasPulse = allBlocks.some(b => b.type && (b.type.startsWith('titan_pulse') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'PULSE'))) || hasPulseEcg;
+  const hasDht = allBlocks.some(b => b.type && (b.type.startsWith('titan_dht') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'DHT22')));
+  const hasMq135 = allBlocks.some(b => b.type && (b.type.startsWith('titan_mq135') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'MQ135')));
+  const hasMpu = allBlocks.some(b => b.type && (b.type.startsWith('titan_mpu6050') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'MPU6050')));
   const hasQmc = allBlocks.some(b => b.type && (b.type.startsWith('titan_qmc5883l') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'QMC5883L')));
   const hasAmg = allBlocks.some(b => b.type && (b.type.startsWith('titan_amg8833') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'AMG8833')));
+  const hasAs5600 = allBlocks.some(b => b.type && (b.type.startsWith('titan_as5600') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'AS5600')));
+  const hasDfPlayer = allBlocks.some(b => b.type && b.type.startsWith('titan_dfplayer'));
 
   const topBlocks = workspace.getTopBlocks(true);
   const titanStartBlock = topBlocks.find(b => b.type === 'titan_start');
@@ -912,12 +1645,32 @@ export function generateTitanWorkspaceCode(workspace) {
     code += PULSE_DRIVER_CODE + '\n';
   }
 
+  if (hasDht) {
+    code += DHT_DRIVER_CODE + '\n';
+  }
+
+  if (hasMq135) {
+    code += MQ135_DRIVER_CODE + '\n';
+  }
+
+  if (hasMpu) {
+    code += MPU6050_DRIVER_CODE + '\n';
+  }
+
   if (hasQmc) {
     code += QMC5883L_DRIVER_CODE + '\n';
   }
 
   if (hasAmg) {
     code += AMG8833_DRIVER_CODE + '\n';
+  }
+
+  if (hasAs5600) {
+    code += AS5600_DRIVER_CODE + '\n';
+  }
+
+  if (hasDfPlayer) {
+    code += DFPLAYER_DRIVER_CODE + '\n';
   }
 
   if (titanStartBlock) {

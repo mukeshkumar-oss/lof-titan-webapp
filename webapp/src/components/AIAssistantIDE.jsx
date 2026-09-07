@@ -63,6 +63,9 @@ OFFICIAL HARDWARE PINOUT & SPECIFICATIONS:
 - Onboard Buzzer:
   * Pin: GPIO 20 | Tones via supervisor: from supervisor.led_buzzer import hw (hw.play_startup_tone(), hw.play_run_tone(), hw.play_confirmation_tone(), hw.play_stop_tone(), hw.play_error_tone())
   * Custom frequency: _get_pwm(20, freq).duty(512); time.sleep_ms(ms); _get_pwm(20).duty(0)
+- DFPlayer Mini MP3 Player Module:
+  * UART Pinout: TX = GPIO 17, RX = GPIO 18 (Baud rate: 9600 8N1)
+  * BUSY pin (Active LOW while playing): Connect to S1..S5 or GPIO 19
 - I2C Display (1.3" SH1106 / 0.96" SSD1306):
   * SDA: GPIO 7 | SCL: GPIO 8
   * Zero-dependency OLED driver (DO NOT import external ssd1306 library, use built-in framebuf class below):
@@ -205,12 +208,27 @@ class _TitanPulse:
 
 pulse = _TitanPulse()
 \`\`\`
+- DHT22 / DHT11 Digital Temperature & Humidity Sensor:
+  * Digital 1-wire Ports: S1 (GPIO 2), S2 (GPIO 1), S3 (GPIO 3), S4 (GPIO 4), S5 (GPIO 5), GPIO 19
+  * MicroPython \`import dht; dht22 = dht.DHT22(Pin(pin)); dht22.measure()\` for Temperature (°C/°F) and Humidity (% RH)
+- MQ-135 Gas & Hazardous Air Quality Sensor:
+  * Analog Ports: S1 (GPIO 2), S2 (GPIO 1), S3 (GPIO 3), S4 (GPIO 4), S5 (GPIO 5)
+  * Read Air Quality (PPM), CO2 equivalent (PPM), Smoke / Toxic gas level, Air Quality Rating (Good, Moderate, Unhealthy, Hazardous)
+- MPU6050 6-Axis IMU Gyroscope & Accelerometer:
+  * SDA: GPIO 7 | SCL: GPIO 8 | I2C Address: 0x68
+  * Linear acceleration (X/Y/Z in g, total g-force), angular velocity (X/Y/Z in °/s), inclination pitch & roll angles, die temperature, gesture detection (shake, tilt, free fall, flat)
 - QMC5883L 3-Axis Electronic Compass:
   * SDA: GPIO 7 | SCL: GPIO 8 | I2C Address: 0x0D
   * Heading (0-360°), 8-point cardinal direction, raw X/Y/Z magnetometer axes, temperature
 - AMG8833 8x8 IR Grid-EYE Thermal Camera:
   * SDA: GPIO 7 | SCL: GPIO 8 | I2C Address: 0x69
   * 64-pixel infrared temperature array, Max/Min/Avg temperature, human body heat detection
+- AS5600 12-Bit Magnetic Rotary Encoder:
+  * SDA: GPIO 7 | SCL: GPIO 8 | I2C Address: 0x36
+  * Contactless angle measurement (0-360°, 4096 steps/rev), continuous multi-turn revolution counting, RPM / angular velocity, magnet presence & AGC gain tracking
+- DFPlayer Mini MP3 Player:
+  * TX: GPIO 17 | RX: GPIO 18 (UART(1, baudrate=9600, tx=17, rx=18))
+  * Audio track selection, folder playback, volume control (0-30), EQ modes, loop control
 - UART Port:
   * TX: GPIO 17 | RX: GPIO 18 (UART(1, baudrate=115200, tx=17, rx=18))
 
@@ -243,6 +261,7 @@ if __name__ == '__main__':
 3. Always wrap your code inside a \`\`\`python ... \`\`\` markdown code block so the IDE can parse and load it into the live editor.`;
 
 const PROMPT_SUGGESTIONS = [
+  { label: "Magnetic Encoder (AS5600)", prompt: "Write an AS5600 12-bit contactless magnetic encoder program on I2C (SDA 7, SCL 8, Addr 0x36) that reads the live rotational angle (0-360°), counts total revolutions/turns, calculates RPM, and displays angle telemetry on the OLED screen." },
   { label: "Digital Compass (QMC5883L)", prompt: "Write a complete navigation compass program using the QMC5883L sensor on I2C (SDA 7, SCL 8, Addr 0x0D) that calculates the live azimuth heading angle (0-360°) and cardinal direction (N, NE, E, SE, S, SW, W, NW) and displays it on the OLED screen." },
   { label: "8x8 Thermal Camera (AMG8833)", prompt: "Write a thermal imaging and human body heat detection program using the AMG8833 8x8 IR sensor on I2C (SDA 7, SCL 8, Addr 0x69) that renders an 8x8 thermal heatmap on the OLED screen and sounds the buzzer if a person (temperature > 32°C) is detected." },
   { label: "Heart Rate Monitor (MAX30100)", prompt: "Write a complete heart rate and pulse oximeter monitor program using the MAX30100/MAX30102 sensor on I2C (SDA 7, SCL 8) with live finger detection, raw IR telemetry, and smoothed BPM displayed on the OLED screen." },

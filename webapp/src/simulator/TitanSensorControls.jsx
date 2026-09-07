@@ -6,7 +6,9 @@ import {
   Lock,
   Compass,
   Flame,
-  Thermometer
+  Thermometer,
+  RotateCw,
+  Disc
 } from 'lucide-react';
 
 /**
@@ -14,12 +16,21 @@ import {
  * Sensor ports are dynamically enabled and selectable ONLY when the active program/code uses that sensor.
  */
 export function TitanSensorControls({ state, simulatorEngine }) {
-  const { ultrasonic, sensors, pulseSensor, qmc5883l = { heading: 0, dir: 'N', x: 0, y: 0, z: 0, temp: 25 }, amg8833 = { maxTemp: 32, minTemp: 22, avgTemp: 26, centerTemp: 30, thermistor: 25, pixels: Array(64).fill(22) }, activeSensors = {} } = state;
+  const { 
+    ultrasonic, 
+    sensors, 
+    pulseSensor, 
+    qmc5883l = { heading: 0, dir: 'N', x: 0, y: 0, z: 0, temp: 25 }, 
+    amg8833 = { maxTemp: 32, minTemp: 22, avgTemp: 26, centerTemp: 30, thermistor: 25, pixels: Array(64).fill(22) }, 
+    as5600 = { angle: 0, raw: 0, turns: 0, cumulativeDeg: 0, rpm: 0, magnetDetected: true, magnetStatus: 'Optimal / Detected', agc: 128 },
+    activeSensors = {} 
+  } = state;
 
   const isUltraActive = Boolean(activeSensors.ultrasonic);
   const isPulseActive = Boolean(activeSensors.pulse);
   const isQmcActive = Boolean(activeSensors.qmc5883l);
   const isAmgActive = Boolean(activeSensors.amg8833);
+  const isAs5600Active = Boolean(activeSensors.as5600);
 
   return (
     <div className="flex flex-col space-y-3.5 text-slate-800">
@@ -446,6 +457,131 @@ export function TitanSensorControls({ state, simulatorEngine }) {
             />
             {/* Live PPG ECG Heartbeat Waveform Canvas */}
             <PulseECGCanvas bpm={pulseSensor.bpm} />
+          </div>
+        )}
+      </div>
+
+      {/* 6. AS5600 12-Bit Magnetic Rotary Encoder Simulator (Light Theme) */}
+      <div className={`p-3.5 rounded-2xl border transition-all duration-300 shadow-xs ${
+        isAs5600Active
+          ? 'bg-white border-teal-200 shadow-sm'
+          : 'bg-slate-100/70 border-slate-200 opacity-45'
+      }`}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2.5">
+            <div className={`p-2 rounded-xl border ${
+              isAs5600Active
+                ? 'bg-teal-50 text-teal-600 border-teal-200 shadow-xs'
+                : 'bg-slate-200/60 text-slate-400 border-slate-200'
+            }`}>
+              <RotateCw size={16} className={isAs5600Active ? 'text-teal-600' : ''} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-bold text-slate-900">AS5600 Magnetic Rotary Encoder</h4>
+                <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                  isAs5600Active 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' 
+                    : 'bg-slate-200 text-slate-500 border border-slate-300'
+                }`}>
+                  {isAs5600Active ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> : <Lock size={9} />}
+                  {isAs5600Active ? 'Active in Code' : 'Not in Code'}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 font-mono">I2C (0x36) • 12-Bit (4096 Steps / 0–360°)</p>
+            </div>
+          </div>
+
+          <span className={`text-xs font-mono font-black px-2.5 py-1 rounded-xl border ${
+            isAs5600Active
+              ? 'text-teal-700 bg-teal-50 border-teal-200 shadow-xs'
+              : 'text-slate-400 bg-slate-100 border-slate-200'
+          }`}>
+            {as5600.angle.toFixed(1)}°
+          </span>
+        </div>
+
+        {isAs5600Active && (
+          <div className="space-y-3 mt-2 pt-2.5 border-t border-slate-100">
+            {/* Visual Angle Dial & Rotational Position */}
+            <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-full border-2 border-teal-500 bg-teal-50 flex items-center justify-center relative shadow-xs transition-transform"
+                  style={{ transform: `rotate(${as5600.angle}deg)` }}
+                >
+                  <div className="w-1 h-4 bg-teal-600 rounded-full absolute top-1" />
+                  <Disc size={12} className="text-teal-700" />
+                </div>
+                <div className="text-[11px] font-mono">
+                  <div className="text-slate-700 font-semibold">Angle: <span className="text-teal-700 font-bold">{as5600.angle.toFixed(1)}°</span></div>
+                  <div className="text-slate-500">Raw ADC: <span className="text-slate-800 font-bold">{as5600.raw}</span> / 4095</div>
+                </div>
+              </div>
+
+              <div className="text-right text-[11px] font-mono">
+                <div className="text-slate-700 font-semibold">Turns: <span className="text-indigo-600 font-bold">{as5600.turns}</span></div>
+                <div className="text-slate-500">Total: <span className="text-slate-700 font-medium">{as5600.cumulativeDeg.toFixed(1)}°</span></div>
+              </div>
+            </div>
+
+            {/* Rotary Position Slider */}
+            <div>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-slate-600 font-medium">Rotary Shaft Angle:</span>
+                <span className="font-mono font-bold text-teal-700 text-sm">{as5600.angle.toFixed(1)}°</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="359.9" 
+                step="0.5"
+                value={as5600.angle}
+                onChange={(e) => simulatorEngine.setAS5600Angle(e.target.value)}
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-teal-600 bg-teal-100"
+              />
+            </div>
+
+            {/* Quick Angle Preset Buttons */}
+            <div className="flex items-center justify-between gap-1 text-[10px] font-mono font-semibold">
+              <button 
+                onClick={() => simulatorEngine.setAS5600Angle(0)} 
+                className="px-2 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 cursor-pointer transition-colors shadow-2xs"
+              >
+                0°
+              </button>
+              <button 
+                onClick={() => simulatorEngine.setAS5600Angle(90)} 
+                className="px-2 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 cursor-pointer transition-colors shadow-2xs"
+              >
+                90°
+              </button>
+              <button 
+                onClick={() => simulatorEngine.setAS5600Angle(180)} 
+                className="px-2 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 cursor-pointer transition-colors shadow-2xs"
+              >
+                180°
+              </button>
+              <button 
+                onClick={() => simulatorEngine.setAS5600Angle(270)} 
+                className="px-2 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 cursor-pointer transition-colors shadow-2xs"
+              >
+                270°
+              </button>
+              <button 
+                onClick={() => simulatorEngine.setAS5600Angle(359)} 
+                className="px-2 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 cursor-pointer transition-colors shadow-2xs"
+              >
+                360°
+              </button>
+              <button 
+                onClick={() => simulatorEngine.setAS5600State({ zeroOffset: as5600.raw, turns: 0, cumulativeDeg: 0 })} 
+                className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 cursor-pointer transition-colors"
+                title="Reset Software Zero Offset and Turns"
+              >
+                Reset Zero
+              </button>
+            </div>
           </div>
         )}
       </div>

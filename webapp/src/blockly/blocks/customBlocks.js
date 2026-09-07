@@ -449,6 +449,19 @@ export function registerCustomBlocks() {
     }
   };
 
+  Blockly.Blocks['titan_pulse_oled_ecg'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("❤️ OLED show Live ECG / Pulse Wave")
+          .appendField("(MAX30100)");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Display live real-time heart rate (BPM) and ECG / pulse cardiac waveform from MAX30100 / MAX30102 on OLED screen");
+      this.setHelpUrl("");
+    }
+  };
+
   // ================= QMC5883L 3-AXIS COMPASS (I2C 0x0D) =================
   Blockly.Blocks['titan_qmc5883l_init'] = {
     init: function() {
@@ -499,6 +512,99 @@ export function registerCustomBlocks() {
       this.setOutput(true, "String");
       this.setStyle('machine_blocks');
       this.setTooltip("Get current 8-point compass cardinal direction string ('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW')");
+      this.setHelpUrl("");
+    }
+  };
+
+  // ================= MPU6050 6-AXIS IMU GYRO & ACCELEROMETER (I2C 0x68) =================
+  Blockly.Blocks['titan_mpu6050_init'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📐 Initialize MPU6050 Gyro & Accel")
+          .appendField("(I2C SDA: 7, SCL: 8, Addr: 0x68)");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Initialize MPU6050 6-axis gyroscope and accelerometer motion tracking sensor on I2C port (Addr: 0x68)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mpu6050_read_accel'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📐 MPU6050 Acceleration")
+          .appendField(new Blockly.FieldDropdown([
+            ["X-Axis (g)", "X"],
+            ["Y-Axis (g)", "Y"],
+            ["Z-Axis (g)", "Z"],
+            ["Total G-Force (g)", "TOTAL"]
+          ]), "AXIS");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read 3-axis linear acceleration in standard g units (±4g range)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mpu6050_read_gyro'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📐 MPU6050 Gyroscope")
+          .appendField(new Blockly.FieldDropdown([
+            ["X-Axis (Roll Rate °/s)", "X"],
+            ["Y-Axis (Pitch Rate °/s)", "Y"],
+            ["Z-Axis (Yaw Rate °/s)", "Z"]
+          ]), "AXIS");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read angular rotational speed along X, Y, or Z axis in degrees per second (°/s)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mpu6050_read_angle'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📐 MPU6050 Tilt Angle")
+          .appendField(new Blockly.FieldDropdown([
+            ["Pitch Angle (° Tilt Front/Back)", "PITCH"],
+            ["Roll Angle (° Tilt Left/Right)", "ROLL"]
+          ]), "ANGLE");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read calculated pitch or roll inclination tilt angle in degrees (-90° to +90°)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mpu6050_read_temp'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📐 MPU6050 Temperature (°C)");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read MPU6050 internal on-chip die temperature in Celsius");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mpu6050_gesture'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📐 MPU6050 detects")
+          .appendField(new Blockly.FieldDropdown([
+            ["Shake / Impact 💥", "SHAKE"],
+            ["Tilt Left ⬅️", "TILT_LEFT"],
+            ["Tilt Right ➡️", "TILT_RIGHT"],
+            ["Tilt Forward ⬆️", "TILT_FORWARD"],
+            ["Tilt Backward ⬇️", "TILT_BACKWARD"],
+            ["Free Fall (Zero-G) 🪂", "FREE_FALL"],
+            ["Flat / Level ⚖️", "FLAT"]
+          ]), "GESTURE");
+      this.setOutput(true, "Boolean");
+      this.setStyle('logic_blocks');
+      this.setTooltip("Returns true if rover orientation, impact, tilt, or motion matches the selected gesture condition");
       this.setHelpUrl("");
     }
   };
@@ -575,6 +681,107 @@ export function registerCustomBlocks() {
     }
   };
 
+  // ================= AS5600 12-BIT MAGNETIC ROTARY ENCODER (I2C 0x36) =================
+  Blockly.Blocks['titan_as5600_init'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🔄 Initialize AS5600 Magnetic Encoder (I2C SDA: 7, SCL: 8, Addr: 0x36)");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Initialize AS5600 12-bit contactless magnetic rotary encoder on I2C port (Addr: 0x36)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_as5600_read_angle'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🔄 AS5600 Magnetic Encoder")
+          .appendField(new Blockly.FieldDropdown([
+            ["Angle in Degrees (0 - 360°)", "DEG"],
+            ["Raw 12-Bit Value (0 - 4095)", "RAW"],
+            ["Angle in Radians (0 - 2π)", "RAD"]
+          ]), "VAL");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read current rotational angle from the AS5600 magnetic encoder in degrees (0-360°), raw 12-bit steps (0-4095), or radians");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_as5600_read_rotations'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🔄 AS5600 Encoder")
+          .appendField(new Blockly.FieldDropdown([
+            ["Total Revolutions / Turns", "TURNS"],
+            ["Total Cumulative Angle (°)", "CUMULATIVE_DEG"],
+            ["Rotational Speed (RPM)", "RPM"],
+            ["Angular Velocity (°/s)", "DEG_PER_SEC"]
+          ]), "VAL");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read continuous multi-turn revolution count, cumulative total rotation angle in degrees, or rotational velocity (RPM / deg/s)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_as5600_reset_zero'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🔄 AS5600 Set Current Position as Zero / Reset Turns");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Set current angle as the software zero reference position and reset revolution count to 0");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_as5600_magnet_status'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🔄 AS5600 Magnet")
+          .appendField(new Blockly.FieldDropdown([
+            ["Magnet Detected? (True / False)", "IS_DETECTED"],
+            ["Magnet Status (Normal / Weak / Strong / Missing)", "STATUS_STR"],
+            ["AGC Gain (0 - 255)", "AGC"],
+            ["CORDIC Magnitude", "MAGNITUDE"]
+          ]), "VAL");
+      this.setOutput(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Check magnet detection presence, field strength status, or read the Automatic Gain Control (AGC 0-255)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_as5600_compare'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🔄 AS5600")
+          .appendField(new Blockly.FieldDropdown([
+            ["Angle (°)", "DEG"],
+            ["Raw (0-4095)", "RAW"],
+            ["Total Turns", "TURNS"],
+            ["Speed (RPM)", "RPM"]
+          ]), "METRIC")
+          .appendField(new Blockly.FieldDropdown([
+            [">", "GT"],
+            [">=", "GTE"],
+            ["<", "LT"],
+            ["<=", "LTE"],
+            ["==", "EQ"],
+            ["!=", "NEQ"]
+          ]), "OP")
+          .appendField(new Blockly.FieldNumber(180), "VAL");
+      this.setOutput(true, "Boolean");
+      this.setStyle('logic_blocks');
+      this.setTooltip("Compare AS5600 magnetic encoder angle, turns, or speed to a numeric threshold");
+      this.setHelpUrl("");
+    }
+  };
+
   // Dedicated PIR Motion Sensor Block
   Blockly.Blocks['titan_motion_sensor_check'] = {
     init: function() {
@@ -595,6 +802,159 @@ export function registerCustomBlocks() {
     }
   };
 
+  // ================= MQ-135 AIR QUALITY & HAZARDOUS GAS SENSOR =================
+  Blockly.Blocks['titan_mq135_read'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("☁️ MQ-135 Air Quality on Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "PIN")
+          .appendField(new Blockly.FieldDropdown([
+            ["Air Quality (PPM)", "PPM"],
+            ["CO2 Equivalent (PPM)", "CO2"],
+            ["Smoke / Gas Level", "SMOKE"],
+            ["Raw ADC Value (0-4095)", "RAW"],
+            ["Sensor Voltage (V)", "VOLT"]
+          ]), "VAL");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read Air Quality PPM, CO2 equivalent, Smoke/Gas concentration, or raw ADC voltage from MQ-135 sensor");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mq135_quality_status'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("☁️ MQ-135 Air Quality Status on Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "PIN");
+      this.setOutput(true, "String");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Returns real-time air quality rating string: Good / Clean, Moderate, Unhealthy / Poor, or Hazardous / Alert");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mq135_gas_detected'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("☁️ MQ-135 Gas / Smoke Detected? Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "PIN")
+          .appendField("above")
+          .appendField(new Blockly.FieldNumber(800, 100, 10000), "THRESH")
+          .appendField("PPM");
+      this.setOutput(true, "Boolean");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Returns True if gas/smoke concentration or air pollution exceeds the given PPM threshold");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mq135_calibrate'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("☁️ Calibrate MQ-135 Sensor Baseline (R0) on Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "PIN");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Calibrate MQ-135 sensor baseline resistance (R0) in clean fresh air (takes ~1 second)");
+      this.setHelpUrl("");
+    }
+  };
+
+  // ================= DHT22 / DHT11 DIGITAL TEMPERATURE & HUMIDITY =================
+  Blockly.Blocks['titan_dht_read'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🌡️")
+          .appendField(new Blockly.FieldDropdown([
+            ["DHT22 (AM2302)", "DHT22"],
+            ["DHT11", "DHT11"]
+          ]), "TYPE")
+          .appendField("Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"],
+            ["GPIO 19 (Echo)", "19"],
+            ["GPIO 17", "17"],
+            ["GPIO 18", "18"]
+          ]), "PIN")
+          .appendField(new Blockly.FieldDropdown([
+            ["Temperature (°C)", "TEMP_C"],
+            ["Temperature (°F)", "TEMP_F"],
+            ["Relative Humidity (% RH)", "HUMIDITY"],
+            ["Heat Index (°C)", "HEAT_INDEX"]
+          ]), "VAL");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read temperature in °C or °F, relative humidity (%), or perceived heat index from DHT22 / DHT11 sensor");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dht_compare'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🌡️")
+          .appendField(new Blockly.FieldDropdown([
+            ["DHT22 (AM2302)", "DHT22"],
+            ["DHT11", "DHT11"]
+          ]), "TYPE")
+          .appendField("Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"],
+            ["GPIO 19 (Echo)", "19"]
+          ]), "PIN")
+          .appendField(new Blockly.FieldDropdown([
+            ["Temperature (°C)", "TEMP_C"],
+            ["Humidity (%)", "HUMIDITY"]
+          ]), "VAL")
+          .appendField(new Blockly.FieldDropdown([
+            [">", ">"],
+            ["<", "<"],
+            [">=", ">="],
+            ["<=", "<="],
+            ["==", "=="]
+          ]), "OP")
+          .appendField(new Blockly.FieldNumber(30, -40, 125), "VALUE");
+      this.setOutput(true, "Boolean");
+      this.setStyle('logic_blocks');
+      this.setTooltip("Returns True if DHT22 temperature or humidity matches the threshold comparison");
+      this.setHelpUrl("");
+    }
+  };
+
   // Live Sensor Monitor Print Block (Terminal)
   Blockly.Blocks['titan_print_sensor_monitor'] = {
     init: function() {
@@ -602,8 +962,12 @@ export function registerCustomBlocks() {
           .appendField("📊 Print")
           .appendField(new Blockly.FieldDropdown([
             ["All Sensors Live Summary (S1-S5, Dist, Buttons)", "ALL"],
+            ["DHT22 Temp & Humidity (S1)", "DHT22"],
+            ["MQ-135 Air Quality & Gas (S1)", "MQ135"],
+            ["MPU6050 Gyro/Accel/Tilt (0x68)", "MPU6050"],
             ["QMC5883L Compass (0x0D)", "QMC5883L"],
             ["AMG8833 8x8 IR Thermal (0x69)", "AMG8833"],
+            ["AS5600 Magnetic Encoder (0x36)", "AS5600"],
             ["Pulse Rate Sensor (MAX30102)", "PULSE"],
             ["Analog Sensor S1 (GPIO 2)", "S1"],
             ["Analog Sensor S2 (GPIO 1)", "S2"],
@@ -977,6 +1341,212 @@ export function registerCustomBlocks() {
       this.setNextStatement(true, null);
       this.setStyle('iot_blocks');
       this.setTooltip("Transmit serial UART data");
+      this.setHelpUrl("");
+    }
+  };
+
+  // ================= 6. DFPLAYER MINI AUDIO MODULE =================
+  Blockly.Blocks['titan_dfplayer_init'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎵 DFPlayer Mini Init")
+          .appendField("TX")
+          .appendField(new Blockly.FieldDropdown([
+            ["GPIO 17 (Default TX)", "17"],
+            ["GPIO 18", "18"],
+            ["GPIO 2 (S1)", "2"],
+            ["GPIO 1 (S2)", "1"],
+            ["GPIO 3 (S3)", "3"],
+            ["GPIO 4 (S4)", "4"],
+            ["GPIO 5 (S5)", "5"],
+            ["GPIO 19", "19"]
+          ]), "TX")
+          .appendField("RX")
+          .appendField(new Blockly.FieldDropdown([
+            ["GPIO 18 (Default RX)", "18"],
+            ["GPIO 17", "17"],
+            ["GPIO 2 (S1)", "2"],
+            ["GPIO 1 (S2)", "1"],
+            ["GPIO 3 (S3)", "3"],
+            ["GPIO 4 (S4)", "4"],
+            ["GPIO 5 (S5)", "5"],
+            ["GPIO 19", "19"]
+          ]), "RX")
+          .appendField("Vol")
+          .appendField(new Blockly.FieldNumber(20, 0, 30), "VOLUME");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('audio_blocks');
+      this.setTooltip("Initialize DFPlayer Mini MP3 module on UART Serial (Default TX: 17, RX: 18) with volume (0-30)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dfplayer_play_track'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎵 DFPlayer play Track #")
+          .appendField(new Blockly.FieldNumber(1, 1, 2999), "TRACK");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('audio_blocks');
+      this.setTooltip("Play audio track by number on SD card (1-2999)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dfplayer_play_folder'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📁 DFPlayer play Folder")
+          .appendField(new Blockly.FieldNumber(1, 1, 99), "FOLDER")
+          .appendField("Track")
+          .appendField(new Blockly.FieldNumber(1, 1, 255), "TRACK");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('audio_blocks');
+      this.setTooltip("Play specific track from a folder (e.g. Folder 01, Track 001)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dfplayer_play_mp3'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎵 DFPlayer play /MP3/ Track")
+          .appendField(new Blockly.FieldNumber(1, 1, 9999), "TRACK");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('audio_blocks');
+      this.setTooltip("Play 4-digit track in /MP3/ folder (e.g. 0001.mp3)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dfplayer_play_wait'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("⏳ DFPlayer play Track #")
+          .appendField(new Blockly.FieldNumber(1, 1, 2999), "TRACK")
+          .appendField("and wait")
+          .appendField(new Blockly.FieldNumber(3, 0.1, 3600), "SECONDS")
+          .appendField("sec");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('audio_blocks');
+      this.setTooltip("Play track and pause program execution for duration in seconds");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dfplayer_control'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎵 DFPlayer")
+          .appendField(new Blockly.FieldDropdown([
+            ["Play / Resume ▶️", "PLAY"],
+            ["Pause ⏸️", "PAUSE"],
+            ["Stop ⏹️", "STOP"],
+            ["Next Track ⏭️", "NEXT"],
+            ["Previous Track ⏮️", "PREV"],
+            ["Volume Up 🔊+", "VOL_UP"],
+            ["Volume Down 🔉-", "VOL_DOWN"],
+            ["Reset Module 🔄", "RESET"]
+          ]), "ACTION");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('audio_blocks');
+      this.setTooltip("Control DFPlayer Mini playback and hardware state");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dfplayer_set_volume'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🔊 DFPlayer set Volume")
+          .appendField(new Blockly.FieldNumber(20, 0, 30), "VOLUME")
+          .appendField("(0-30)");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('audio_blocks');
+      this.setTooltip("Set DFPlayer Mini playback volume from 0 (Mute) to 30 (Max)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dfplayer_volume_change'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🔊 DFPlayer Volume")
+          .appendField(new Blockly.FieldDropdown([
+            ["Increase (+1) 🔊+", "UP"],
+            ["Decrease (-1) 🔉-", "DOWN"]
+          ]), "DIR");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('audio_blocks');
+      this.setTooltip("Step volume up or down by 1 level");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dfplayer_set_eq'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎚️ DFPlayer Equalizer")
+          .appendField(new Blockly.FieldDropdown([
+            ["Normal", "0"],
+            ["Pop", "1"],
+            ["Rock", "2"],
+            ["Jazz", "3"],
+            ["Classic", "4"],
+            ["Bass", "5"]
+          ]), "EQ");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('audio_blocks');
+      this.setTooltip("Select hardware audio equalizer preset");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dfplayer_loop'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🔁 DFPlayer Loop Mode")
+          .appendField(new Blockly.FieldDropdown([
+            ["Loop Current Track", "CURRENT"],
+            ["Loop All Tracks", "ALL"],
+            ["Disable Loop", "DISABLE"]
+          ]), "MODE")
+          .appendField("Track #")
+          .appendField(new Blockly.FieldNumber(1, 1, 2999), "TRACK");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('audio_blocks');
+      this.setTooltip("Set repeat/loop playback mode");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_dfplayer_is_busy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎵 DFPlayer is playing? BUSY Pin")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"],
+            ["GPIO 19 (Echo)", "19"],
+            ["Button 1 (GPIO 39)", "39"],
+            ["Button 2 (GPIO 40)", "40"]
+          ]), "PIN");
+      this.setOutput(true, "Boolean");
+      this.setStyle('audio_blocks');
+      this.setTooltip("Returns true if DFPlayer Mini is actively playing audio (reads Active LOW on BUSY pin)");
       this.setHelpUrl("");
     }
   };

@@ -37,13 +37,18 @@ npm run dev
 | **Motor Channel 4 (M4 & M5 Parallel)** | `GPIO 9, 10` | Controls Terminals M4 and M5 in parallel |
 | **Push Buttons 1 – 4** | `GPIO 39, 40, 41, 42` | `Pin(pin, Pin.IN, Pin.PULL_UP).value() == 0` when pressed (Active LOW) |
 | **Analog / Digital Sensors (S1 – S5)** | `GPIO 2, 1, 3, 4, 5` | S1=`GPIO 2`, S2=`GPIO 1`, S3=`GPIO 3`, S4=`GPIO 4`, S5=`GPIO 5` (12-bit ADC `0..4095`) |
+| **MQ-135 Gas & Air Quality Sensor** | `GPIO 2, 1, 3, 4, or 5` | Connects to Analog Ports S1-S5 for Air Quality (PPM), CO2 equivalent, Smoke/Toxic gases |
+| **DHT22 / DHT11 Temp & Humidity Sensor** | `GPIO 2, 1, 3, 4, 5, or 19` | Digital 1-wire pin for Temperature (°C/°F) and Relative Humidity (% RH) via `dht.DHT22` |
 | **Ultrasonic Sensor** | `GPIO 6 (Trig), 19 (Echo)` | Distance via `hw.read_ultrasonic_distance(6, 19, "cm")` |
 | **Status LEDs** | `GPIO 47 (Red), 48 (Green)` | `Pin(47, Pin.OUT).value(1)` |
 | **Buzzer** | `GPIO 20` | `from supervisor.led_buzzer import hw` (Startup, Run, Confirm, Stop, Error tones) |
 | **I2C Display (1.3" / 0.96" OLED)** | `GPIO 7 (SDA), 8 (SCL)` | `from supervisor.oled import TitanOLED` or native `framebuf` driver (Addr: `0x3C`) |
 | **Pulse & Heart Rate Sensor (MAX30100 / MAX30102)** | `GPIO 7 (SDA), 8 (SCL)` | Optical SpO2 & BPM sensor (Addr: `0x57`), SparkFun AC beat detector with DC removal filter |
+| **MPU6050 6-Axis IMU (Gyro & Accel)** | `GPIO 7 (SDA), 8 (SCL)` | 6-DOF IMU (Addr: `0x68`), 3-axis Accel (±4g), 3-axis Gyro (±500°/s), Pitch/Roll tilt & gestures |
 | **Digital Compass & Magnetometer (QMC5883L)** | `GPIO 7 (SDA), 8 (SCL)` | 3-axis electronic compass & heading angle (Addr: `0x0D`), range ±8G, 200Hz ODR |
 | **8x8 IR Thermal Camera (AMG8833)** | `GPIO 7 (SDA), 8 (SCL)` | Grid-EYE 64-pixel thermal infrared matrix (Addr: `0x69`), range 0–80°C (0.25°C res) |
+| **Magnetic Rotary Encoder (AS5600)** | `GPIO 7 (SDA), 8 (SCL)` | 12-bit contactless magnetic rotary encoder (Addr: `0x36`), 0–360° angle, turns & RPM tracking |
+| **DFPlayer Mini MP3 Player** | `GPIO 17 (TX), 18 (RX)` | UART MP3 module (`UART(1, baudrate=9600, tx=17, rx=18)`), supports track selection, folder, volume, EQ, loop |
 | **UART Port** | `GPIO 17 (TX), 18 (RX)` | `UART(1, baudrate=115200, tx=17, rx=18)` |
 
 ---

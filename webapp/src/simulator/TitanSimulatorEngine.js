@@ -75,6 +75,19 @@ export class TitanSimulatorEngine {
           return Number((33.5 - dist * 2.2 + (Math.sin(i) * 0.4)).toFixed(1));
         }),
       },
+      as5600: {
+        angle: 0.0,
+        raw: 0,
+        turns: 0,
+        cumulativeDeg: 0.0,
+        rpm: 0.0,
+        degPerSec: 0.0,
+        magnetDetected: true,
+        magnetStatus: 'Optimal / Detected',
+        agc: 128,
+        magnitude: 2048,
+        zeroOffset: 0,
+      },
       activeSensors: {
         2: false, // S1 (GPIO 2)
         1: false, // S2 (GPIO 1)
@@ -85,6 +98,7 @@ export class TitanSimulatorEngine {
         pulse: false,
         qmc5883l: false,
         amg8833: false,
+        as5600: false,
       },
       telemetry: {
         cycleCount: 0,
@@ -123,6 +137,7 @@ export class TitanSimulatorEngine {
       pulseSensor: { ...this.state.pulseSensor },
       qmc5883l: { ...this.state.qmc5883l },
       amg8833: { ...this.state.amg8833, pixels: [...this.state.amg8833.pixels] },
+      as5600: { ...this.state.as5600 },
       activeSensors: { ...this.state.activeSensors },
       telemetry: { ...this.state.telemetry },
     };
@@ -244,6 +259,36 @@ export class TitanSimulatorEngine {
     this._notify();
   }
 
+  setAS5600Angle(angleDeg) {
+    let deg = parseFloat(angleDeg) || 0.0;
+    deg = ((deg % 360) + 360) % 360;
+    const raw = Math.round((deg * 4096) / 360) % 4096;
+    const prevRaw = this.state.as5600.raw;
+    let turns = this.state.as5600.turns;
+    const diff = raw - prevRaw;
+    if (diff < -2048) turns += 1;
+    else if (diff > 2048) turns -= 1;
+    const cumulative = Number((turns * 360 + deg).toFixed(1));
+    this.state.as5600 = {
+      ...this.state.as5600,
+      angle: Number(deg.toFixed(1)),
+      raw,
+      turns,
+      cumulativeDeg: cumulative,
+    };
+    this.state.activeSensors.as5600 = true;
+    this._notify();
+  }
+
+  setAS5600State(params) {
+    this.state.as5600 = {
+      ...this.state.as5600,
+      ...params,
+    };
+    this.state.activeSensors.as5600 = true;
+    this._notify();
+  }
+
   detectActiveSensors(codeString, workspace = null) {
     const active = {
       2: false,
@@ -255,6 +300,7 @@ export class TitanSimulatorEngine {
       pulse: false,
       qmc5883l: false,
       amg8833: false,
+      as5600: false,
     };
 
     if (codeString) {
@@ -295,6 +341,10 @@ export class TitanSimulatorEngine {
       if (/amg8833/i.test(code) || /thermal/i.test(code) || /heatmap/i.test(code) || /0x69\b/i.test(code) || /_read_amg/i.test(code)) {
         active.amg8833 = true;
       }
+      // AS5600 Magnetic Encoder
+      if (/as5600/i.test(code) || /encoder/i.test(code) || /_read_as5600/i.test(code) || /0x36\b/i.test(code) || /_get_as5600/i.test(code)) {
+        active.as5600 = true;
+      }
     }
 
     if (workspace && typeof workspace.getAllBlocks === 'function') {
@@ -304,11 +354,13 @@ export class TitanSimulatorEngine {
         if (b.type?.startsWith('titan_pulse')) active.pulse = true;
         if (b.type?.startsWith('titan_qmc5883l')) active.qmc5883l = true;
         if (b.type?.startsWith('titan_amg8833')) active.amg8833 = true;
+        if (b.type?.startsWith('titan_as5600')) active.as5600 = true;
         if (b.type === 'titan_print_sensor_monitor') {
           const t = b.getFieldValue('TYPE');
           if (t === 'PULSE') active.pulse = true;
           if (t === 'QMC5883L') active.qmc5883l = true;
           if (t === 'AMG8833') active.amg8833 = true;
+          if (t === 'AS5600') active.as5600 = true;
           if (t === 'DIST') active.ultrasonic = true;
           if (['S1','S2','S3','S4','S5'].includes(t)) {
             const pMap = { S1: 2, S2: 1, S3: 3, S4: 4, S5: 5 };
@@ -730,6 +782,22 @@ export class TitanSimulatorEngine {
         break;
       }
 
+      case 'titan_as5600_init': {
+        this.state.activeSensors.as5600 = true;
+        this.log("[AS5600] Initialized 12-bit magnetic rotary encoder at I2C 0x36");
+        this._notify();
+        break;
+      }
+
+      case 'titan_as5600_reset_zero': {
+        this.state.as5600.zeroOffset = this.state.as5600.raw;
+        this.state.as5600.turns = 0;
+        this.state.as5600.cumulativeDeg = 0.0;
+        this.log("[AS5600] Zero position set and turns reset to 0");
+        this._notify();
+        break;
+      }
+
       default:
         break;
     }
@@ -787,6 +855,42 @@ export class TitanSimulatorEngine {
       case 'titan_amg8833_heat_detected': {
         const thresh = parseFloat(getFieldVal('THRESH')) ?? 30.0;
         return this.state.amg8833.maxTemp > thresh;
+      }
+      case 'titan_as5600_read_angle': {
+        const val = getFieldVal('VAL') || 'DEG';
+        if (val === 'RAW') return this.state.as5600.raw;
+        if (val === 'RAD') return Number(((this.state.as5600.angle * Math.PI) / 180).toFixed(4));
+        return this.state.as5600.angle;
+      }
+      case 'titan_as5600_read_rotations': {
+        const val = getFieldVal('VAL') || 'TURNS';
+        if (val === 'CUMULATIVE_DEG') return this.state.as5600.cumulativeDeg;
+        if (val === 'RPM') return this.state.as5600.rpm;
+        if (val === 'DEG_PER_SEC') return this.state.as5600.degPerSec;
+        return this.state.as5600.turns;
+      }
+      case 'titan_as5600_magnet_status': {
+        const val = getFieldVal('VAL') || 'IS_DETECTED';
+        if (val === 'STATUS_STR') return this.state.as5600.magnetStatus;
+        if (val === 'AGC') return this.state.as5600.agc;
+        if (val === 'MAGNITUDE') return this.state.as5600.magnitude;
+        return this.state.as5600.magnetDetected;
+      }
+      case 'titan_as5600_compare': {
+        const metric = getFieldVal('METRIC') || 'DEG';
+        const op = getFieldVal('OP') || 'GT';
+        const val = parseFloat(getFieldVal('VAL')) ?? 180;
+        let curr = this.state.as5600.angle;
+        if (metric === 'RAW') curr = this.state.as5600.raw;
+        else if (metric === 'TURNS') curr = this.state.as5600.turns;
+        else if (metric === 'RPM') curr = this.state.as5600.rpm;
+        if (op === 'GT' || op === '>') return curr > val;
+        if (op === 'GTE' || op === '>=') return curr >= val;
+        if (op === 'LT' || op === '<') return curr < val;
+        if (op === 'LTE' || op === '<=') return curr <= val;
+        if (op === 'EQ' || op === '==') return curr === val;
+        if (op === 'NEQ' || op === '!=') return curr !== val;
+        return curr > val;
       }
       default:
         return '';
@@ -1219,6 +1323,7 @@ export class TitanSimulatorEngine {
         _init_pulse, _read_pulse,
         _TitanQMC5883L, _get_qmc5883l, _qmc_inst, _init_qmc5883l, _read_qmc5883l,
         _TitanAMG8833, _get_amg8833, _amg_inst, _init_amg8833, _read_amg8833, _read_amg8833_pixel, _draw_amg8833_oled,
+        _TitanAS5600, _get_as5600, _as5600_inst, _init_as5600, _read_as5600_angle, _read_as5600_rotations, _reset_as5600_zero, _read_as5600_magnet, _compare_as5600,
         getattr, 
         SoftI2C, I2C, UART,
         str, int, float, len, range, min, max, round, _in, _not_in, checkYield, delay,
@@ -1232,7 +1337,7 @@ export class TitanSimulatorEngine {
     let skipUntilIndent = -1;
 
     // Sandbox-provided helpers — skip user redefinitions to keep them synchronous
-    const SANDBOX_HELPERS = ['_get_oled', '_get_pulse', '_get_pwm', '_get_qmc5883l', '_get_amg8833'];
+    const SANDBOX_HELPERS = ['_get_oled', '_get_pulse', '_get_pwm', '_get_qmc5883l', '_get_amg8833', '_get_as5600'];
 
     for (let raw of rawLines) {
       let trimmed = raw.trim();

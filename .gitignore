@@ -1,9 +1,12 @@
 # Node / Web App
+node_modules/
 webapp/node_modules/
 webapp/dist/
 webapp/.env
 webapp/.env.local
 webapp/.vite/
+package-lock.json
+*.zip
 
 # Python / Firmware
 __pycache__/
