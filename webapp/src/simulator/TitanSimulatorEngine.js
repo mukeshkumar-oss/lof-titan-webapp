@@ -37,6 +37,13 @@ export class TitanSimulatorEngine {
         pixels: [],
         version: Date.now(),
       },
+      lcd1602: {
+        initialized: false,
+        addr: '0x27',
+        backlight: true,
+        line1: '',
+        line2: '',
+      },
       buttons: { 39: false, 40: false, 41: false, 42: false },
       sensors: {
         2: { value: 1200, type: 'light', digital: 0 },
@@ -88,6 +95,18 @@ export class TitanSimulatorEngine {
         magnitude: 2048,
         zeroOffset: 0,
       },
+      ds18b20: {
+        2: 25.0, // S1
+        1: 25.0, // S2
+        3: 25.0, // S3
+        4: 25.0, // S4
+        5: 25.0, // S5
+        19: 25.0, // GPIO 19
+      },
+      vl53l0x: {
+        distanceMm: 250,
+        mode: 'BALANCED',
+      },
       activeSensors: {
         2: false, // S1 (GPIO 2)
         1: false, // S2 (GPIO 1)
@@ -99,6 +118,7 @@ export class TitanSimulatorEngine {
         qmc5883l: false,
         amg8833: false,
         as5600: false,
+        vl53l0x: false,
       },
       telemetry: {
         cycleCount: 0,
@@ -131,6 +151,7 @@ export class TitanSimulatorEngine {
         textLines: [...this.state.oled.textLines],
         pixels: [...this.state.oled.pixels],
       },
+      lcd1602: { ...this.state.lcd1602 },
       buttons: { ...this.state.buttons },
       sensors: { ...this.state.sensors },
       ultrasonic: { ...this.state.ultrasonic },
@@ -138,6 +159,7 @@ export class TitanSimulatorEngine {
       qmc5883l: { ...this.state.qmc5883l },
       amg8833: { ...this.state.amg8833, pixels: [...this.state.amg8833.pixels] },
       as5600: { ...this.state.as5600 },
+      ds18b20: { ...this.state.ds18b20 },
       activeSensors: { ...this.state.activeSensors },
       telemetry: { ...this.state.telemetry },
     };
@@ -289,6 +311,55 @@ export class TitanSimulatorEngine {
     this._notify();
   }
 
+  setVL53L0XDistance(distMm) {
+    const mm = Math.max(0, Math.min(2200, parseInt(distMm, 10) || 0));
+    if (!this.state.vl53l0x) this.state.vl53l0x = { distanceMm: 250, mode: 'BALANCED' };
+    this.state.vl53l0x.distanceMm = mm;
+    this.state.activeSensors.vl53l0x = true;
+    this._notify();
+  }
+
+  setVL53L0XMode(mode) {
+    if (!this.state.vl53l0x) this.state.vl53l0x = { distanceMm: 250, mode: 'BALANCED' };
+    this.state.vl53l0x.mode = mode;
+    this._notify();
+  }
+
+  readVL53L0X(unit = 'CM') {
+    const mm = this.state.vl53l0x?.distanceMm ?? 250;
+    const u = String(unit).toUpperCase();
+    if (u === 'MM') return mm;
+    if (u === 'CM') return Number((mm / 10.0).toFixed(1));
+    if (u === 'INCHES') return Number((mm / 25.4).toFixed(1));
+    if (u === 'M') return Number((mm / 1000.0).toFixed(2));
+    return mm;
+  }
+
+  setDS18B20Temp(pin, tempC) {
+    const p = parseInt(pin, 10) || 2;
+    const t = parseFloat(tempC) || 25.0;
+    if (!this.state.ds18b20) this.state.ds18b20 = {};
+    this.state.ds18b20[p] = t;
+    if (this.state.sensors[p]) {
+      this.state.sensors[p].tempC = t;
+      this.state.sensors[p].type = 'ds18b20';
+    }
+    if (!this.state.activeSensors[p]) {
+      this.state.activeSensors[p] = true;
+    }
+    this._notify();
+  }
+
+  readDS18B20(pin = 2, unit = 'C') {
+    const p = parseInt(pin, 10) || 2;
+    const tempC = (this.state.ds18b20 && this.state.ds18b20[p] !== undefined) 
+      ? this.state.ds18b20[p] 
+      : (this.state.sensors[p]?.tempC ?? 25.0);
+    if (unit === 'F') return Number(((tempC * 9 / 5) + 32).toFixed(2));
+    if (unit === 'K') return Number((tempC + 273.15).toFixed(2));
+    return Number(tempC.toFixed(2));
+  }
+
   detectActiveSensors(codeString, workspace = null) {
     const active = {
       2: false,
@@ -301,6 +372,7 @@ export class TitanSimulatorEngine {
       qmc5883l: false,
       amg8833: false,
       as5600: false,
+      vl53l0x: false,
     };
 
     if (codeString) {
@@ -345,6 +417,17 @@ export class TitanSimulatorEngine {
       if (/as5600/i.test(code) || /encoder/i.test(code) || /_read_as5600/i.test(code) || /0x36\b/i.test(code) || /_get_as5600/i.test(code)) {
         active.as5600 = true;
       }
+      // VL53L0X Laser ToF
+      if (/vl53l0x/i.test(code) || /gy53/i.test(code) || /_get_vl53l0x/i.test(code) || /0x29\b/i.test(code)) {
+        active.vl53l0x = true;
+      }
+      // DS18B20 1-Wire Digital Temperature
+      if (/ds18b20/i.test(code) || /ds18x20/i.test(code) || /onewire/i.test(code) || /_read_ds18b20/i.test(code)) {
+        const pinMatch = code.match(/_read_ds18b20\s*\(\s*(\d+)/i) || code.match(/Pin\s*\(\s*(\d+)\s*\)/i);
+        const pinNum = pinMatch ? parseInt(pinMatch[1], 10) : 2;
+        if (active[pinNum] !== undefined) active[pinNum] = true;
+        else active[2] = true;
+      }
     }
 
     if (workspace && typeof workspace.getAllBlocks === 'function') {
@@ -355,12 +438,20 @@ export class TitanSimulatorEngine {
         if (b.type?.startsWith('titan_qmc5883l')) active.qmc5883l = true;
         if (b.type?.startsWith('titan_amg8833')) active.amg8833 = true;
         if (b.type?.startsWith('titan_as5600')) active.as5600 = true;
+        if (b.type?.startsWith('titan_vl53l0x')) active.vl53l0x = true;
+        if (b.type?.startsWith('titan_ds18b20')) {
+          const p = parseInt(b.getFieldValue('PIN') || 2, 10);
+          if (active[p] !== undefined) active[p] = true;
+          else active[2] = true;
+        }
         if (b.type === 'titan_print_sensor_monitor') {
           const t = b.getFieldValue('TYPE');
           if (t === 'PULSE') active.pulse = true;
           if (t === 'QMC5883L') active.qmc5883l = true;
+          if (t === 'VL53L0X') active.vl53l0x = true;
           if (t === 'AMG8833') active.amg8833 = true;
           if (t === 'AS5600') active.as5600 = true;
+          if (t === 'DS18B20') active[2] = true;
           if (t === 'DIST') active.ultrasonic = true;
           if (['S1','S2','S3','S4','S5'].includes(t)) {
             const pMap = { S1: 2, S2: 1, S3: 3, S4: 4, S5: 5 };
@@ -569,6 +660,57 @@ export class TitanSimulatorEngine {
       pixels: [],
       version: Date.now()
     };
+    this._notify();
+  }
+
+  // ================= LCD 1602 Simulator Methods =================
+  initLCD1602(addr = '0x27') {
+    this.state.lcd1602 = {
+      initialized: true,
+      addr: String(addr),
+      backlight: true,
+      line1: '',
+      line2: '',
+    };
+    this.log(`[LCD 1602] Initialized 2x16 Character LCD at I2C ${addr}`);
+    this._notify();
+  }
+
+  lcdPrint(text, col = 0, row = 0) {
+    if (!this.state.lcd1602.initialized) this.initLCD1602();
+    const strText = String(text ?? '');
+    const colNum = Math.max(0, Math.min(15, parseInt(col, 10) || 0));
+    const rowNum = (parseInt(row, 10) || 0) === 1 ? 1 : 0;
+    const lineKey = rowNum === 1 ? 'line2' : 'line1';
+    let line = this.state.lcd1602[lineKey].padEnd(16, ' ').split('');
+    for (let i = 0; i < strText.length && colNum + i < 16; i++) {
+      line[colNum + i] = strText[i];
+    }
+    this.state.lcd1602[lineKey] = line.join('').trimEnd();
+    this.log(`[LCD 1602] Row ${rowNum} Col ${colNum}: "${strText}"`);
+    this._notify();
+  }
+
+  lcdPrintLines(line1 = '', line2 = '') {
+    if (!this.state.lcd1602.initialized) this.initLCD1602();
+    this.state.lcd1602.line1 = String(line1 ?? '').substring(0, 16);
+    this.state.lcd1602.line2 = String(line2 ?? '').substring(0, 16);
+    this.log(`[LCD 1602] L1: "${this.state.lcd1602.line1}" | L2: "${this.state.lcd1602.line2}"`);
+    this._notify();
+  }
+
+  lcdClear() {
+    if (!this.state.lcd1602.initialized) this.initLCD1602();
+    this.state.lcd1602.line1 = '';
+    this.state.lcd1602.line2 = '';
+    this.log(`[LCD 1602] Screen cleared`);
+    this._notify();
+  }
+
+  lcdBacklight(on = true) {
+    if (!this.state.lcd1602.initialized) this.initLCD1602();
+    this.state.lcd1602.backlight = Boolean(on);
+    this.log(`[LCD 1602] Backlight: ${on ? 'ON' : 'OFF'}`);
     this._notify();
   }
 
@@ -782,6 +924,61 @@ export class TitanSimulatorEngine {
         break;
       }
 
+      // 2x16 LCD I2C Display Execution
+      case 'titan_lcd1602_init': {
+        const addr = getFieldVal('ADDR') || '0x27';
+        this.initLCD1602(addr);
+        break;
+      }
+
+      case 'titan_lcd1602_print': {
+        const text = this._evalValueInput(block, 'TEXT') ?? '';
+        const col = parseInt(getFieldVal('COL'), 10) || 0;
+        const row = parseInt(getFieldVal('ROW'), 10) || 0;
+        this.lcdPrint(text, col, row);
+        break;
+      }
+
+      case 'titan_lcd1602_print_lines': {
+        const line1 = this._evalValueInput(block, 'LINE1') ?? '';
+        const line2 = this._evalValueInput(block, 'LINE2') ?? '';
+        this.lcdPrintLines(line1, line2);
+        break;
+      }
+
+      case 'titan_lcd1602_clear': {
+        this.lcdClear();
+        break;
+      }
+
+      case 'titan_lcd1602_backlight': {
+        const state = getFieldVal('STATE') === '1';
+        this.lcdBacklight(state);
+        break;
+      }
+
+      case 'titan_lcd1602_set_cursor': {
+        const col = parseInt(getFieldVal('COL'), 10) || 0;
+        const row = parseInt(getFieldVal('ROW'), 10) || 0;
+        this.log(`[LCD 1602] Set Cursor -> Col: ${col}, Row: ${row}`);
+        break;
+      }
+
+      case 'titan_lcd1602_scroll': {
+        const dir = getFieldVal('DIR') || 'LEFT';
+        this.log(`[LCD 1602] Scroll ${dir}`);
+        break;
+      }
+
+      case 'titan_lcd1602_show_sensor': {
+        const pin = parseInt(getFieldVal('SENSOR') || '2', 10);
+        const row = parseInt(getFieldVal('ROW') || '0', 10);
+        const col = parseInt(getFieldVal('COL') || '0', 10);
+        const val = this.readAnalogSensor(pin);
+        this.lcdPrint(`S${pin}:${val}`, col, row);
+        break;
+      }
+
       case 'titan_as5600_init': {
         this.state.activeSensors.as5600 = true;
         this.log("[AS5600] Initialized 12-bit magnetic rotary encoder at I2C 0x36");
@@ -892,6 +1089,57 @@ export class TitanSimulatorEngine {
         if (op === 'NEQ' || op === '!=') return curr !== val;
         return curr > val;
       }
+      case 'titan_ds18b20_read': {
+        const pin = parseInt(getFieldVal('PIN') || 2, 10);
+        const unit = getFieldVal('UNIT') || 'C';
+        return this.readDS18B20(pin, unit);
+      }
+      case 'titan_ds18b20_compare': {
+        const pin = parseInt(getFieldVal('PIN') || 2, 10);
+        const unit = getFieldVal('UNIT') || 'C';
+        const op = getFieldVal('OP') || 'GT';
+        const val = parseFloat(getFieldVal('VAL')) ?? 30.0;
+        const curr = this.readDS18B20(pin, unit);
+        if (op === 'GT' || op === '>') return curr > val;
+        if (op === 'GTE' || op === '>=') return curr >= val;
+        if (op === 'LT' || op === '<') return curr < val;
+        if (op === 'LTE' || op === '<=') return curr <= val;
+        if (op === 'EQ' || op === '==') return Math.abs(curr - val) < 0.01;
+        if (op === 'NEQ' || op === '!=') return Math.abs(curr - val) >= 0.01;
+        return curr > val;
+      }
+      case 'titan_vl53l0x_init': {
+        return '';
+      }
+      case 'titan_vl53l0x_read_distance': {
+        const unit = getFieldVal('UNIT') || 'CM';
+        return this.readVL53L0X(unit);
+      }
+      case 'titan_vl53l0x_compare': {
+        const op = getFieldVal('OP') || 'LT';
+        const val = parseFloat(getFieldVal('VAL')) ?? 20.0;
+        const unit = getFieldVal('UNIT') || 'CM';
+        const curr = this.readVL53L0X(unit);
+        if (op === 'LT' || op === '<') return curr < val;
+        if (op === 'LTE' || op === '<=') return curr <= val;
+        if (op === 'GT' || op === '>') return curr > val;
+        if (op === 'GTE' || op === '>=') return curr >= val;
+        if (op === 'EQ' || op === '==') return Math.abs(curr - val) < 0.01;
+        if (op === 'NEQ' || op === '!=') return Math.abs(curr - val) >= 0.01;
+        return curr < val;
+      }
+      case 'titan_vl53l0x_target_in_range': {
+        const minVal = parseFloat(getFieldVal('MIN_VAL')) ?? 5.0;
+        const maxVal = parseFloat(getFieldVal('MAX_VAL')) ?? 30.0;
+        const unit = getFieldVal('UNIT') || 'CM';
+        const curr = this.readVL53L0X(unit);
+        return curr >= minVal && curr <= maxVal;
+      }
+      case 'titan_vl53l0x_set_mode': {
+        const mode = getFieldVal('MODE') || 'BALANCED';
+        this.setVL53L0XMode(mode);
+        return '';
+      }
       default:
         return '';
     }
@@ -945,6 +1193,18 @@ export class TitanSimulatorEngine {
       clear: () => {
         self.oledClear();
       }
+    };
+
+    const lcdObj = {
+      print: (text, col = null, row = null) => self.lcdPrint(text, col ?? 0, row ?? 0),
+      print_lines: (line1 = '', line2 = '') => self.lcdPrintLines(line1, line2),
+      clear: () => self.lcdClear(),
+      backlight: (on = true) => self.lcdBacklight(on),
+      set_cursor: (col = 0, row = 0) => {},
+      scroll_left: () => {},
+      scroll_right: () => {},
+      command: () => {},
+      write_char: () => {},
     };
 
     const pulseObj = {
@@ -1099,6 +1359,18 @@ export class TitanSimulatorEngine {
       _get_oled: () => oledObj,
       _oled_global: oledObj,
       oled: oledObj,
+
+      // 2x16 LCD 1602 Sandbox
+      _TitanLCD1602: function(addr = 0x27) {
+        self.initLCD1602(addr);
+        return lcdObj;
+      },
+      _get_lcd: (addr = 0x27) => {
+        if (!self.state.lcd1602.initialized) self.initLCD1602(addr);
+        return lcdObj;
+      },
+      _lcd_global: lcdObj,
+      lcd: lcdObj,
       _TitanPulse: function() {
         return pulseObj;
       },
@@ -1189,6 +1461,44 @@ export class TitanSimulatorEngine {
         self.oledText(`Mn:${cam.minTemp.toFixed(1)}C`, 64, 24, 1);
         self.oledText(`Av:${cam.avgTemp.toFixed(1)}C`, 64, 40, 1);
         self._notify();
+      },
+
+      // DS18B20 1-Wire Digital Temperature Sandbox
+      _read_ds18b20: (pin = 2, unit = "C") => self.readDS18B20(pin, unit),
+      _get_ds18b20: (pin = 2) => ({
+        read: (unit = "C") => self.readDS18B20(pin, unit),
+        read_c: () => self.readDS18B20(pin, "C"),
+        read_f: () => self.readDS18B20(pin, "F"),
+        read_k: () => self.readDS18B20(pin, "K"),
+        convert_temp: () => {},
+        read_temp: (rom) => self.readDS18B20(pin, "C"),
+      }),
+      onewire: {
+        OneWire: function(p) { return { pin: p }; }
+      },
+      ds18x20: {
+        DS18X20: function(ow) {
+          const pinNum = ow?.pin?.pin || 2;
+          return {
+            scan: () => [bytearray([0x28, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07])],
+            convert_temp: () => {},
+            read_temp: (rom) => self.readDS18B20(pinNum, "C"),
+          };
+        }
+      },
+
+      // VL53L0X / GY-53 Laser ToF Sandbox
+      _get_vl53l0x: () => ({
+        read_distance: (unit = "CM") => self.readVL53L0X(unit),
+        read_distance_mm: () => self.readVL53L0X("MM"),
+        set_mode: (m) => self.setVL53L0XMode(m),
+      }),
+      VL53L0X: function(i2c, addr = 0x29) {
+        return {
+          read_distance: (unit = "CM") => self.readVL53L0X(unit),
+          read_distance_mm: () => self.readVL53L0X("MM"),
+          set_mode: (m) => self.setVL53L0XMode(m),
+        };
       },
 
       SoftI2C: function() {},
@@ -1319,11 +1629,13 @@ export class TitanSimulatorEngine {
       var { 
         print, time, network, socket, select, hw, _get_pwm, PWM, Pin, ADC, 
         _TitanOLED, _get_oled, _oled_global, oled, 
+        _TitanLCD1602, _get_lcd, _lcd_global, lcd,
         _TitanPulse, _get_pulse, _pulse_inst, pulse, 
         _init_pulse, _read_pulse,
         _TitanQMC5883L, _get_qmc5883l, _qmc_inst, _init_qmc5883l, _read_qmc5883l,
         _TitanAMG8833, _get_amg8833, _amg_inst, _init_amg8833, _read_amg8833, _read_amg8833_pixel, _draw_amg8833_oled,
         _TitanAS5600, _get_as5600, _as5600_inst, _init_as5600, _read_as5600_angle, _read_as5600_rotations, _reset_as5600_zero, _read_as5600_magnet, _compare_as5600,
+        _read_ds18b20, _get_ds18b20, onewire, ds18x20,
         getattr, 
         SoftI2C, I2C, UART,
         str, int, float, len, range, min, max, round, _in, _not_in, checkYield, delay,
@@ -1337,7 +1649,7 @@ export class TitanSimulatorEngine {
     let skipUntilIndent = -1;
 
     // Sandbox-provided helpers — skip user redefinitions to keep them synchronous
-    const SANDBOX_HELPERS = ['_get_oled', '_get_pulse', '_get_pwm', '_get_qmc5883l', '_get_amg8833', '_get_as5600'];
+    const SANDBOX_HELPERS = ['_get_oled', '_get_lcd', '_get_pulse', '_get_pwm', '_get_qmc5883l', '_get_amg8833', '_get_as5600', '_get_ds18b20', '_read_ds18b20'];
 
     for (let raw of rawLines) {
       let trimmed = raw.trim();

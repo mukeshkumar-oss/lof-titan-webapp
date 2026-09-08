@@ -8,7 +8,8 @@ import {
   Flame,
   Thermometer,
   RotateCw,
-  Disc
+  Disc,
+  Target
 } from 'lucide-react';
 
 /**
@@ -23,6 +24,8 @@ export function TitanSensorControls({ state, simulatorEngine }) {
     qmc5883l = { heading: 0, dir: 'N', x: 0, y: 0, z: 0, temp: 25 }, 
     amg8833 = { maxTemp: 32, minTemp: 22, avgTemp: 26, centerTemp: 30, thermistor: 25, pixels: Array(64).fill(22) }, 
     as5600 = { angle: 0, raw: 0, turns: 0, cumulativeDeg: 0, rpm: 0, magnetDetected: true, magnetStatus: 'Optimal / Detected', agc: 128 },
+    ds18b20 = { 2: 25.0, 1: 25.0, 3: 25.0, 4: 25.0, 5: 25.0, 19: 25.0 },
+    vl53l0x = { distanceMm: 250, mode: 'BALANCED' },
     activeSensors = {} 
   } = state;
 
@@ -31,6 +34,7 @@ export function TitanSensorControls({ state, simulatorEngine }) {
   const isQmcActive = Boolean(activeSensors.qmc5883l);
   const isAmgActive = Boolean(activeSensors.amg8833);
   const isAs5600Active = Boolean(activeSensors.as5600);
+  const isVl53l0xActive = Boolean(activeSensors.vl53l0x);
 
   return (
     <div className="flex flex-col space-y-3.5 text-slate-800">
@@ -119,7 +123,7 @@ export function TitanSensorControls({ state, simulatorEngine }) {
               <Sliders size={16} />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-slate-900">Sensor Ports S1 – S5 (ADC 0 - 4095)</h4>
+              <h4 className="text-xs font-bold text-slate-900">Sensor Ports S1 – S5 (ADC 0 - 4095 & 1-Wire)</h4>
               <p className="text-[10px] text-slate-500 font-mono">Selectable when referenced by script or block code</p>
             </div>
           </div>
@@ -135,19 +139,21 @@ export function TitanSensorControls({ state, simulatorEngine }) {
           ].map((item) => {
             const sData = sensors[item.pin] || { value: 0, type: item.defaultType, digital: 0 };
             const isSensorActive = Boolean(activeSensors[item.pin]);
+            const isDs18 = sData.type === 'ds18b20';
+            const tempVal = ds18b20[item.pin] ?? sData.tempC ?? 25.0;
 
             return (
               <div 
                 key={item.pin} 
                 className={`p-2.5 rounded-xl border transition-all duration-300 space-y-1.5 ${
                   isSensorActive
-                    ? 'bg-slate-50 border-blue-200 shadow-xs'
+                    ? isDs18 ? 'bg-cyan-50/50 border-cyan-300 shadow-xs' : 'bg-slate-50 border-blue-200 shadow-xs'
                     : 'bg-slate-100/60 border-slate-200 opacity-40'
                 }`}
               >
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className={`font-bold font-mono text-xs ${isSensorActive ? 'text-blue-700' : 'text-slate-400'}`}>
+                    <span className={`font-bold font-mono text-xs ${isSensorActive ? (isDs18 ? 'text-cyan-800' : 'text-blue-700') : 'text-slate-400'}`}>
                       {item.label}
                     </span>
 
@@ -163,7 +169,14 @@ export function TitanSensorControls({ state, simulatorEngine }) {
                     {isSensorActive && (
                       <select
                         value={sData.type}
-                        onChange={(e) => simulatorEngine.setSensorValue(item.pin, sData.value, e.target.value)}
+                        onChange={(e) => {
+                          const newType = e.target.value;
+                          if (newType === 'ds18b20') {
+                            simulatorEngine.setDS18B20Temp(item.pin, 25.0);
+                          } else {
+                            simulatorEngine.setSensorValue(item.pin, sData.value, newType);
+                          }
+                        }}
                         className="text-[10px] bg-white border border-slate-300 text-slate-800 rounded-lg px-2 py-0.5 font-sans cursor-pointer shadow-xs hover:border-slate-400"
                       >
                         <option value="light">☀️ Light / LDR</option>
@@ -172,34 +185,73 @@ export function TitanSensorControls({ state, simulatorEngine }) {
                         <option value="line">🏁 Line Tracker</option>
                         <option value="motion">🚶 PIR Motion</option>
                         <option value="touch">👆 Touch Sensor</option>
+                        <option value="ds18b20">🌡️ DS18B20 Temp Probe</option>
                       </select>
                     )}
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-slate-500">
-                      {isSensorActive ? `Digital: ${sData.digital}` : 'Inactive'}
-                    </span>
-                    <span className={`font-mono font-bold text-xs w-12 text-right ${
-                      isSensorActive ? 'text-blue-700 font-black' : 'text-slate-400'
-                    }`}>
-                      {isSensorActive ? sData.value : '---'}
-                    </span>
+                    {isDs18 ? (
+                      <span className={`font-mono font-bold text-xs text-right ${isSensorActive ? 'text-cyan-700 font-black' : 'text-slate-400'}`}>
+                        {isSensorActive ? `${Number(tempVal).toFixed(1)}°C (${((tempVal * 9/5) + 32).toFixed(1)}°F)` : '---'}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="text-[10px] font-mono text-slate-500">
+                          {isSensorActive ? `Digital: ${sData.digital}` : 'Inactive'}
+                        </span>
+                        <span className={`font-mono font-bold text-xs w-12 text-right ${
+                          isSensorActive ? 'text-blue-700 font-black' : 'text-slate-400'
+                        }`}>
+                          {isSensorActive ? sData.value : '---'}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                <input 
-                  type="range"
-                  min="0"
-                  max="4095"
-                  step="1"
-                  disabled={!isSensorActive}
-                  value={sData.value}
-                  onChange={(e) => simulatorEngine.setSensorValue(item.pin, e.target.value)}
-                  className={`w-full h-1.5 rounded-lg appearance-none accent-blue-600 ${
-                    isSensorActive ? 'bg-blue-100 cursor-pointer' : 'bg-slate-200 cursor-not-allowed opacity-40'
-                  }`}
-                />
+                {isDs18 ? (
+                  <div className="space-y-1.5">
+                    <input 
+                      type="range"
+                      min="-55"
+                      max="125"
+                      step="0.5"
+                      disabled={!isSensorActive}
+                      value={tempVal}
+                      onChange={(e) => simulatorEngine.setDS18B20Temp(item.pin, e.target.value)}
+                      className={`w-full h-1.5 rounded-lg appearance-none accent-cyan-600 ${
+                        isSensorActive ? 'bg-cyan-100 cursor-pointer' : 'bg-slate-200 cursor-not-allowed opacity-40'
+                      }`}
+                    />
+                    {isSensorActive && (
+                      <div className="flex items-center justify-between gap-1 text-[9px] font-mono font-semibold">
+                        {[-10, 0, 25, 37, 60, 100].map(deg => (
+                          <button
+                            key={deg}
+                            onClick={() => simulatorEngine.setDS18B20Temp(item.pin, deg)}
+                            className="px-1.5 py-0.5 rounded bg-cyan-100/70 hover:bg-cyan-200 text-cyan-800 border border-cyan-200 cursor-pointer transition-colors shadow-2xs"
+                          >
+                            {deg}°C
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <input 
+                    type="range"
+                    min="0"
+                    max="4095"
+                    step="1"
+                    disabled={!isSensorActive}
+                    value={sData.value}
+                    onChange={(e) => simulatorEngine.setSensorValue(item.pin, e.target.value)}
+                    className={`w-full h-1.5 rounded-lg appearance-none accent-blue-600 ${
+                      isSensorActive ? 'bg-blue-100 cursor-pointer' : 'bg-slate-200 cursor-not-allowed opacity-40'
+                    }`}
+                  />
+                )}
               </div>
             );
           })}
@@ -582,6 +634,96 @@ export function TitanSensorControls({ state, simulatorEngine }) {
                 Reset Zero
               </button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* 6. GY-53 / VL53L0X Laser ToF Distance Sensor Card */}
+      <div className={`p-3.5 rounded-2xl border transition-all duration-300 shadow-xs ${
+        isVl53l0xActive
+          ? 'bg-white border-amber-200 shadow-sm'
+          : 'bg-slate-100/70 border-slate-200 opacity-45'
+      }`}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2.5">
+            <div className={`p-2 rounded-xl border ${
+              isVl53l0xActive 
+                ? 'bg-amber-50 text-amber-600 border-amber-200 shadow-xs' 
+                : 'bg-slate-200/60 text-slate-400 border-slate-200'
+            }`}>
+              <Target size={16} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-bold text-slate-900">VL53L0X Laser ToF Distance</h4>
+                <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                  isVl53l0xActive 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' 
+                    : 'bg-slate-200 text-slate-500 border border-slate-300'
+                }`}>
+                  {isVl53l0xActive ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> : <Lock size={9} />}
+                  {isVl53l0xActive ? 'Active in Code' : 'Not in Code'}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 font-mono">I2C (0x29) • Range: 30mm – 2000mm (Laser ToF)</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-mono font-black px-2.5 py-1 rounded-xl border ${
+              isVl53l0xActive
+                ? 'text-amber-700 bg-amber-50 border-amber-200 shadow-xs'
+                : 'text-slate-400 bg-slate-100 border-slate-200'
+            }`}>
+              {(vl53l0x.distanceMm / 10).toFixed(1)} cm ({vl53l0x.distanceMm} mm)
+            </span>
+          </div>
+        </div>
+
+        <input 
+          type="range" 
+          min="30" 
+          max="2000" 
+          step="5"
+          disabled={!isVl53l0xActive}
+          value={vl53l0x.distanceMm}
+          onChange={(e) => simulatorEngine.setVL53L0XDistance(e.target.value)}
+          className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-amber-600 ${
+            isVl53l0xActive ? 'bg-amber-100' : 'bg-slate-200 cursor-not-allowed opacity-50'
+          }`}
+        />
+
+        {isVl53l0xActive && (
+          <div className="flex items-center justify-between mt-2.5 gap-1.5 text-[10px]">
+            <button 
+              onClick={() => simulatorEngine.setVL53L0XDistance(50)}
+              className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-mono font-semibold border border-amber-200 shadow-xs transition-colors cursor-pointer"
+            >
+              5 cm (Close)
+            </button>
+            <button 
+              onClick={() => simulatorEngine.setVL53L0XDistance(200)}
+              className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-mono font-semibold border border-amber-200 shadow-xs transition-colors cursor-pointer"
+            >
+              20 cm
+            </button>
+            <button 
+              onClick={() => simulatorEngine.setVL53L0XDistance(500)}
+              className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-mono font-semibold border border-amber-200 shadow-xs transition-colors cursor-pointer"
+            >
+              50 cm (Mid)
+            </button>
+            <button 
+              onClick={() => simulatorEngine.setVL53L0XDistance(1000)}
+              className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-mono font-semibold border border-amber-200 shadow-xs transition-colors cursor-pointer"
+            >
+              1.0 m
+            </button>
+            <button 
+              onClick={() => simulatorEngine.setVL53L0XDistance(1800)}
+              className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-mono font-semibold border border-amber-200 shadow-xs transition-colors cursor-pointer"
+            >
+              1.8 m (Far)
+            </button>
           </div>
         )}
       </div>

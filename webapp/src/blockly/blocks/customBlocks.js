@@ -955,6 +955,60 @@ export function registerCustomBlocks() {
     }
   };
 
+  // ================= DS18B20 1-WIRE DIGITAL TEMPERATURE SENSOR =================
+  Blockly.Blocks['titan_ds18b20_read'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🌡️ DS18B20 Temp Probe on")
+          .appendField(new Blockly.FieldDropdown([
+            ["Port S1 (GPIO 2)", "2"],
+            ["Port S2 (GPIO 1)", "1"],
+            ["Port S3 (GPIO 3)", "3"],
+            ["Port S4 (GPIO 4)", "4"],
+            ["Port S5 (GPIO 5)", "5"],
+            ["GPIO 19", "19"]
+          ]), "PIN")
+          .appendField(new Blockly.FieldDropdown([
+            ["Temperature (°C)", "TEMP_C"],
+            ["Temperature (°F)", "TEMP_F"],
+            ["Temperature (Kelvin)", "TEMP_K"]
+          ]), "VAL");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Read digital temperature from DS18B20 1-Wire waterproof temperature probe (-55°C to +125°C, 0.0625°C resolution)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_ds18b20_compare'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🌡️ DS18B20 on")
+          .appendField(new Blockly.FieldDropdown([
+            ["Port S1 (GPIO 2)", "2"],
+            ["Port S2 (GPIO 1)", "1"],
+            ["Port S3 (GPIO 3)", "3"],
+            ["Port S4 (GPIO 4)", "4"],
+            ["Port S5 (GPIO 5)", "5"],
+            ["GPIO 19", "19"]
+          ]), "PIN")
+          .appendField("Temp (°C)")
+          .appendField(new Blockly.FieldDropdown([
+            [">", ">"],
+            ["<", "<"],
+            [">=", ">="],
+            ["<=", "<="],
+            ["==", "=="],
+            ["!=", "!="]
+          ]), "OP")
+          .appendField(new Blockly.FieldNumber(30, -55, 125), "VALUE");
+      this.setOutput(true, "Boolean");
+      this.setStyle('logic_blocks');
+      this.setTooltip("Returns True if DS18B20 probe temperature matches the threshold comparison");
+      this.setHelpUrl("");
+    }
+  };
+
   // Live Sensor Monitor Print Block (Terminal)
   Blockly.Blocks['titan_print_sensor_monitor'] = {
     init: function() {
@@ -963,6 +1017,7 @@ export function registerCustomBlocks() {
           .appendField(new Blockly.FieldDropdown([
             ["All Sensors Live Summary (S1-S5, Dist, Buttons)", "ALL"],
             ["DHT22 Temp & Humidity (S1)", "DHT22"],
+            ["DS18B20 Temp Probe (S1)", "DS18B20"],
             ["MQ-135 Air Quality & Gas (S1)", "MQ135"],
             ["MPU6050 Gyro/Accel/Tilt (0x68)", "MPU6050"],
             ["QMC5883L Compass (0x0D)", "QMC5883L"],
@@ -1121,6 +1176,46 @@ export function registerCustomBlocks() {
     }
   };
 
+  Blockly.Blocks['titan_onboard_buzzer_melody'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Buzzer (GPIO 20) play melody")
+          .appendField(new Blockly.FieldDropdown([
+            ["Star Wars Theme 🌌", "STAR_WARS"],
+            ["Super Mario 🍄", "MARIO"],
+            ["Happy Birthday 🎂", "HAPPY_BIRTHDAY"],
+            ["Mission Impossible 🕵️", "MISSION_IMPOSSIBLE"],
+            ["Cyberpunk Siren 🚨", "CYBERPUNK"],
+            ["Victory Fanfare 🏆", "VICTORY"]
+          ]), "MELODY");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Play melodic tune on onboard buzzer");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_onboard_buzzer_sound_effect'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Buzzer (GPIO 20) sound effect")
+          .appendField(new Blockly.FieldDropdown([
+            ["Laser Zap 🔫", "LASER"],
+            ["Jump ⬆️", "JUMP"],
+            ["Coin Collect 🪙", "COIN"],
+            ["Power Up ⚡", "POWERUP"],
+            ["Explosion 💥", "EXPLOSION"],
+            ["Warning Alert ⚠️", "ALERT"]
+          ]), "EFFECT");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Play retro arcade sound effects on onboard buzzer");
+      this.setHelpUrl("");
+    }
+  };
+
   Blockly.Blocks['titan_onboard_buzzer_freq'] = {
     init: function() {
       this.appendDummyInput()
@@ -1167,7 +1262,7 @@ export function registerCustomBlocks() {
     }
   };
 
-  Blockly.Blocks['titan_oled_text'] = {
+  Blockly.Blocks['titan_oled_print'] = {
     init: function() {
       this.appendValueInput("TEXT")
           .setCheck(null)
@@ -1187,6 +1282,106 @@ export function registerCustomBlocks() {
       this.setNextStatement(true, null);
       this.setStyle('display_blocks');
       this.setTooltip("Print text on OLED screen with customizable text size (1x, 2x, 3x)");
+      this.setHelpUrl("");
+    }
+  };
+
+  // Alias for backward compatibility
+  Blockly.Blocks['titan_oled_text'] = Blockly.Blocks['titan_oled_print'];
+
+  Blockly.Blocks['titan_oled_print_custom'] = {
+    init: function() {
+      this.appendValueInput("LABEL")
+          .setCheck("String")
+          .appendField("OLED print label");
+      this.appendValueInput("VALUE")
+          .setCheck(null)
+          .appendField("value");
+      this.appendDummyInput()
+          .appendField("at X")
+          .appendField(new Blockly.FieldNumber(0, 0, 127), "X")
+          .appendField("Y")
+          .appendField(new Blockly.FieldNumber(0, 0, 63), "Y")
+          .appendField("size")
+          .appendField(new Blockly.FieldDropdown([
+            ["Size 1 (Small 8px)", "1"],
+            ["Size 2 (Medium 16px)", "2"],
+            ["Size 3 (Large 24px)", "3"]
+          ]), "SIZE");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Print formatted 'Label: Value' on OLED screen at (X, Y)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_oled_draw_line'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("OLED draw line from X1")
+          .appendField(new Blockly.FieldNumber(0, 0, 127), "X1")
+          .appendField("Y1")
+          .appendField(new Blockly.FieldNumber(0, 0, 63), "Y1")
+          .appendField("to X2")
+          .appendField(new Blockly.FieldNumber(127, 0, 127), "X2")
+          .appendField("Y2")
+          .appendField(new Blockly.FieldNumber(63, 0, 63), "Y2")
+          .appendField("color")
+          .appendField(new Blockly.FieldDropdown([
+            ["White ⚪", "1"],
+            ["Black ⚫", "0"]
+          ]), "COLOR");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Draw a straight line between two points on the OLED screen");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_oled_draw_rect'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("OLED draw rect at X")
+          .appendField(new Blockly.FieldNumber(0, 0, 127), "X")
+          .appendField("Y")
+          .appendField(new Blockly.FieldNumber(0, 0, 63), "Y")
+          .appendField("width")
+          .appendField(new Blockly.FieldNumber(30, 1, 128), "W")
+          .appendField("height")
+          .appendField(new Blockly.FieldNumber(20, 1, 64), "H")
+          .appendField("fill")
+          .appendField(new Blockly.FieldDropdown([
+            ["Outline 🔲", "0"],
+            ["Filled ⬛", "1"]
+          ]), "FILL");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Draw an outline or filled rectangle on the OLED screen");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_oled_draw_circle'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("OLED draw circle at center X")
+          .appendField(new Blockly.FieldNumber(64, 0, 127), "X")
+          .appendField("Y")
+          .appendField(new Blockly.FieldNumber(32, 0, 63), "Y")
+          .appendField("radius")
+          .appendField(new Blockly.FieldNumber(10, 1, 64), "R")
+          .appendField("fill")
+          .appendField(new Blockly.FieldDropdown([
+            ["Outline ⭕", "0"],
+            ["Filled 🔴", "1"]
+          ]), "FILL");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Draw an outline or filled circle on the OLED screen");
       this.setHelpUrl("");
     }
   };
@@ -1228,6 +1423,151 @@ export function registerCustomBlocks() {
       this.setNextStatement(true, null);
       this.setStyle('display_blocks');
       this.setTooltip("Display live sensor reading (S1 - S5) on OLED display with custom text size");
+      this.setHelpUrl("");
+    }
+  };
+
+  // ================= 2x16 LIQUID CRYSTAL I2C DISPLAY (LCD 1602) =================
+  Blockly.Blocks['titan_lcd1602_init'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📟 Initialize LCD 16x2 Display")
+          .appendField("Addr:")
+          .appendField(new Blockly.FieldDropdown([
+            ["0x27 (Default)", "0x27"],
+            ["0x3F", "0x3F"],
+            ["Auto-detect", "AUTO"]
+          ]), "ADDR")
+          .appendField("(I2C SDA: 7, SCL: 8)");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Initialize 16x2 (2 rows, 16 columns) Liquid Crystal I2C display (PCF8574 backpack)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_lcd1602_print'] = {
+    init: function() {
+      this.appendValueInput("TEXT")
+          .setCheck(null)
+          .appendField("📟 LCD 16x2 print");
+      this.appendDummyInput()
+          .appendField("at Col")
+          .appendField(new Blockly.FieldNumber(0, 0, 15), "COL")
+          .appendField("Row")
+          .appendField(new Blockly.FieldDropdown([
+            ["Row 0 (Top)", "0"],
+            ["Row 1 (Bottom)", "1"]
+          ]), "ROW");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Print text or number on LCD 16x2 screen at specified column (0-15) and row (0-1)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_lcd1602_print_lines'] = {
+    init: function() {
+      this.appendValueInput("LINE1")
+          .setCheck(null)
+          .appendField("📟 LCD 16x2 Line 1");
+      this.appendValueInput("LINE2")
+          .setCheck(null)
+          .appendField("Line 2");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Clear and display 2 full lines of text on 16x2 LCD");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_lcd1602_clear'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📟 LCD 16x2 clear screen");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Clear all characters from the LCD 16x2 screen");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_lcd1602_backlight'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📟 LCD 16x2 Backlight")
+          .appendField(new Blockly.FieldDropdown([
+            ["ON 💡", "1"],
+            ["OFF 🌑", "0"]
+          ]), "STATE");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Turn LCD 16x2 I2C LED backlight ON or OFF");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_lcd1602_set_cursor'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📟 LCD 16x2 set cursor Col")
+          .appendField(new Blockly.FieldNumber(0, 0, 15), "COL")
+          .appendField("Row")
+          .appendField(new Blockly.FieldDropdown([
+            ["Row 0 (Top)", "0"],
+            ["Row 1 (Bottom)", "1"]
+          ]), "ROW");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Move writing cursor to specific column (0-15) and row (0-1)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_lcd1602_scroll'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📟 LCD 16x2 scroll text")
+          .appendField(new Blockly.FieldDropdown([
+            ["Left ⬅️", "LEFT"],
+            ["Right ➡️", "RIGHT"]
+          ]), "DIR");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Shift/scroll entire display content one position to the left or right");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_lcd1602_show_sensor'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("📟 LCD 16x2 show Sensor")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "SENSOR")
+          .appendField("Row")
+          .appendField(new Blockly.FieldDropdown([
+            ["Row 0 (Top)", "0"],
+            ["Row 1 (Bottom)", "1"]
+          ]), "ROW")
+          .appendField("Col")
+          .appendField(new Blockly.FieldNumber(0, 0, 15), "COL");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Display live analog sensor reading (S1 - S5) on 16x2 LCD screen");
       this.setHelpUrl("");
     }
   };
@@ -1309,6 +1649,96 @@ export function registerCustomBlocks() {
       this.setNextStatement(true, null);
       this.setStyle('iot_blocks');
       this.setTooltip("Create local WiFi Hotspot AP");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_wifi_status'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("WiFi")
+          .appendField(new Blockly.FieldDropdown([
+            ["is connected?", "IS_CONNECTED"],
+            ["IP Address", "IP_ADDR"],
+            ["Signal RSSI", "RSSI"]
+          ]), "PROPERTY");
+      this.setOutput(true, null);
+      this.setStyle('iot_blocks');
+      this.setTooltip("Get WiFi connection status or IP address");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_http_get'] = {
+    init: function() {
+      this.appendValueInput("URL")
+          .setCheck("String")
+          .appendField("HTTP GET URL");
+      this.setOutput(true, "String");
+      this.setStyle('iot_blocks');
+      this.setTooltip("Send HTTP GET request and return response text");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_http_post'] = {
+    init: function() {
+      this.appendValueInput("URL")
+          .setCheck("String")
+          .appendField("HTTP POST URL");
+      this.appendValueInput("DATA")
+          .setCheck(null)
+          .appendField("Payload Data");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('iot_blocks');
+      this.setTooltip("Send HTTP POST request with JSON / text data payload");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mqtt_connect'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("MQTT Connect Server")
+          .appendField(new Blockly.FieldTextInput("broker.hivemq.com"), "SERVER")
+          .appendField("Port")
+          .appendField(new Blockly.FieldNumber(1883, 1, 65535), "PORT")
+          .appendField("Client ID")
+          .appendField(new Blockly.FieldTextInput("titan_rover_01"), "CLIENT_ID");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('iot_blocks');
+      this.setTooltip("Connect to MQTT Broker");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mqtt_publish'] = {
+    init: function() {
+      this.appendValueInput("MSG")
+          .setCheck(null)
+          .appendField("MQTT Publish Msg");
+      this.appendValueInput("TOPIC")
+          .setCheck("String")
+          .appendField("to Topic");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('iot_blocks');
+      this.setTooltip("Publish message payload to MQTT topic");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_mqtt_subscribe'] = {
+    init: function() {
+      this.appendValueInput("TOPIC")
+          .setCheck("String")
+          .appendField("MQTT Subscribe to Topic");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('iot_blocks');
+      this.setTooltip("Subscribe to MQTT topic for incoming messages");
       this.setHelpUrl("");
     }
   };
@@ -1491,6 +1921,8 @@ export function registerCustomBlocks() {
     }
   };
 
+  Blockly.Blocks['titan_dfplayer_step_volume'] = Blockly.Blocks['titan_dfplayer_volume_change'];
+
   Blockly.Blocks['titan_dfplayer_set_eq'] = {
     init: function() {
       this.appendDummyInput()
@@ -1550,4 +1982,120 @@ export function registerCustomBlocks() {
       this.setHelpUrl("");
     }
   };
+
+  // ================= GY-53 / VL53L0X LASER TOF DISTANCE SENSOR =================
+  Blockly.Blocks['titan_vl53l0x_init'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎯 Initialize Laser ToF Sensor (VL53L0X)")
+          .appendField("Offset:")
+          .appendField(new Blockly.FieldNumber(-60, -1000, 1000), "OFFSET")
+          .appendField(new Blockly.FieldDropdown([
+            ["mm", "MM"],
+            ["cm", "CM"]
+          ]), "UNIT");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Initialize VL53L0X laser sensor on I2C (GPIO 7, 8) with calibration offset (+/-)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_vl53l0x_set_offset'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎯 Set Laser Distance Offset (VL53L0X) to")
+          .appendField(new Blockly.FieldNumber(-60, -1000, 1000), "OFFSET")
+          .appendField(new Blockly.FieldDropdown([
+            ["mm", "MM"],
+            ["cm", "CM"]
+          ]), "UNIT");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Set positive (+) or negative (-) zero calibration offset in mm or cm");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_vl53l0x_read_distance'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎯 Laser Distance (VL53L0X) in")
+          .appendField(new Blockly.FieldDropdown([
+            ["cm", "CM"],
+            ["mm", "MM"],
+            ["inches", "INCHES"],
+            ["meters (m)", "M"]
+          ]), "UNIT");
+      this.setOutput(true, "Number");
+      this.setStyle('machine_blocks');
+      this.setTooltip("Measure distance using VL53L0X / GY-53 Laser Time-of-Flight ranging sensor (30mm to 2000mm)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_vl53l0x_compare'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎯 Laser Distance (VL53L0X)")
+          .appendField(new Blockly.FieldDropdown([
+            ["< (Closer than)", "LT"],
+            ["<= (At or closer)", "LTE"],
+            ["> (Further than)", "GT"],
+            [">= (At or further)", "GTE"],
+            ["== (Exactly)", "EQ"],
+            ["!= (Not equal)", "NEQ"]
+          ]), "OP")
+          .appendField(new Blockly.FieldNumber(20, 0, 2000), "VAL")
+          .appendField(new Blockly.FieldDropdown([
+            ["cm", "CM"],
+            ["mm", "MM"],
+            ["inches", "INCHES"]
+          ]), "UNIT");
+      this.setOutput(true, "Boolean");
+      this.setStyle('logic_blocks');
+      this.setTooltip("Compare laser distance measured by VL53L0X to a numeric threshold");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_vl53l0x_target_in_range'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎯 Laser Target Detected between")
+          .appendField(new Blockly.FieldNumber(5, 0, 200), "MIN_VAL")
+          .appendField("and")
+          .appendField(new Blockly.FieldNumber(30, 0, 200), "MAX_VAL")
+          .appendField(new Blockly.FieldDropdown([
+            ["cm", "CM"],
+            ["mm", "MM"]
+          ]), "UNIT")
+          .appendField("?");
+      this.setOutput(true, "Boolean");
+      this.setStyle('logic_blocks');
+      this.setTooltip("Returns true if an obstacle / target is detected within the specified min and max distance window");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_vl53l0x_set_mode'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("🎯 Set Laser Mode (VL53L0X)")
+          .appendField(new Blockly.FieldDropdown([
+            ["Default / Balanced (33ms)", "BALANCED"],
+            ["High Accuracy (200ms)", "HIGH_ACCURACY"],
+            ["High Speed / Fast (20ms)", "HIGH_SPEED"],
+            ["Long Range (up to 2m)", "LONG_RANGE"]
+          ]), "MODE");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('machine_blocks');
+      this.setTooltip("Configure VL53L0X timing budget and measurement mode");
+      this.setHelpUrl("");
+    }
+  };
 }
+
