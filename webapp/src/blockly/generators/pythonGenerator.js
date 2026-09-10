@@ -611,8 +611,25 @@ export function registerPythonGenerators() {
   // ================= 4. DISPLAY =================
   pythonGenerator.forBlock['titan_oled_init'] = function(block) {
     const type = block.getFieldValue('TYPE') || 'SH1106';
+    if (type === 'SPI_242') {
+      return `global _oled_global, oled\n_oled_global = _TitanOLED(mode="SPI", sck=35, mosi=36, cs=38, dc=37)\noled = _oled_global\n`;
+    }
     const isSh1106 = (type === 'SH1106') ? 'True' : 'False';
-    return `global _oled_global, oled\n_oled_global = _TitanOLED(is_sh1106=${isSh1106})\noled = _oled_global\n`;
+    return `global _oled_global, oled\n_oled_global = _TitanOLED(mode="I2C", is_sh1106=${isSh1106})\noled = _oled_global\n`;
+  };
+
+  pythonGenerator.forBlock['titan_oled_spi_init'] = function(block) {
+    return `global _oled_global, oled\n_oled_global = _TitanOLED(mode="SPI", sck=35, mosi=36, cs=38, dc=37)\noled = _oled_global\n`;
+  };
+
+  pythonGenerator.forBlock['titan_oled_contrast'] = function(block) {
+    const val = pythonGenerator.valueToCode(block, 'CONTRAST', Order.NONE) || '255';
+    return `_get_oled().set_contrast(int(${val}))\n`;
+  };
+
+  pythonGenerator.forBlock['titan_oled_invert'] = function(block) {
+    const inv = block.getFieldValue('INVERT') === 'True' ? 'True' : 'False';
+    return `_get_oled().invert(${inv})\n`;
   };
 
   pythonGenerator.forBlock['titan_oled_print'] = function(block) {
@@ -900,19 +917,81 @@ def _get_shared_i2c():
 `;
 
 const OLED_DRIVER_CODE = `import framebuf
+from machine import Pin, SPI, SoftSPI
+
 class _TitanOLED(framebuf.FrameBuffer):
-  def __init__(self, is_sh1106=True):
+  def __init__(self, mode="I2C", is_sh1106=True, sck=35, mosi=36, cs=38, dc=37, rst=None):
+    self.mode = mode
     self.is_sh1106 = is_sh1106
     self.addr = 0x3C
     self.buf = bytearray(1024)
     super().__init__(self.buf, 128, 64, framebuf.MONO_VLSB)
-    self.i2c = _get_shared_i2c()
-    if self.i2c:
-      for c in (0xAE,0x20,0x00,0x40,0xA1,0xC8,0x81,0xCF,0xA6,0xA8,0x3F,0xD3,0x00,0xD5,0x80,0xD9,0xF1,0xDA,0x12,0xDB,0x40,0x8D,0x14,0xAF):
-        try: self.i2c.writeto(self.addr, bytearray([0x80, c]))
-        except Exception: pass
+    self.i2c = None
+    self.spi = None
+    self.cs = None
+    self.dc = None
+    self.rst = None
+
+    if self.mode == "SPI" or self.mode == "SPI_242":
+      self.cs = Pin(cs, Pin.OUT, value=1) if cs is not None else None
+      self.dc = Pin(dc, Pin.OUT, value=0) if dc is not None else None
+      self.rst = Pin(rst, Pin.OUT, value=1) if rst is not None else None
+      if self.rst:
+        self.rst.value(0)
+        time.sleep_ms(10)
+        self.rst.value(1)
+        time.sleep_ms(10)
+      try:
+        self.spi = SoftSPI(baudrate=10000000, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi), miso=Pin(sck))
+      except Exception:
+        try:
+          self.spi = SPI(1, baudrate=10000000, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi))
+        except Exception:
+          self.spi = None
+      # Waveshare 2.42" OLED (SSD1309) SPI Initialization
+      for c in (0xAE, 0x00, 0x10, 0x40, 0x81, 0xCF, 0xA1, 0xC8, 0xA6, 0xA8, 0x3F, 0xD3, 0x00, 0xD5, 0x80, 0xD9, 0xF1, 0xDA, 0x12, 0xDB, 0x40, 0x20, 0x00, 0x8D, 0x14, 0xAF):
+        self._write_cmd(c)
       self.fill(0)
       self.show()
+    else:
+      self.i2c = _get_shared_i2c()
+      if self.i2c:
+        for c in (0xAE,0x20,0x00,0x40,0xA1,0xC8,0x81,0xCF,0xA6,0xA8,0x3F,0xD3,0x00,0xD5,0x80,0xD9,0xF1,0xDA,0x12,0xDB,0x40,0x8D,0x14,0xAF):
+          try: self.i2c.writeto(self.addr, bytearray([0x80, c]))
+          except Exception: pass
+        self.fill(0)
+        self.show()
+
+  def _write_cmd(self, cmd):
+    if self.mode == "SPI" or self.mode == "SPI_242":
+      if self.spi and self.cs and self.dc:
+        self.dc.value(0)
+        self.cs.value(0)
+        self.spi.write(bytearray([cmd]))
+        self.cs.value(1)
+    elif self.i2c:
+      try: self.i2c.writeto(self.addr, bytearray([0x80, cmd]))
+      except Exception: pass
+
+  def _write_data(self, buf):
+    if self.mode == "SPI" or self.mode == "SPI_242":
+      if self.spi and self.cs and self.dc:
+        self.dc.value(1)
+        self.cs.value(0)
+        self.spi.write(buf)
+        self.cs.value(1)
+    elif self.i2c:
+      try: self.i2c.writeto(self.addr, b'\\x40' + buf)
+      except Exception: pass
+
+  def set_contrast(self, val):
+    val = max(0, min(255, int(val)))
+    self._write_cmd(0x81)
+    self._write_cmd(val)
+
+  def invert(self, inv=True):
+    self._write_cmd(0xA7 if inv else 0xA6)
+
   def print_text(self, s, x, y, size=1, col=1):
     s = str(s)
     if size <= 1:
@@ -930,6 +1009,7 @@ class _TitanOLED(framebuf.FrameBuffer):
               for dy in range(size):
                 if 0 <= x + px * size + dx < 128 and 0 <= y + py * size + dy < 64:
                   self.pixel(x + px * size + dx, y + py * size + dy, col)
+
   def circle(self, cx, cy, r, c=1, fill=False):
     if fill:
       for y in range(-r, r + 1):
@@ -949,17 +1029,26 @@ class _TitanOLED(framebuf.FrameBuffer):
         if 2*(err - x) + 1 > 0:
           x -= 1
           err += 1 - 2*x
+
   def show(self):
-    if not self.i2c: return
-    try:
-      if self.is_sh1106:
-        for p in range(8):
-          self.i2c.writeto(self.addr, bytearray([0x80, 0xB0 + p, 0x80, 0x02, 0x80, 0x10]))
-          self.i2c.writeto(self.addr, b'\\x40' + self.buf[128*p:128*(p+1)])
-      else:
-        self.i2c.writeto(self.addr, bytearray([0x80, 0x21, 0x80, 0, 0x80, 127, 0x80, 0x22, 0x80, 0, 0x80, 7]))
-        self.i2c.writeto(self.addr, b'\\x40' + self.buf)
-    except Exception: pass
+    if self.mode == "SPI" or self.mode == "SPI_242":
+      if not self.spi: return
+      try:
+        self._write_cmd(0x21); self._write_cmd(0); self._write_cmd(127)
+        self._write_cmd(0x22); self._write_cmd(0); self._write_cmd(7)
+        self._write_data(self.buf)
+      except Exception: pass
+    else:
+      if not self.i2c: return
+      try:
+        if self.is_sh1106:
+          for p in range(8):
+            self.i2c.writeto(self.addr, bytearray([0x80, 0xB0 + p, 0x80, 0x02, 0x80, 0x10]))
+            self.i2c.writeto(self.addr, b'\\x40' + self.buf[128*p:128*(p+1)])
+        else:
+          self.i2c.writeto(self.addr, bytearray([0x80, 0x21, 0x80, 0, 0x80, 127, 0x80, 0x22, 0x80, 0, 0x80, 7]))
+          self.i2c.writeto(self.addr, b'\\x40' + self.buf)
+      except Exception: pass
 
 _oled_global = None
 def _get_oled():
@@ -2267,6 +2356,8 @@ def _get_pwm(pin, freq=1000):
   const hasPin = /\bPin\b/.test(totalCode) || needsPwmPool;
   const hasPwm = /\bPWM\b/.test(totalCode) || needsPwmPool;
   const hasAdc = /\bADC\b/.test(totalCode);
+  const hasSoftSPI = /\bSoftSPI\b/.test(totalCode);
+  const hasSPIModule = /\bSPI\b/.test(totalCode) || hasSoftSPI;
   const hasSoftI2C = /\bSoftI2C\b/.test(totalCode);
   const hasI2CModule = /\bI2C\b/.test(totalCode) || hasSoftI2C;
   const hasUart = /\bUART\b/.test(totalCode);
@@ -2274,11 +2365,13 @@ def _get_pwm(pin, freq=1000):
 
   // 6. Build minimal, block-specific imports
   const machineImports = [];
-  if (hasPin || hasPwm || hasAdc || hasSoftI2C || hasI2CModule) machineImports.push('Pin');
+  if (hasPin || hasPwm || hasAdc || hasSoftI2C || hasI2CModule || hasSPIModule) machineImports.push('Pin');
   if (hasPwm) machineImports.push('PWM');
   if (hasAdc) machineImports.push('ADC');
   if (hasI2CModule) machineImports.push('I2C');
   if (hasSoftI2C) machineImports.push('SoftI2C');
+  if (hasSPIModule) machineImports.push('SPI');
+  if (hasSoftSPI) machineImports.push('SoftSPI');
   if (hasUart) machineImports.push('UART');
 
   let importHeader = '# ================= LOF TITAN MAIN =================\n';

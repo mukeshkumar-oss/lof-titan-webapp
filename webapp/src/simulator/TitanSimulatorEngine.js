@@ -1352,7 +1352,21 @@ export class TitanSimulatorEngine {
           atten: () => {}
         };
       },
-      _TitanOLED: function(is_sh1106) {
+      SPI: (id, ...args) => ({
+        write: (buf) => {},
+        read: (n) => new Uint8Array(n),
+        readinto: (buf) => {},
+        write_readinto: () => {},
+        deinit: () => {}
+      }),
+      SoftSPI: (opts) => ({
+        write: (buf) => {},
+        read: (n) => new Uint8Array(n),
+        readinto: (buf) => {},
+        write_readinto: () => {},
+        deinit: () => {}
+      }),
+      _TitanOLED: function(mode, is_sh1106) {
         self.initOLED();
         return oledObj;
       },

@@ -1244,20 +1244,66 @@ export function registerCustomBlocks() {
     }
   };
 
-  // ================= 4. DISPLAY (OLED SDA: 7, SCL: 8) =================
+  // ================= 4. DISPLAY (OLED I2C / SPI & LCD) =================
   Blockly.Blocks['titan_oled_init'] = {
     init: function() {
       this.appendDummyInput()
           .appendField("Initialize OLED Display")
           .appendField(new Blockly.FieldDropdown([
-            ["1.3 inch (SH1106)", "SH1106"],
-            ["0.96 inch (SSD1306)", "SSD1306"]
-          ]), "TYPE")
-          .appendField("(I2C SDA: 7, SCL: 8)");
+            ["1.3 inch I2C (SH1106 SDA:7, SCL:8)", "SH1106"],
+            ["0.96 inch I2C (SSD1306 SDA:7, SCL:8)", "SSD1306"],
+            ["2.42 inch SPI Waveshare (SSD1309 SCK:35, MOSI:36, CS:38, DC:37)", "SPI_242"]
+          ]), "TYPE");
       this.setPreviousStatement(true, null);
       this.setNextStatement(true, null);
       this.setStyle('display_blocks');
-      this.setTooltip("Initialize 1.3-inch (SH1106) or 0.96-inch (SSD1306) OLED display on I2C port");
+      this.setTooltip("Initialize 1.3-inch (SH1106), 0.96-inch (SSD1306) I2C or 2.42-inch Waveshare (SSD1309) SPI OLED");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_oled_spi_init'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Initialize Waveshare 2.42\" SPI OLED")
+          .appendField(new Blockly.FieldDropdown([
+            ["SSD1309 (128x64)", "SSD1309"]
+          ]), "CONTROLLER");
+      this.appendDummyInput()
+          .appendField("SCK: Pin 35 | MOSI: Pin 36 | CS: Pin 38 | DC: Pin 37");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Initialize Waveshare 2.42 inch SPI OLED Display (SSD1309) with SCK 35, MOSI 36, CS 38, DC 37");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_oled_contrast'] = {
+    init: function() {
+      this.appendValueInput("CONTRAST")
+          .setCheck("Number")
+          .appendField("OLED set contrast (0-255)");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Set OLED screen brightness / contrast level (0 to 255)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_oled_invert'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("OLED invert colors")
+          .appendField(new Blockly.FieldDropdown([
+            ["True (Inverted)", "True"],
+            ["False (Normal)", "False"]
+          ]), "INVERT");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('display_blocks');
+      this.setTooltip("Invert display colors between dark and light modes");
       this.setHelpUrl("");
     }
   };
