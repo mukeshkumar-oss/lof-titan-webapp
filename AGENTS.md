@@ -53,6 +53,7 @@ npm run dev
 | **Laser ToF Distance Sensor (GY-53 / VL53L0X)** | `GPIO 7 (SDA), 8 (SCL)` | Time-of-Flight laser distance sensor (Addr: `0x29`), range 30–2000mm (0.03–2.0m) with mm accuracy |
 | **DFPlayer Mini MP3 Player** | `GPIO 17 (TX), 18 (RX)` | UART MP3 module (`UART(1, baudrate=9600, tx=17, rx=18)`), supports track selection, folder, volume, EQ, loop |
 | **UART Port** | `GPIO 17 (TX), 18 (RX)` | `UART(1, baudrate=115200, tx=17, rx=18)` |
+| **SPI Header & 2.42" OLED (SSD1309)** | `VCC, CS:38, MOSI:36, CLK:35, MISO/DC:37, GND` | 6-pin SPI Connector: `CS=38`, `MOSI=36`, `CLK/SCK=35`, `DC/MISO=37` |
 
 ---
 
