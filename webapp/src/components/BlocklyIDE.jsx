@@ -465,12 +465,20 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
         const id = (typeof item.getId === 'function') ? item.getId() : (item.id_ || item.customId);
         const defName = item.toolboxItemDef_?.name;
         const defId = item.toolboxItemDef_?.customId;
+        const n = (name || '').trim().toLowerCase();
+        const dN = (defName || '').trim().toLowerCase();
+        const targetN = (cat.name || '').trim().toLowerCase();
+        const i = (id || '').trim().toLowerCase();
+        const dI = (defId || '').trim().toLowerCase();
+        const targetI = (cat.customId || '').trim().toLowerCase();
+
         return (
-          name === cat.name ||
-          id === cat.customId ||
-          defName === cat.name ||
-          defId === cat.customId ||
-          (name && name.toLowerCase() === cat.name.toLowerCase())
+          n === targetN ||
+          dN === targetN ||
+          i === targetI ||
+          dI === targetI ||
+          (targetI === 'audio' && (i === 'sound' || dI === 'sound' || n === 'sound' || dN === 'sound')) ||
+          (targetI === 'sound' && (i === 'audio' || dI === 'audio' || n === 'audio' || dN === 'audio'))
         );
       });
 
@@ -567,7 +575,13 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
 
   const handleUploadToTitan = () => {
     if (onUploadCode) {
-      onUploadCode(pythonCode);
+      if (workspaceRef.current) {
+        const freshCode = generateTitanWorkspaceCode(workspaceRef.current);
+        setPythonCode(freshCode);
+        onUploadCode(freshCode);
+      } else {
+        onUploadCode(pythonCode);
+      }
     }
   };
 

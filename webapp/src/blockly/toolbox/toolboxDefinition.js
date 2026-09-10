@@ -179,17 +179,20 @@ export const toolboxDefinition = {
     },
     {
       kind: "category",
-      name: "Sound",
+      name: "Audio",
       colour: "#f59e0b",
-      customId: "sound",
+      customId: "audio",
       contents: [
         { kind: "block", type: "titan_onboard_buzzer_tone" },
         { kind: "block", type: "titan_onboard_buzzer_melody" },
         { kind: "block", type: "titan_onboard_buzzer_sound_effect" },
+        { kind: "block", type: "titan_onboard_buzzer_freq" },
         { kind: "block", type: "titan_onboard_buzzer_stop" },
         { kind: "block", type: "titan_dfplayer_init" },
         { kind: "block", type: "titan_dfplayer_play_track" },
         { kind: "block", type: "titan_dfplayer_play_folder" },
+        { kind: "block", type: "titan_dfplayer_play_mp3" },
+        { kind: "block", type: "titan_dfplayer_play_wait" },
         { kind: "block", type: "titan_dfplayer_control" },
         { kind: "block", type: "titan_dfplayer_set_volume" },
         { kind: "block", type: "titan_dfplayer_step_volume" },
@@ -230,10 +233,65 @@ export const toolboxDefinition = {
       colour: "#22c55e",
       customId: "loops",
       contents: [
-        { kind: "block", type: "titan_repeat_while" },
-        { kind: "block", type: "controls_repeat_ext" },
-        { kind: "block", type: "controls_whileUntil" },
-        { kind: "block", type: "controls_for" },
+        {
+          kind: "block",
+          type: "titan_repeat_while",
+          inputs: {
+            BOOL: {
+              shadow: {
+                type: "logic_boolean",
+                fields: {
+                  BOOL: "TRUE"
+                }
+              }
+            }
+          }
+        },
+        {
+          kind: "block",
+          type: "controls_repeat_ext",
+          inputs: {
+            TIMES: {
+              shadow: {
+                type: "math_number",
+                fields: {
+                  NUM: 10
+                }
+              }
+            }
+          }
+        },
+
+        {
+          kind: "block",
+          type: "controls_for",
+          inputs: {
+            FROM: {
+              shadow: {
+                type: "math_number",
+                fields: {
+                  NUM: 1
+                }
+              }
+            },
+            TO: {
+              shadow: {
+                type: "math_number",
+                fields: {
+                  NUM: 10
+                }
+              }
+            },
+            BY: {
+              shadow: {
+                type: "math_number",
+                fields: {
+                  NUM: 1
+                }
+              }
+            }
+          }
+        },
         { kind: "block", type: "controls_flow_statements" }
       ]
     },

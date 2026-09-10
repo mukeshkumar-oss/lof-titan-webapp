@@ -4,7 +4,7 @@ export function registerPythonGenerators() {
   // ================= 1. TITAN BASE / START BLOCK (SCRATCH FLAG EQUIVALENT) =================
   pythonGenerator.forBlock['titan_start'] = function(block) {
     const branch = pythonGenerator.statementToCode(block, 'DO') || '    pass\n';
-    return `# ================= LOF TITAN MAIN =================\nimport time\nfrom machine import Pin, PWM, ADC, I2C, SoftI2C, UART\nfrom supervisor.led_buzzer import hw\n\n_pwm_pool = {}\ndef _get_pwm(pin, freq=1000):\n    if pin not in _pwm_pool:\n        _pwm_pool[pin] = PWM(Pin(pin), freq=freq)\n    else:\n        try: _pwm_pool[pin].freq(freq)\n        except Exception: pass\n    return _pwm_pool[pin]\n\ndef main():\n${branch}\nif __name__ == '__main__':\n    main()\n`;
+    return `def main():\n${branch}\nif __name__ == '__main__':\n    main()\n`;
   };
 
   pythonGenerator.forBlock['project_info'] = function(block) {
@@ -2111,7 +2111,7 @@ def _get_vl53l0x():
     return _vl53l0x_instance
 `;
 
-const BUZZER_MELODIES_CODE = `def _play_titan_melody(name):
+const BUZZER_MELODY_FUNC = `def _play_titan_melody(name):
     _m = {
         "STAR_WARS": [(440, 500, 50), (440, 500, 50), (440, 500, 50), (349, 350, 50), (523, 150, 50), (440, 500, 50), (349, 350, 50), (523, 150, 50), (440, 650, 50)],
         "MARIO": [(660, 100, 50), (660, 100, 50), (660, 100, 100), (510, 100, 50), (660, 100, 50), (770, 100, 150), (380, 100, 50)],
@@ -2124,8 +2124,9 @@ const BUZZER_MELODIES_CODE = `def _play_titan_melody(name):
     for f, d, p in notes:
         getattr(hw, 'play_buzzer_freq', lambda freq, dur: None)(f, d)
         time.sleep_ms(p)
+`;
 
-def _play_titan_sound_effect(name):
+const BUZZER_EFFECT_FUNC = `def _play_titan_sound_effect(name):
     if name == "LASER":
         for f in range(2000, 400, -100):
             getattr(hw, 'play_buzzer_freq', lambda freq, dur: None)(f, 10)
@@ -2186,100 +2187,127 @@ def _mqtt_subscribe(topic):
 
 export function generateTitanWorkspaceCode(workspace) {
   if (!workspace) return '';
-  
-  const allBlocks = workspace.getAllBlocks(false);
-  const hasAmgHeatmap = allBlocks.some(b => b.type === 'titan_amg8833_oled_heatmap');
-  const hasPulseEcg = allBlocks.some(b => b.type === 'titan_pulse_oled_ecg');
-  const hasOled = allBlocks.some(b => b.type && b.type.startsWith('titan_oled')) || hasAmgHeatmap || hasPulseEcg;
-  const hasLcd = allBlocks.some(b => b.type && b.type.startsWith('titan_lcd1602'));
-  const hasPulse = allBlocks.some(b => b.type && (b.type.startsWith('titan_pulse') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'PULSE'))) || hasPulseEcg;
-  const hasDht = allBlocks.some(b => b.type && (b.type.startsWith('titan_dht') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'DHT22')));
-  const hasDs18b20 = allBlocks.some(b => b.type && (b.type.startsWith('titan_ds18b20') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'DS18B20')));
-  const hasVl53l0x = allBlocks.some(b => b.type && (b.type.startsWith('titan_vl53l0x') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'VL53L0X')));
-  const hasMq135 = allBlocks.some(b => b.type && (b.type.startsWith('titan_mq135') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'MQ135')));
-  const hasMpu = allBlocks.some(b => b.type && (b.type.startsWith('titan_mpu6050') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'MPU6050')));
-  const hasQmc = allBlocks.some(b => b.type && (b.type.startsWith('titan_qmc5883l') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'QMC5883L')));
-  const hasAmg = allBlocks.some(b => b.type && (b.type.startsWith('titan_amg8833') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'AMG8833')));
-  const hasAs5600 = allBlocks.some(b => b.type && (b.type.startsWith('titan_as5600') || (b.type === 'titan_print_sensor_monitor' && b.getFieldValue('TYPE') === 'AS5600')));
-  const hasDfPlayer = allBlocks.some(b => b.type && b.type.startsWith('titan_dfplayer'));
-  const hasBuzzerMelody = allBlocks.some(b => b.type === 'titan_onboard_buzzer_melody' || b.type === 'titan_onboard_buzzer_sound_effect');
-  const hasIot = allBlocks.some(b => b.type && (b.type.startsWith('titan_http') || b.type.startsWith('titan_mqtt')));
-  const hasI2C = hasOled || hasLcd || hasPulse || hasVl53l0x || hasMpu || hasQmc || hasAmg || hasAs5600;
 
   const topBlocks = workspace.getTopBlocks(true);
   const titanStartBlock = topBlocks.find(b => b.type === 'titan_start');
   const projectInfoBlock = topBlocks.find(b => b.type === 'project_info');
 
-  let code = '';
-  if (projectInfoBlock) {
-    code += pythonGenerator.blockToCode(projectInfoBlock) + '\n';
-  }
-
-  if (hasI2C) {
-    code += SHARED_I2C_DRIVER_CODE + '\n';
-  }
-
-  if (hasOled) {
-    code += OLED_DRIVER_CODE + '\n';
-  }
-
-  if (hasLcd) {
-    code += LCD1602_DRIVER_CODE + '\n';
-  }
-
-  if (hasBuzzerMelody) {
-    code += BUZZER_MELODIES_CODE + '\n';
-  }
-
-  if (hasIot) {
-    code += IOT_DRIVER_CODE + '\n';
-  }
-
-  if (hasPulse) {
-    code += PULSE_DRIVER_CODE + '\n';
-  }
-
-  if (hasDht) {
-    code += DHT_DRIVER_CODE + '\n';
-  }
-
-  if (hasDs18b20) {
-    code += DS18B20_DRIVER_CODE + '\n';
-  }
-
-  if (hasVl53l0x) {
-    code += VL53L0X_DRIVER_CODE + '\n';
-  }
-
-  if (hasMq135) {
-    code += MQ135_DRIVER_CODE + '\n';
-  }
-
-  if (hasMpu) {
-    code += MPU6050_DRIVER_CODE + '\n';
-  }
-
-  if (hasQmc) {
-    code += QMC5883L_DRIVER_CODE + '\n';
-  }
-
-  if (hasAmg) {
-    code += AMG8833_DRIVER_CODE + '\n';
-  }
-
-  if (hasAs5600) {
-    code += AS5600_DRIVER_CODE + '\n';
-  }
-
-  if (hasDfPlayer) {
-    code += DFPLAYER_DRIVER_CODE + '\n';
-  }
-
+  // 1. Generate executable body code
+  let bodyCode = '';
   if (titanStartBlock) {
-    code += pythonGenerator.blockToCode(titanStartBlock);
+    bodyCode = pythonGenerator.blockToCode(titanStartBlock);
   } else {
-    code += pythonGenerator.workspaceToCode(workspace);
+    bodyCode = pythonGenerator.workspaceToCode(workspace);
   }
 
-  return code;
+  // Also include any function definitions from workspace
+  const procedureBlocks = topBlocks.filter(b => b.type === 'procedures_defnoreturn' || b.type === 'procedures_defreturn');
+  let procCode = '';
+  procedureBlocks.forEach(b => {
+    if (b !== titanStartBlock) {
+      procCode += pythonGenerator.blockToCode(b) + '\n';
+    }
+  });
+
+  const fullProgramContent = procCode + '\n' + bodyCode;
+
+  // 2. Detect which peripheral drivers are actually referenced in the generated code
+  const needsOled = fullProgramContent.includes('_TitanOLED') || fullProgramContent.includes('oled.') || fullProgramContent.includes('_oled_global');
+  const needsLcd = fullProgramContent.includes('_TitanLCD1602') || fullProgramContent.includes('lcd.') || fullProgramContent.includes('_lcd_global');
+  const needsBuzzerMelody = fullProgramContent.includes('_play_titan_melody');
+  const needsBuzzerEffect = fullProgramContent.includes('_play_titan_sound_effect');
+  const needsIot = fullProgramContent.includes('_http_') || fullProgramContent.includes('_mqtt_');
+  const needsPulse = fullProgramContent.includes('_get_pulse') || fullProgramContent.includes('titan_pulse') || fullProgramContent.includes('_pulse_oled_ecg');
+  const needsDht = fullProgramContent.includes('_read_dht');
+  const needsDs18b20 = fullProgramContent.includes('_read_ds18b20');
+  const needsVl53l0x = fullProgramContent.includes('_get_vl53l0x') || fullProgramContent.includes('VL53L0X');
+  const needsMq135 = fullProgramContent.includes('_read_mq135') || fullProgramContent.includes('_get_mq135');
+  const needsMpu = fullProgramContent.includes('_read_mpu6050') || fullProgramContent.includes('_get_mpu6050');
+  const needsQmc = fullProgramContent.includes('_read_qmc5883l') || fullProgramContent.includes('_get_qmc5883l');
+  const needsAmg = fullProgramContent.includes('_read_amg8833') || fullProgramContent.includes('_get_amg8833') || fullProgramContent.includes('_amg8833_oled_heatmap');
+  const needsAs5600 = fullProgramContent.includes('_get_as5600') || fullProgramContent.includes('_read_as5600') || fullProgramContent.includes('_compare_as5600');
+  const needsDfPlayer = fullProgramContent.includes('_TitanDFPlayer') || fullProgramContent.includes('_get_dfplayer');
+  const needsPwmPool = fullProgramContent.includes('_get_pwm(');
+
+  const needsI2C = needsOled || needsLcd || needsPulse || needsVl53l0x || needsMpu || needsQmc || needsAmg || needsAs5600 || fullProgramContent.includes('_get_shared_i2c');
+
+  // 3. Assemble required driver code blocks
+  let driverCode = '';
+  if (needsI2C) driverCode += SHARED_I2C_DRIVER_CODE + '\n';
+  if (needsOled) driverCode += OLED_DRIVER_CODE + '\n';
+  if (needsLcd) driverCode += LCD1602_DRIVER_CODE + '\n';
+  if (needsBuzzerMelody) driverCode += BUZZER_MELODY_FUNC + '\n';
+  if (needsBuzzerEffect) driverCode += BUZZER_EFFECT_FUNC + '\n';
+  if (needsIot) driverCode += IOT_DRIVER_CODE + '\n';
+  if (needsPulse) driverCode += PULSE_DRIVER_CODE + '\n';
+  if (needsDht) driverCode += DHT_DRIVER_CODE + '\n';
+  if (needsDs18b20) driverCode += DS18B20_DRIVER_CODE + '\n';
+  if (needsVl53l0x) driverCode += VL53L0X_DRIVER_CODE + '\n';
+  if (needsMq135) driverCode += MQ135_DRIVER_CODE + '\n';
+  if (needsMpu) driverCode += MPU6050_DRIVER_CODE + '\n';
+  if (needsQmc) driverCode += QMC5883L_DRIVER_CODE + '\n';
+  if (needsAmg) driverCode += AMG8833_DRIVER_CODE + '\n';
+  // 4. Build helper functions (PWM pool, etc.)
+  let helperCode = '';
+  if (needsPwmPool) {
+    helperCode += `\n_pwm_pool = {}
+def _get_pwm(pin, freq=1000):
+    if pin not in _pwm_pool:
+        _pwm_pool[pin] = PWM(Pin(pin), freq=freq)
+    else:
+        try: _pwm_pool[pin].freq(freq)
+        except Exception: pass
+    return _pwm_pool[pin]\n`;
+  }
+
+  // 5. Combine all code to inspect required standard library imports
+  const totalCode = driverCode + '\n' + helperCode + '\n' + fullProgramContent;
+
+  const hasTime = /\btime\b/.test(totalCode) || totalCode.includes('sleep');
+  const hasPin = /\bPin\b/.test(totalCode) || needsPwmPool;
+  const hasPwm = /\bPWM\b/.test(totalCode) || needsPwmPool;
+  const hasAdc = /\bADC\b/.test(totalCode);
+  const hasSoftI2C = /\bSoftI2C\b/.test(totalCode);
+  const hasI2CModule = /\bI2C\b/.test(totalCode) || hasSoftI2C;
+  const hasUart = /\bUART\b/.test(totalCode);
+  const hasHw = /\bhw\b/.test(totalCode);
+
+  // 6. Build minimal, block-specific imports
+  const machineImports = [];
+  if (hasPin || hasPwm || hasAdc || hasSoftI2C || hasI2CModule) machineImports.push('Pin');
+  if (hasPwm) machineImports.push('PWM');
+  if (hasAdc) machineImports.push('ADC');
+  if (hasI2CModule) machineImports.push('I2C');
+  if (hasSoftI2C) machineImports.push('SoftI2C');
+  if (hasUart) machineImports.push('UART');
+
+  let importHeader = '# ================= LOF TITAN MAIN =================\n';
+  if (hasTime) {
+    importHeader += 'import time\n';
+  }
+  if (machineImports.length > 0) {
+    importHeader += `from machine import ${machineImports.join(', ')}\n`;
+  }
+  if (hasHw) {
+    importHeader += 'from supervisor.led_buzzer import hw\n';
+  }
+
+  // 7. Combine final project code
+  let finalCode = '';
+  if (projectInfoBlock) {
+    finalCode += pythonGenerator.blockToCode(projectInfoBlock) + '\n';
+  }
+  finalCode += importHeader;
+  if (driverCode.trim()) {
+    finalCode += '\n' + driverCode.trim() + '\n';
+  }
+  if (helperCode.trim()) {
+    finalCode += helperCode;
+  }
+  if (procCode.trim()) {
+    finalCode += '\n' + procCode.trim() + '\n';
+  }
+  finalCode += '\n' + bodyCode.trim() + '\n';
+
+  return finalCode;
 }
