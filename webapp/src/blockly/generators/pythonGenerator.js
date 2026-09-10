@@ -938,18 +938,21 @@ class _TitanOLED(framebuf.FrameBuffer):
       self.rst = Pin(rst, Pin.OUT, value=1) if rst is not None else None
       if self.rst:
         self.rst.value(0)
-        time.sleep_ms(10)
+        time.sleep_ms(20)
         self.rst.value(1)
-        time.sleep_ms(10)
+        time.sleep_ms(50)
       try:
-        self.spi = SoftSPI(baudrate=10000000, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi), miso=Pin(sck))
+        self.spi = SoftSPI(baudrate=5000000, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi), miso=Pin(sck))
       except Exception:
         try:
-          self.spi = SPI(1, baudrate=10000000, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi))
+          self.spi = SPI(1, baudrate=8000000, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi))
         except Exception:
           self.spi = None
-      # Waveshare 2.42" OLED (SSD1309) SPI Initialization
-      for c in (0xAE, 0x00, 0x10, 0x40, 0x81, 0xCF, 0xA1, 0xC8, 0xA6, 0xA8, 0x3F, 0xD3, 0x00, 0xD5, 0x80, 0xD9, 0xF1, 0xDA, 0x12, 0xDB, 0x40, 0x20, 0x00, 0x8D, 0x14, 0xAF):
+      # Official U8g2 SSD1309 Initialization Sequence
+      # 1. Unlock Command Lock (0xFD, 0x12)
+      self._write_cmd(0xFD); self._write_cmd(0x12)
+      # 2. Init sequence
+      for c in (0xAE, 0xD5, 0xA0, 0xA8, 0x3F, 0xD3, 0x00, 0x40, 0xA1, 0xC8, 0xDA, 0x12, 0x81, 0xDF, 0xD9, 0x82, 0xDB, 0x34, 0xA4, 0xA6, 0x20, 0x02, 0x8D, 0x14, 0xAF):
         self._write_cmd(c)
       self.fill(0)
       self.show()
@@ -1034,9 +1037,11 @@ class _TitanOLED(framebuf.FrameBuffer):
     if self.mode == "SPI" or self.mode == "SPI_242":
       if not self.spi: return
       try:
-        self._write_cmd(0x21); self._write_cmd(0); self._write_cmd(127)
-        self._write_cmd(0x22); self._write_cmd(0); self._write_cmd(7)
-        self._write_data(self.buf)
+        for p in range(8):
+          self._write_cmd(0xB0 + p)
+          self._write_cmd(0x00)
+          self._write_cmd(0x10)
+          self._write_data(self.buf[128*p:128*(p+1)])
       except Exception: pass
     else:
       if not self.i2c: return

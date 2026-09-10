@@ -1,30 +1,23 @@
 # ==============================================================================
-# LOF TITAN — Waveshare 2.42" SPI OLED (SSD1309) Quick Hardware Diagnostic Check
+# LOF TITAN — Waveshare 2.42" SPI OLED (SSD1309) U8g2-Grade Diagnostic Driver
 # ------------------------------------------------------------------------------
-# Pin Connections:
-#   * VCC       -> 3.3V
+# Pin Connections (PCB SPI Header):
+#   * VCC       -> 3.3V (or 5V)
 #   * GND       -> GND
-#   * SCK / CLK -> GPIO 35 (SPI Clock)
-#   * MOSI/DIN  -> GPIO 36 (SPI MOSI Data)
-#   * CS        -> GPIO 38 (Chip Select)
-#   * DC        -> GPIO 37 (Data / Command)
-#   * RST       -> Not connected (Handled in Software)
-#
-# Diagnostic Suite:
-#   1. SPI Bus & SSD1309 Controller Handshake.
-#   2. All-Pixels ON / OFF (Dead pixel inspection).
-#   3. Border & Coordinate Alignment test (0,0 to 127,63).
-#   4. Multi-Size Text Rendering (8px, 16px, 24px).
-#   5. Contrast / Brightness Dynamic Sweep.
-#   6. Live High-Speed Animation & FPS Benchmark.
+#   * CLK / SCK -> GPIO 35
+#   * MOSI / DIN-> GPIO 36
+#   * CS        -> GPIO 38
+#   * DC / MISO -> GPIO 37
+#   * RST / RES -> IMPORTANT: If your OLED module has an RST pin, connect it to 3.3V
+#                  (or GPIO). If left floating LOW, the SSD1309 will remain OFF!
 # ==============================================================================
 
 import time
 import math
-from machine import Pin, PWM, SPI, SoftSPI
+from machine import Pin, PWM, SoftSPI, SPI
 import framebuf
 
-# ================= 1. STATUS LEDS & AUDIO =================
+# ================= 1. BUZZER & LED SIGNALS =================
 led_red = Pin(47, Pin.OUT, value=0)
 led_grn = Pin(48, Pin.OUT, value=1)
 
@@ -44,9 +37,13 @@ def beep(freq=2400, duration_ms=50):
         pass
 
 
-# ================= 2. 2.42" SPI OLED (SSD1309) DRIVER =================
-class Waveshare242OLED(framebuf.FrameBuffer):
-    def __init__(self, sck=35, mosi=36, cs=38, dc=37, baudrate=10000000):
+# ================= 2. U8G2-COMPATIBLE SSD1309 SPI DRIVER =================
+class U8g2_SSD1309_SPI(framebuf.FrameBuffer):
+    """
+    Exact U8g2 initialization sequence for SSD1309 Waveshare 2.42" OLED.
+    Includes Command Lock (0xFD 0x12) & Page-by-Page Refresh.
+    """
+    def __init__(self, sck=35, mosi=36, cs=38, dc=37, rst=None, use_soft_spi=True):
         self.width = 128
         self.height = 64
         self.buf = bytearray(1024)
@@ -54,53 +51,108 @@ class Waveshare242OLED(framebuf.FrameBuffer):
 
         self.cs = Pin(cs, Pin.OUT, value=1)
         self.dc = Pin(dc, Pin.OUT, value=0)
+        self.rst = Pin(rst, Pin.OUT, value=1) if rst is not None else None
 
-        # Initialize SPI Interface
-        try:
-            self.spi = SPI(1, baudrate=baudrate, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi))
-            self.spi_type = "Hardware SPI"
-        except Exception:
-            self.spi = SoftSPI(baudrate=baudrate, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi), miso=Pin(sck))
-            self.spi_type = "SoftSPI"
+        # Hardware Reset if RST pin is assigned
+        if self.rst:
+            self.rst.value(0)
+            time.sleep_ms(20)
+            self.rst.value(1)
+            time.sleep_ms(50)
+
+        # SPI Bus initialization (5MHz Mode 0 MSB first for maximum reliability)
+        if use_soft_spi:
+            self.spi = SoftSPI(baudrate=5000000, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi), miso=Pin(sck))
+            self.bus_type = "SoftSPI (Bit-Bang 5MHz)"
+        else:
+            try:
+                self.spi = SPI(1, baudrate=8000000, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi))
+                self.bus_type = "Hardware SPI (8MHz)"
+            except Exception:
+                self.spi = SoftSPI(baudrate=5000000, polarity=0, phase=0, sck=Pin(sck), mosi=Pin(mosi), miso=Pin(sck))
+                self.bus_type = "SoftSPI Fallback (5MHz)"
 
         self.init_display()
 
     def write_cmd(self, cmd):
-        if not self.spi: return
-        self.dc.value(0)  # Command Mode
+        """Write single command byte with CS active LOW."""
+        self.dc.value(0)  # DC = 0 for Command
         self.cs.value(0)
         self.spi.write(bytearray([cmd]))
         self.cs.value(1)
 
     def write_data(self, data_bytes):
-        if not self.spi: return
-        self.dc.value(1)  # Data Mode
+        """Write buffer with CS active LOW."""
+        self.dc.value(1)  # DC = 1 for Data
         self.cs.value(0)
         self.spi.write(data_bytes)
         self.cs.value(1)
 
     def init_display(self):
-        """SSD1309 2.42" Recommended Initialization Sequence."""
-        init_seq = (
-            0xAE,        # Display OFF
-            0x00, 0x10,  # Set Lower & Upper Column Start Address
-            0x40,        # Set Start Line (0)
-            0x81, 0xCF,  # Set Contrast (0xCF)
-            0xA1,        # Set Segment Re-map (0xA1 = Column 127)
-            0xC8,        # Set COM Scan Direction (0xC8 = Remapped)
-            0xA6,        # Normal Display (0xA6)
-            0xA8, 0x3F,  # Multiplex Ratio (1/64)
-            0xD3, 0x00,  # Display Offset (0)
-            0xD5, 0x80,  # Display Clock Div Ratio
-            0xD9, 0xF1,  # Pre-charge Period
-            0xDA, 0x12,  # COM Hardware Configuration
-            0xDB, 0x40,  # VCOMH Deselect Level
-            0x20, 0x00,  # Horizontal Addressing Mode
-            0x8D, 0x14,  # Charge Pump Enable
-            0xAF         # Display ON
-        )
-        for cmd in init_seq:
-            self.write_cmd(cmd)
+        """
+        Official U8g2 SSD1309 128x64 Initialization Sequence.
+        Reference: u8g2_d_ssd1309_128x64_noname0.c
+        """
+        # 1. Unlock Command Input (ESSENTIAL FOR SSD1309!)
+        self.write_cmd(0xFD)  # Set Command Lock
+        self.write_cmd(0x12)  # Unlock OLED Driver IC
+
+        # 2. Display OFF
+        self.write_cmd(0xAE)
+
+        # 3. Set Display Clock Divide Ratio & Oscillator Frequency
+        self.write_cmd(0xD5)
+        self.write_cmd(0xA0)  # High frequency for flicker-free display
+
+        # 4. Set Multiplex Ratio (64 lines: 0x3F)
+        self.write_cmd(0xA8)
+        self.write_cmd(0x3F)
+
+        # 5. Set Display Offset (0)
+        self.write_cmd(0xD3)
+        self.write_cmd(0x00)
+
+        # 6. Set Display Start Line (0)
+        self.write_cmd(0x40)
+
+        # 7. Set Segment Re-map (0xA1: Column 127 mapped to SEG0)
+        self.write_cmd(0xA1)
+
+        # 8. Set COM Output Scan Direction (0xC8: Remapped mode)
+        self.write_cmd(0xC8)
+
+        # 9. Set COM Pins Hardware Configuration
+        self.write_cmd(0xDA)
+        self.write_cmd(0x12)
+
+        # 10. Set Contrast Control (0xDF = bright)
+        self.write_cmd(0x81)
+        self.write_cmd(0xDF)
+
+        # 11. Set Pre-charge Period (Phase 1: 2 DCLKs, Phase 2: 8 DCLKs)
+        self.write_cmd(0xD9)
+        self.write_cmd(0x82)
+
+        # 12. Set VCOMH Deselect Level (~0.83 x VCC)
+        self.write_cmd(0xDB)
+        self.write_cmd(0x34)
+
+        # 13. Set Entire Display ON (Resume from RAM content)
+        self.write_cmd(0xA4)
+
+        # 14. Set Normal Display (0xA6: Normal, 0xA7: Inverse)
+        self.write_cmd(0xA6)
+
+        # 15. Set Memory Addressing Mode (Page Addressing Mode)
+        self.write_cmd(0x20)
+        self.write_cmd(0x02)  # Page Addressing Mode (0x02)
+
+        # 16. Charge Pump Setting (Internal DC-DC Converter Enable)
+        self.write_cmd(0x8D)
+        self.write_cmd(0x14)
+
+        # 17. Display ON
+        self.write_cmd(0xAF)
 
         self.fill(0)
         self.show()
@@ -111,6 +163,10 @@ class Waveshare242OLED(framebuf.FrameBuffer):
 
     def invert(self, inv=True):
         self.write_cmd(0xA7 if inv else 0xA6)
+
+    def test_all_pixels_on(self, all_on=True):
+        """Hardware override test: 0xA5 forces all pixels ON without RAM."""
+        self.write_cmd(0xA5 if all_on else 0xA4)
 
     def draw_large_text(self, string, x, y, scale=2, col=1):
         string = str(string)
@@ -125,138 +181,98 @@ class Waveshare242OLED(framebuf.FrameBuffer):
                     self.fill_rect(x + px * scale, y + py * scale, scale, scale, col)
 
     def show(self):
-        """Full-frame 1024-byte burst transmission to SSD1309."""
-        if not self.spi: return
-        self.write_cmd(0x21); self.write_cmd(0); self.write_cmd(127)
-        self.write_cmd(0x22); self.write_cmd(0); self.write_cmd(7)
-        self.write_data(self.buf)
+        """
+        Page-by-Page Refresh (Identical to U8g2 sendBuffer).
+        Transfers 8 pages (0 to 7) of 128 bytes each.
+        """
+        for page in range(8):
+            # Set Page Address (0xB0 to 0xB7)
+            self.write_cmd(0xB0 + page)
+            # Set Column Start Address (0x00 Lower Nibble, 0x10 Upper Nibble)
+            self.write_cmd(0x00)
+            self.write_cmd(0x10)
+            # Send 128 data bytes for this page
+            start_idx = page * 128
+            self.write_data(self.buf[start_idx : start_idx + 128])
 
 
-# ================= 3. DIAGNOSTIC TEST RUNNER =================
+# ================= 3. DIAGNOSTIC RUNNER =================
 def main():
     print("\n=======================================================")
-    print("  LOF TITAN — WAVESHARE 2.42\" SPI OLED HARDWARE CHECK  ")
+    print("  LOF TITAN — WAVESHARE 2.42\" OLED (SSD1309) U8G2 TEST  ")
     print("=======================================================")
-    print("Wiring Verification:")
-    print("  [VCC] -> 3.3V        [GND] -> GND")
-    print("  [SCK] -> GPIO 35     [MOSI/DIN] -> GPIO 36")
-    print("  [CS]  -> GPIO 38     [DC]       -> GPIO 37")
+    print("Connecting on:")
+    print("  [VCC]  -> 3.3V")
+    print("  [GND]  -> GND")
+    print("  [CLK]  -> GPIO 35")
+    print("  [MOSI] -> GPIO 36")
+    print("  [CS]   -> GPIO 38")
+    print("  [DC]   -> GPIO 37")
     print("-------------------------------------------------------")
 
-    # Audio Signal
-    beep(1800, 60)
-    time.sleep_ms(30)
-    beep(2400, 80)
+    beep(1800, 50)
+    time.sleep_ms(25)
+    beep(2400, 70)
 
-    print("[TEST 1/6] Initializing SPI Driver & SSD1309 Display...")
+    print("[STEP 1] Initializing U8g2 SSD1309 Engine with Command Unlock...")
     try:
-        oled = Waveshare242OLED(sck=35, mosi=36, cs=38, dc=37, baudrate=10000000)
-        print("  -> Success! Bus Mode: {}".format(oled.spi_type))
+        oled = U8g2_SSD1309_SPI(sck=35, mosi=36, cs=38, dc=37, use_soft_spi=True)
+        print("  -> Initialized! Bus: {}".format(oled.bus_type))
     except Exception as e:
-        print("  -> ERROR: Failed to initialize SPI OLED:", e)
+        print("  -> ERROR:", e)
         led_red.value(1)
         return
 
-    # TEST 1: All Pixels ON (Dead Pixel Check)
-    print("\n[TEST 2/6] Screen Full-White Flood (Checking Dead Pixels)...")
-    oled.fill(1)
-    oled.show()
-    time.sleep_ms(1000)
-
-    oled.fill(0)
-    oled.show()
-    time.sleep_ms(300)
-
-    # TEST 2: Border & Coordinate Alignment
-    print("[TEST 3/6] Screen Boundaries & Center Alignment Test...")
-    oled.fill(0)
-    oled.rect(0, 0, 128, 64, 1)              # Outer border
-    oled.rect(2, 2, 124, 60, 1)              # Inner border
-    oled.line(0, 0, 127, 63, 1)              # Diagonal 1
-    oled.line(0, 63, 127, 0, 1)              # Diagonal 2
-    oled.fill_rect(54, 22, 20, 20, 0)        # Center clearing
-    oled.rect(54, 22, 20, 20, 1)
-    oled.text("OK", 58, 28, 1)
-    oled.show()
-    beep(2200, 40)
-    time.sleep_ms(1200)
-
-    # TEST 3: Multi-Size Text Fonts
-    print("[TEST 4/6] Text Typography & Scaler Test...")
-    oled.fill(0)
-    oled.fill_rect(0, 0, 128, 10, 1)
-    oled.text("2.42\" OLED CHECK", 4, 1, 0)
-    oled.text("Size 1 (8px standard)", 2, 14, 1)
-    oled.draw_large_text("TITAN", 4, 26, scale=2, col=1)
-    oled.text("128x64 SSD1309", 4, 46, 1)
-    oled.text("SPI: 35/36/38/37", 4, 55, 1)
-    oled.show()
-    beep(2600, 40)
+    # TEST A: Hardware Force ALL Pixels ON (0xA5)
+    print("\n[STEP 2] Hardware Test: 0xA5 (Forcing All Pixels ON for 1.5s)...")
+    print("  -> (If screen stays completely dark here, check RST pin or 3.3V power!)")
+    oled.test_all_pixels_on(True)
     time.sleep_ms(1500)
+    oled.test_all_pixels_on(False)  # Resume RAM display
+    time.sleep_ms(200)
 
-    # TEST 4: Contrast & Brightness Sweep
-    print("[TEST 5/6] Brightness & Contrast Sweep (0% -> 100%)...")
+    # TEST B: RAM Framebuffer Inverted Test
+    print("[STEP 3] Rendering U8g2 Graphical Test Pattern...")
     oled.fill(0)
-    oled.text("CONTRAST SWEEP", 8, 8, 1)
-    oled.rect(14, 26, 100, 14, 1)
-    for c in range(5, 256, 25):
-        pct = int((c / 255.0) * 100)
-        oled.set_contrast(c)
-        fill_w = int((pct / 100.0) * 96)
-        oled.fill_rect(16, 28, fill_w, 10, 1)
-        oled.fill_rect(30, 46, 68, 10, 0)
-        oled.text("{:3d}% (0x{:02X})".format(pct, c), 32, 46, 1)
-        oled.show()
-        time.sleep_ms(50)
-    oled.set_contrast(0xCF)  # Restore optimal brightness
-    time.sleep_ms(500)
+    oled.rect(0, 0, 128, 64, 1)
+    oled.rect(2, 2, 124, 60, 1)
+    oled.fill_rect(0, 0, 128, 12, 1)
+    oled.text("WAVESHARE 2.42", 8, 2, 0)
+    oled.draw_large_text("TITAN", 24, 20, scale=2, col=1)
+    oled.text("SSD1309 SPI OK", 8, 44, 1)
+    oled.text("CLK:35 MOSI:36", 8, 54, 1)
+    oled.show()
+    beep(2600, 60)
+    time.sleep_ms(2000)
 
-    # TEST 5: Live Real-Time Benchmark
-    print("\n[TEST 6/6] Live High-Speed Animation & FPS Counter...")
-    print(">>> All Hardware Checks PASSED! Running live benchmark loop (Press Ctrl+C to stop)...\n")
-
+    # TEST C: Live Counter & Moving Waveform
+    print("\n[STEP 4] Live 30 FPS Counter & Graphics Loop...")
     frame = 0
-    t_start = time.ticks_ms()
-    fps = 0.0
-
     while True:
-        t0 = time.ticks_ms()
         oled.fill(0)
+        oled.fill_rect(0, 0, 128, 11, 1)
+        oled.text("SSD1309 2.42\"", 2, 2, 0)
+        oled.text("{:04d}".format(frame), 92, 2, 0)
 
-        # Header
-        oled.fill_rect(0, 0, 128, 10, 1)
-        oled.text("TITAN 2.42\" OLED", 2, 1, 0)
-        oled.text("{:.0f}FPS".format(fps), 90, 1, 0)
-
-        # Animated Sine Waves
+        # Dynamic sine wave
         for x in range(128):
-            y1 = int(24 + 10 * math.sin((x * 0.08) + (frame * 0.1)))
-            y2 = int(48 + 10 * math.cos((x * 0.08) + (frame * 0.1)))
-            oled.pixel(x, y1, 1)
-            oled.pixel(x, y2, 1)
+            y = int(36 + 14 * math.sin((x * 0.09) + (frame * 0.12)))
+            oled.pixel(x, y, 1)
 
-        # Orbiting Circle
-        rad = frame * 0.08
-        cx = int(64 + 36 * math.cos(rad))
-        cy = int(36 + 14 * math.sin(rad))
+        # Orbiting circle
+        cx = int(64 + 35 * math.cos(frame * 0.08))
+        cy = int(36 + 12 * math.sin(frame * 0.08))
         oled.fill_rect(cx - 3, cy - 3, 7, 7, 1)
 
-        # Frame Counter Status
-        oled.text("Frame: {:05d}".format(frame), 18, 55, 1)
-
+        oled.text("STATUS: RUNNING", 8, 54, 1)
         oled.show()
 
         frame += 1
-        t1 = time.ticks_ms()
-        dt = time.ticks_diff(t1, t0)
-        if dt > 0:
-            fps = 0.9 * fps + 0.1 * (1000.0 / dt)
+        if frame % 40 == 0:
+            print("  [LIVE] Frame: {:05d} | Screen Active!".format(frame))
+            led_grn.value(1 - led_grn.value())
 
-        # Periodic Serial Status
-        if frame % 50 == 0:
-            print("  [OLED LIVE] Frame: {:05d} | Measured Speed: {:.1f} FPS | SPI: 10 MHz".format(frame, fps))
-
-        time.sleep_ms(2)
+        time.sleep_ms(15)
 
 if __name__ == '__main__':
     main()
