@@ -313,8 +313,7 @@ def handle_http_request(conn, request_str):
     global auto_uv_mode, motor_speed, uv_threshold
 
     try:
-        first_line = request_str.split("
-")[0]
+        first_line = request_str.split("\r\n")[0].replace("\r", "")
         parts = first_line.split(" ")
         if len(parts) < 2:
             return

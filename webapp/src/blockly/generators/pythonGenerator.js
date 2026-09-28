@@ -2105,103 +2105,128 @@ def _read_ds18b20(pin=2, val_type="TEMP_C"):
 `;
 
 const VL53L0X_DRIVER_CODE = `
-# ================= VL53L0X LASER TOF DRIVER (DIRECT NO-CALIBRATION) =================
-class VL53L0X:
-    """Direct VL53L0X / V2 Laser Distance Driver for MicroPython."""
-    def __init__(self, i2c=None, address=0x29, offset_mm=-6):
+# ================= VL53L1X / VL53L0X LASER TOF DRIVER =================
+class VL53L1X:
+    """Single-file MicroPython driver for VL53L1X Laser ToF distance sensor (LOF TITAN)."""
+    def __init__(self, i2c=None, address=0x29, offset_mm=0):
         self.i2c = i2c if i2c else _get_shared_i2c()
         self.address = address
-        self.stop_variable = 0x3C
         self.offset_mm = offset_mm
-        self._filtered_mm = None
+        self.connected = False
         self._init_sensor()
 
-    def _w(self, reg, val):
+    def write8(self, reg, value):
         if not self.i2c: return
-        try: self.i2c.writeto_mem(self.address, reg, bytes([val]))
-        except: pass
+        try:
+            self.i2c.writeto_mem(self.address, reg, bytes([value]), addrsize=16)
+        except Exception: pass
 
-    def _r(self, reg, n=1):
-        if not self.i2c: return bytearray(n)
-        try: return self.i2c.readfrom_mem(self.address, reg, n)
-        except: return bytearray(n)
+    def write16(self, reg, value):
+        if not self.i2c: return
+        try:
+            self.i2c.writeto_mem(self.address, reg, bytes([(value >> 8) & 0xFF, value & 0xFF]), addrsize=16)
+        except Exception: pass
+
+    def read8(self, reg):
+        if not self.i2c: return 0
+        try:
+            return self.i2c.readfrom_mem(self.address, reg, 1, addrsize=16)[0]
+        except Exception: return 0
+
+    def read16(self, reg):
+        if not self.i2c: return 0
+        try:
+            d = self.i2c.readfrom_mem(self.address, reg, 2, addrsize=16)
+            return (d[0] << 8) | d[1]
+        except Exception: return 0
+
+    def reset(self):
+        self.write8(0x0000, 0x00)
+        time.sleep_ms(100)
+        self.write8(0x0000, 0x01)
+        time.sleep_ms(100)
 
     def _init_sensor(self):
         if not self.i2c: return
         try:
-            self._w(0x89, self._r(0x89)[0] | 0x01)
-            self._w(0x88, 0x00); self._w(0x80, 0x01); self._w(0xFF, 0x01); self._w(0x00, 0x00)
-            r91 = self._r(0x91)
-            if r91 and len(r91) > 0: self.stop_variable = r91[0]
-            self._w(0x00, 0x01); self._w(0xFF, 0x00); self._w(0x80, 0x00)
-            self._w(0x60, self._r(0x60)[0] | 0x12)
-            self._w(0x0A, 0x04); self._w(0x84, self._r(0x84)[0] & ~0x10); self._w(0x0B, 0x01)
+            self.reset()
+            time.sleep_ms(150)
+            model_id = self.read16(0x010F)
+            
+            config = bytes([
+                0x00, 0x00, 0x00, 0x01,
+                0x02, 0x00, 0x02, 0x08,
+                0x00, 0x08, 0x10, 0x01,
+                0x01, 0x00, 0x00, 0x00,
 
-            # Auto Zero-Point Calibration (VHV & Phase baseline locks true 0mm reference)
-            self._w(0x01, 0xE8)
-            self._w(0x01, 0x01); self._cal(0x40) # VHV bias
-            self._w(0x01, 0x02); self._cal(0x00) # Phase zero
-            self._w(0x01, 0xE8)
+                0x00, 0xFF, 0x00, 0x0F,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x20, 0x0B, 0x00,
+                0x00, 0x02, 0x0A, 0x21,
 
-            # Start continuous back-to-back measurement
-            self._w(0x80, 0x01); self._w(0xFF, 0x01); self._w(0x00, 0x00)
-            self._w(0x91, self.stop_variable); self._w(0x00, 0x01); self._w(0xFF, 0x00); self._w(0x80, 0x00)
-            self._w(0x00, 0x02)
-        except: pass
+                0x00, 0x00, 0x05, 0x00,
+                0x00, 0x00, 0x00, 0xC8,
+                0x00, 0x00, 0x38, 0xFF,
+                0x01, 0x00, 0x08, 0x00,
 
-    def _cal(self, b):
-        self._w(0x00, 0x01 | b)
-        for _ in range(40):
-            if self._r(0x13)[0] & 0x07: break
-            time.sleep_ms(2)
-        self._w(0x0B, 0x01); self._w(0x00, 0x00)
+                0x00, 0x01, 0xDB, 0x0F,
+                0x01, 0xF1, 0x0D, 0x01,
+                0x68, 0x00, 0x80, 0x08,
+                0xB8, 0x00, 0x00, 0x00,
+
+                0x00, 0x0F, 0x89, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x01, 0x0F,
+                0x0D, 0x0E, 0x0E, 0x00,
+
+                0x00, 0x02, 0xC7, 0xFF,
+                0x9B, 0x00, 0x00, 0x00,
+                0x01, 0x01, 0x40
+            ])
+
+            self.i2c.writeto_mem(self.address, 0x002D, config, addrsize=16)
+            value = self.read16(0x0022)
+            self.write16(0x001E, value * 4)
+            time.sleep_ms(300)
+            self.connected = True
+        except Exception:
+            self.connected = False
 
     def set_offset(self, val):
         self.offset_mm = val
 
-    def _read_raw_mm(self):
-        if not self.i2c: return -1
+    def set_mode(self, mode):
+        pass
+
+    def read_distance_raw(self):
+        if not self.i2c: return 0, 255
         try:
-            for _ in range(40):
-                if self._r(0x13)[0] & 0x07: break
-                time.sleep_ms(2)
-            d = self._r(0x14, 12); self._w(0x0B, 0x01)
-            if len(d) >= 12:
-                status = (d[0] >> 3) & 0x07
-                mm = (d[10] << 8) | d[11]
-                if status != 4 and 20 <= mm <= 2000 and mm not in (8190, 8191):
-                    return max(0, mm + self.offset_mm)
-            return -1
-        except: return -1
+            data = self.i2c.readfrom_mem(self.address, 0x0089, 17, addrsize=16)
+            status = data[0]
+            distance = ((data[13] << 8) | data[14])
+            self.write8(0x0086, 0x01)
+            return distance, status
+        except Exception:
+            return 0, 255
 
     def read_distance_mm(self, smooth=True):
-        raw = self._read_raw_mm()
-        if raw == -1:
-            self._filtered_mm = None
-            return -1
-        if not smooth: return raw
-        if self._filtered_mm is None:
-            self._filtered_mm = float(raw)
-        else:
-            diff = abs(raw - self._filtered_mm)
-            if diff < 4.5:
-                self._filtered_mm = self._filtered_mm * 0.82 + raw * 0.18
-            elif diff < 15.0:
-                self._filtered_mm = self._filtered_mm * 0.5 + raw * 0.5
-            else:
-                self._filtered_mm = float(raw)
-        return int(round(self._filtered_mm))
+        dist, status = self.read_distance_raw()
+        if dist > 0 and dist < 4000:
+            return max(0, dist + self.offset_mm)
+        return -1
 
     def read_distance(self, unit="CM", smooth=True):
         mm = self.read_distance_mm(smooth=smooth)
         if mm == -1: return -1
         return round(mm / 10.0, 1) if unit == "CM" else round(mm / 25.4, 1) if unit == "INCHES" else round(mm / 1000.0, 2) if unit == "M" else mm
 
+VL53L0X = VL53L1X
+
 _vl53l0x_instance = None
 def _get_vl53l0x():
     global _vl53l0x_instance
     if _vl53l0x_instance is None:
-        _vl53l0x_instance = VL53L0X(_get_shared_i2c())
+        _vl53l0x_instance = VL53L1X(_get_shared_i2c())
     return _vl53l0x_instance
 `;
 

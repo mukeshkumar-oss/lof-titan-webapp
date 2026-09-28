@@ -12,7 +12,7 @@
 #   - Distance Sensor: Ultrasonic Sensor (Trig: GPIO 6, Echo: GPIO 19)
 #   - Light Sensor: LDR Analog Sensor (Port S1 / GPIO 2 ADC)
 #   - Push Buttons: BTN 1-4 (GPIO 39, 40, 41, 42)
-#   - Indicators: Red LED (GPIO 47), Green LED (GPIO 48), Buzzer (GPIO 20)
+#   - Indicators: Red LED (GPIO 47), Green LED (GPIO 48)
 #
 # Core Operation:
 #   1. Light-Activated Lifecycle:
@@ -34,18 +34,51 @@ import math
 import struct
 from machine import Pin, PWM, ADC, SoftI2C
 
-# ================= 1. HARDWARE PINOUT & SINGLETON PWM =================
+# ================= 1. HARDWARE PINOUT & ACTIVE-PIN PWM MANAGER =================
 _pwm_pool = {}
-def _get_pwm(pin, freq=1000):
-    """Singleton PWM manager for ESP32-S3 hardware timers."""
-    if pin not in _pwm_pool:
-        _pwm_pool[pin] = PWM(Pin(pin), freq=freq)
+
+def _set_pin_pwm(pin, duty, freq=1000):
+    """
+    Assigns hardware PWM only when duty > 0.
+    When duty == 0, deinitializes PWM immediately and drives as digital LOW (0)
+    to guarantee at most 4 hardware PWM channels are ever used across the entire 4WD rover.
+    """
+    if duty > 0:
+        if pin not in _pwm_pool:
+            try:
+                _pwm_pool[pin] = PWM(Pin(pin, Pin.OUT), freq=freq)
+            except Exception:
+                # If pool was full, clear idle pins and retry
+                _clean_idle_pwms()
+                _pwm_pool[pin] = PWM(Pin(pin, Pin.OUT), freq=freq)
+        else:
+            try:
+                _pwm_pool[pin].freq(freq)
+            except Exception:
+                pass
+        _pwm_pool[pin].duty(duty)
     else:
+        if pin in _pwm_pool:
+            try:
+                _pwm_pool[pin].duty(0)
+                _pwm_pool[pin].deinit()
+            except Exception:
+                pass
+            del _pwm_pool[pin]
         try:
-            _pwm_pool[pin].freq(freq)
+            Pin(pin, Pin.OUT).value(0)
         except Exception:
             pass
-    return _pwm_pool[pin]
+
+def _clean_idle_pwms():
+    """Emergency helper to free all allocated PWM channels."""
+    for p, obj in list(_pwm_pool.items()):
+        try:
+            obj.duty(0)
+            obj.deinit()
+        except Exception:
+            pass
+    _pwm_pool.clear()
 
 # Status Indicators
 led_red = Pin(47, Pin.OUT)
@@ -57,7 +90,7 @@ led_grn.value(0)
 btn1 = Pin(39, Pin.IN, Pin.PULL_UP)  # Manual Override / Force Wake Toggle
 btn2 = Pin(40, Pin.IN, Pin.PULL_UP)  # Calibrate IMU Zero Horizon
 btn3 = Pin(41, Pin.IN, Pin.PULL_UP)  # Toggle High / Low LDR Sensitivity
-btn4 = Pin(42, Pin.IN, Pin.PULL_UP)  # Horn / Diagnostic Beep
+btn4 = Pin(42, Pin.IN, Pin.PULL_UP)  # Diagnostic Test Button
 
 # Ultrasonic Sensor Pins
 trig_pin = Pin(6, Pin.OUT)
@@ -71,93 +104,44 @@ try:
 except Exception:
     ldr_adc = None
 
-def beep(freq=2200, duration_ms=40, duty=400):
-    """Audible tone on onboard buzzer (GPIO 20)."""
-    try:
-        buz = _get_pwm(20, freq=freq)
-        buz.duty(duty)
-        time.sleep_ms(duration_ms)
-        buz.duty(0)
-    except Exception:
-        pass
-
-def play_wake_sound():
-    """Play upbeat wake melody when light is detected."""
-    beep(1200, 40)
-    time.sleep_ms(25)
-    beep(1800, 50)
-    time.sleep_ms(25)
-    beep(2400, 70)
-
-def play_sleep_sound():
-    """Play descending sleep tone when dark is detected."""
-    beep(2000, 50)
-    time.sleep_ms(30)
-    beep(1400, 60)
-    time.sleep_ms(30)
-    beep(800, 90)
-
-def play_crawl_sound():
-    """Play dual chirp when shifting into high-torque crawl gear."""
-    beep(1500, 30)
-    time.sleep_ms(20)
-    beep(2000, 40)
-
-def play_alarm():
-    """Rapid warning beep for obstacle danger / rollover."""
-    for _ in range(2):
-        beep(2900, 35, duty=500)
-        time.sleep_ms(20)
-
 
 # ================= 2. 4-WHEEL DRIVE (4WD) MOTOR ENGINE =================
+def _drive_motor(pin_a, pin_b, duty_pct, fwd=True):
+    """
+    H-Bridge motor control using at most 1 PWM channel per motor.
+    PWM Duty Cycle Percentage: 0 - 100% (Flat: 80%, Slight tilt: 70%, Strong tilt: 50%).
+    Maps 0-100% duty to 0-1023 (10-bit ESP32 PWM duty).
+    Forward: pin_a is PWM, pin_b is digital LOW (0).
+    Reverse: pin_b is PWM, pin_a is digital LOW (0).
+    Stop:    both pins are digital LOW (0, PWM released).
+    """
+    pct = max(0.0, min(100.0, float(duty_pct)))
+    duty = int(pct * 1023 / 100) if pct > 0 else 0
+    if duty == 0:
+        _set_pin_pwm(pin_a, 0)
+        _set_pin_pwm(pin_b, 0)
+    elif fwd:
+        _set_pin_pwm(pin_b, 0)      # Release PWM on reverse pin first
+        _set_pin_pwm(pin_a, duty)   # Drive forward pin with PWM
+    else:
+        _set_pin_pwm(pin_a, 0)      # Release PWM on forward pin first
+        _set_pin_pwm(pin_b, duty)   # Drive reverse pin with PWM
+
 def _raw_m1(duty_pct, fwd=True):
     """M1 Front-Left: GPIO 15, 16"""
-    pct = max(0.0, min(100.0, duty_pct))
-    duty = int(pct * 1023 / 100) if pct > 0 else 0
-    p15 = _get_pwm(15); p16 = _get_pwm(16)
-    if duty == 0:
-        p15.duty(0); p16.duty(0)
-    elif fwd:
-        p15.duty(duty); p16.duty(0)
-    else:
-        p15.duty(0); p16.duty(duty)
+    _drive_motor(15, 16, duty_pct, fwd)
 
 def _raw_m2(duty_pct, fwd=True):
     """M2 Front-Right: GPIO 13, 14"""
-    pct = max(0.0, min(100.0, duty_pct))
-    duty = int(pct * 1023 / 100) if pct > 0 else 0
-    p13 = _get_pwm(13); p14 = _get_pwm(14)
-    if duty == 0:
-        p13.duty(0); p14.duty(0)
-    elif fwd:
-        p13.duty(duty); p14.duty(0)
-    else:
-        p13.duty(0); p14.duty(duty)
+    _drive_motor(13, 14, duty_pct, fwd)
 
 def _raw_m3(duty_pct, fwd=True):
     """M3 Rear-Left: GPIO 11, 12"""
-    pct = max(0.0, min(100.0, duty_pct))
-    duty = int(pct * 1023 / 100) if pct > 0 else 0
-    p11 = _get_pwm(11); p12 = _get_pwm(12)
-    if duty == 0:
-        p11.duty(0); p12.duty(0)
-    elif fwd:
-        p11.duty(duty); p12.duty(0)
-    else:
-        p11.duty(0); p12.duty(duty)
+    _drive_motor(11, 12, duty_pct, fwd)
 
 def _raw_m4(duty_pct, fwd=True):
     """M4 Rear-Right: GPIO 9, 10"""
-    pct = max(0.0, min(100.0, duty_pct))
-    duty = int(pct * 1023 / 100) if pct > 0 else 0
-    p9 = _get_pwm(9); p10 = _get_pwm(10)
-    if duty == 0:
-        p9.duty(0); p10.duty(0)
-    elif fwd:
-        p9.duty(duty); p10.duty(0)
-    else:
-        p9.duty(0); p10.duty(duty)
+    _drive_motor(9, 10, duty_pct, fwd)
 
 class Titan4WDEngine:
     """
@@ -169,7 +153,7 @@ class Titan4WDEngine:
         self.m2 = 0.0  # Front-Right (%)
         self.m3 = 0.0  # Rear-Left (%)
         self.m4 = 0.0  # Rear-Right (%)
-        self.slew_step = 4.0
+        self.slew_step = 6.0
 
     def set_targets(self, m1_t, m2_t, m3_t, m4_t, max_step=None):
         step = max_step if max_step is not None else self.slew_step
@@ -215,18 +199,21 @@ motors = Titan4WDEngine()
 class MPU6050:
     """
     MPU6050 IMU Driver (I2C Addr: 0x68) on SDA: GPIO 7, SCL: GPIO 8.
-    Calculates dynamic pitch (slope climb/descent) and roll angles.
+    Calculates stable pitch (slope climb/descent) and roll angles using
+    vibration-filtered gravity vectors without gyro integration runaway.
     """
     ADDR = 0x68
     def __init__(self, i2c):
         self.i2c = i2c
         self.connected = False
+        self.pitch_raw = 0.0
+        self.roll_raw = 0.0
         self.pitch = 0.0      # + Climbing uphill, - Downhill
         self.roll = 0.0       # + Right tilt, - Left tilt
         self.accel_z = 1.0
         self.pitch_offset = 0.0
         self.roll_offset = 0.0
-        self.last_ms = time.ticks_ms()
+        self.alpha = 0.15     # Low-pass filter smoothing coefficient
         self.init_sensor()
 
     def _w(self, reg, val):
@@ -250,21 +237,39 @@ class MPU6050:
             self.connected = False
 
     def calibrate_zero(self):
-        """Zero the horizon on flat ground."""
+        """Zero the horizon on flat ground by averaging 25 accelerometer samples."""
         p_acc, r_acc = 0.0, 0.0
-        for _ in range(15):
-            self.update()
-            p_acc += self.pitch + self.pitch_offset
-            r_acc += self.roll + self.roll_offset
+        samples = 25
+        valid_cnt = 0
+        for _ in range(samples):
+            try:
+                data = self._r(0x3B, 6)
+                if len(data) == 6:
+                    ax, ay, az = struct.unpack('>hhh', data)
+                    acc_x = ax / 8192.0
+                    acc_y = ay / 8192.0
+                    acc_z = az / 8192.0
+                    p = math.atan2(acc_x, math.sqrt(acc_y**2 + acc_z**2)) * 57.2958
+                    r = math.atan2(acc_y, math.sqrt(acc_x**2 + acc_z**2)) * 57.2958
+                    p_acc += p
+                    r_acc += r
+                    valid_cnt += 1
+            except Exception:
+                pass
             time.sleep_ms(15)
-        self.pitch_offset = p_acc / 15.0
-        self.roll_offset = r_acc / 15.0
-        beep(2400, 50)
-        beep(2800, 70)
+
+        if valid_cnt > 0:
+            self.pitch_offset = p_acc / valid_cnt
+            self.roll_offset = r_acc / valid_cnt
+            self.pitch_raw = self.pitch_offset
+            self.roll_raw = self.roll_offset
+            self.pitch = 0.0
+            self.roll = 0.0
         print(">>> [IMU] Zero Horizon Calibrated. Pitch Offset: {:.1f}°, Roll Offset: {:.1f}°".format(
             self.pitch_offset, self.roll_offset))
 
     def update(self):
+        """Read 6-axis accelerometer & gyroscope and compute smooth tilt angles."""
         try:
             data = self._r(0x3B, 14)
             if len(data) == 14:
@@ -272,23 +277,18 @@ class MPU6050:
                 accel_x = ax / 8192.0
                 accel_y = ay / 8192.0
                 self.accel_z = az / 8192.0
-                gyro_x = gx / 65.5
-                gyro_y = gy / 65.5
 
-                acc_p = math.atan2(-accel_x, math.sqrt(accel_y**2 + self.accel_z**2)) * 57.2958
-                acc_r = math.atan2(accel_y, self.accel_z) * 57.2958
+                # Compute instantaneous geometric tilt angles from gravity vector (symmetrical 3D)
+                acc_p = math.atan2(accel_x, math.sqrt(accel_y**2 + self.accel_z**2)) * 57.2958
+                acc_r = math.atan2(accel_y, math.sqrt(accel_x**2 + self.accel_z**2)) * 57.2958
 
-                now = time.ticks_ms()
-                dt = time.ticks_diff(now, self.last_ms) / 1000.0
-                self.last_ms = now
-                if dt <= 0 or dt > 0.4: dt = 0.02
+                # Low-pass filter to reject motor chassis vibration & rough terrain noise
+                self.pitch_raw = self.pitch_raw * (1.0 - self.alpha) + acc_p * self.alpha
+                self.roll_raw = self.roll_raw * (1.0 - self.alpha) + acc_r * self.alpha
 
-                # 96% Gyro Integration + 4% Accelerometer Complementary Filter
-                raw_p = 0.96 * (self.pitch + gyro_y * dt) + 0.04 * acc_p
-                raw_r = 0.96 * (self.roll + gyro_x * dt) + 0.04 * acc_r
-
-                self.pitch = round(raw_p - self.pitch_offset, 1)
-                self.roll = round(raw_r - self.roll_offset, 1)
+                # Output zero-calibrated slope and tilt angles
+                self.pitch = round(self.pitch_raw - self.pitch_offset, 1)
+                self.roll = round(self.roll_raw - self.roll_offset, 1)
                 return True
         except Exception:
             pass
@@ -331,17 +331,19 @@ def read_ultrasonic_cm():
     return 250.0  # Clear path
 
 
-# ================= 5. LDR LIGHT SENSOR DRIVER =================
+# ================= 5. LDR LIGHT SENSOR DRIVER (INVERTED POLARITY) =================
 def read_ldr_percentage():
     """
     Read ambient light intensity from LDR (Port S1 / GPIO 2).
-    Returns 0.0% (Pitch Dark) to 100.0% (Bright Light).
+    Standard LDR voltage drops in bright light (raw -> 0) and rises in dark (raw -> 4095).
+    Inverted formula: ((4095 - raw) / 4095) * 100% -> High % = Bright Daylight, Low % = Darkness.
     """
     if ldr_adc is None:
-        return 60.0
+        return 75.0
     try:
         raw = ldr_adc.read()  # 0 to 4095
-        pct = (raw / 4095.0) * 100.0
+        # Inverted ADC scaling: Low raw voltage in light -> High light percentage
+        pct = ((4095.0 - raw) / 4095.0) * 100.0
         return round(max(0.0, min(100.0, pct)), 1)
     except Exception:
         return 50.0
@@ -357,23 +359,22 @@ class TerrainTrekEngine:
         # "ACTIVE_TREK" (Light detected, navigating)
         # "AVOID_REVERSE", "AVOID_TURN"
         self.state = "STANDBY"
-        self.crawl_active = False
         
         # LDR Light Activation Thresholds (with Hysteresis to prevent flickering)
-        self.LDR_WAKE_THRESHOLD = 32.0   # Light level to Wake Up and Move (%)
-        self.LDR_SLEEP_THRESHOLD = 24.0  # Dark level to enter Standby Mode (%)
+        self.LDR_WAKE_THRESHOLD = 30.0   # Light level to Wake Up and Move (%)
+        self.LDR_SLEEP_THRESHOLD = 20.0  # Dark level to enter Standby Mode (%)
 
-        # Speed Configurations (% Duty)
-        self.CRUISE_SPEED = 48.0   # Flat ground cruising speed
-        self.CRAWL_SPEED = 24.0    # High-torque slow crawling on steep hills
-        self.DESCENT_SPEED = 20.0  # Controlled downhill descent speed
-        self.TURN_SPEED = 35.0     # Pivot turn escape speed
-        self.REVERSE_SPEED = 30.0  # Reverse avoidance speed
+        # Exact Motor PWM Cycle Percentages (0 - 100%)
+        self.SPEED_FLAT = 80.0           # Flat MPU (Tilt < 8°) -> 70% PWM Duty
+        self.SPEED_SLIGHT_TILT = 55.0    # Slight tilt (8° <= Tilt < 20°) -> 55% PWM Duty
+        self.SPEED_STRONG_TILT = 30.0    # Strong tilt (20° <= Tilt < 60°) -> 30% PWM Duty
+        self.SPEED_TURN = 65.0           # Pivot turn obstacle escape speed
+        self.SPEED_REVERSE = 60.0        # Reverse avoidance speed
 
-        # Incline Angle Thresholds (Degrees)
-        self.SLOPE_CRAWL_INCLINE = 11.5   # Incline angle to activate crawl gear
-        self.DESCENT_DECLINE = -11.5      # Decline angle for engine descent braking
-        self.ROLLOVER_LIMIT = 38.0        # Emergency stop tilt angle
+        # Tilt Angle Boundaries (Degrees)
+        self.TILT_SLIGHT_THRESHOLD = 5.0   # Boundary for Slight Tilt
+        self.TILT_STRONG_THRESHOLD = 15.0  # Boundary for Strong Tilt / High-Torque Crawl
+        self.ROLLOVER_LIMIT = 45.0         # Critical rollover threshold (60°)
 
         # Avoidance State Machine
         self.avoid_start_ms = 0
@@ -392,14 +393,12 @@ class TerrainTrekEngine:
                 print(">>> [LDR TRIGGER] LIGHT DETECTED ({:.1f}%) -> WAKING UP!".format(ldr_pct))
                 print(">>> 4WD PROPULSION SYSTEM ENGAGED.")
                 print("=======================================================")
-                play_wake_sound()
                 return "WAKE"
 
         elif self.state in ["ACTIVE_TREK", "AVOID_REVERSE", "AVOID_TURN"]:
             if ldr_pct < self.LDR_SLEEP_THRESHOLD:
                 # DARK DETECTED -> ENTER STANDBY MODE
                 self.state = "STANDBY"
-                self.crawl_active = False
                 motors.emergency_brake()
                 led_grn.value(0)
                 led_red.value(0)
@@ -407,57 +406,54 @@ class TerrainTrekEngine:
                 print(">>> [LDR TRIGGER] DARK DETECTED ({:.1f}%) -> ENTERING STANDBY".format(ldr_pct))
                 print(">>> MOTORS SHUT DOWN. WAITING FOR LIGHT...")
                 print("=======================================================")
-                play_sleep_sound()
                 return "SLEEP"
 
         return "NO_CHANGE"
 
     def evaluate_slope(self):
-        """Analyze MPU6050 pitch angle and determine crawl gear."""
+        """
+        Analyze MPU6050 3D tilt angle and determine adaptive motor PWM cycle:
+          * Flat ground (Tilt < 8°): 70% PWM Cycle
+          * Slight tilt (8° <= Tilt < 20°): 55% PWM Cycle
+          * Strong tilt (Tilt >= 20°): 30% PWM Cycle
+          * Rollover (Tilt >= 60°): Emergency Brake (0% Duty)
+        """
         pitch = self.imu.pitch
-        roll = abs(self.imu.roll)
+        roll = self.imu.roll
+        tilt = math.sqrt(pitch * pitch + roll * roll)
 
-        # 1. Rollover Safety Check
-        if abs(pitch) > self.ROLLOVER_LIMIT or roll > self.ROLLOVER_LIMIT:
+        # 1. Rollover Safety Check (> 60°)
+        if abs(pitch) > self.ROLLOVER_LIMIT or abs(roll) > self.ROLLOVER_LIMIT or tilt > self.ROLLOVER_LIMIT:
             motors.emergency_brake()
             led_red.value(1)
             led_grn.value(0)
-            play_alarm()
-            return "ROLLOVER_LOCK"
+            return "ROLLOVER_LOCK", 0.0, tilt
 
-        # 2. Climbing Uphill -> Engage Crawl Gear
-        if pitch >= self.SLOPE_CRAWL_INCLINE:
-            if not self.crawl_active:
-                self.crawl_active = True
-                print(">>> [MPU6050] Steep Incline ({:+.1f}°) -> SHIFTING TO CRAWL MODE".format(pitch))
-                play_crawl_sound()
-            return "CRAWL_UPHILL"
+        # 2. Strong Tilt (Incline/Decline/Rock Crawl >= 20°) -> 30% PWM Duty
+        if tilt >= self.TILT_STRONG_THRESHOLD:
+            return "STRONG_TILT", self.SPEED_STRONG_TILT, tilt
 
-        # 3. Downhill Descent -> Engine Braking
-        elif pitch <= self.DESCENT_DECLINE:
-            self.crawl_active = False
-            return "DESCENT_DOWNHILL"
+        # 3. Slight Tilt (8° to 20°) -> 55% PWM Duty
+        elif tilt >= self.TILT_SLIGHT_THRESHOLD:
+            return "SLIGHT_TILT", self.SPEED_SLIGHT_TILT, tilt
 
-        # 4. Flat / Gentle Terrain
+        # 4. Flat / Level Ground (< 8°) -> 70% PWM Duty
         else:
-            if self.crawl_active:
-                print(">>> [MPU6050] Level Ground ({:+.1f}°) -> RESUMING CRUISE GEAR".format(pitch))
-                self.crawl_active = False
-            return "LEVEL_CRUISE"
+            return "FLAT_CRUISE", self.SPEED_FLAT, tilt
 
-    def execute_navigation(self, dist_cm, slope_mode):
-        """Execute 4WD obstacle avoidance and crawl drive."""
+    def execute_navigation(self, dist_cm, slope_mode, target_spd):
+        """Execute 4WD obstacle avoidance and tilt-adaptive motor drive."""
         now = time.ticks_ms()
 
-        # If in Standby Mode, ensure all 4 motors remain stationary
-        if self.state == "STANDBY":
+        # If in Standby Mode or Rollover Lock, stop all 4 motors
+        if self.state == "STANDBY" or slope_mode == "ROLLOVER_LOCK":
             motors.emergency_brake()
             return
 
         # Avoidance State 1: Reverse Backwards away from Obstacle
         if self.state == "AVOID_REVERSE":
             if time.ticks_diff(now, self.avoid_start_ms) < self.avoid_duration_ms:
-                motors.drive_skid(-self.REVERSE_SPEED, -self.REVERSE_SPEED * 0.85, max_step=6.0)
+                motors.drive_skid(-self.SPEED_REVERSE, -self.SPEED_REVERSE * 0.85, max_step=12.0)
                 led_red.value(1)
                 return
             else:
@@ -470,9 +466,9 @@ class TerrainTrekEngine:
         elif self.state == "AVOID_TURN":
             if time.ticks_diff(now, self.avoid_start_ms) < self.avoid_duration_ms:
                 if self.avoid_dir > 0:
-                    motors.drive_skid(self.TURN_SPEED, -self.TURN_SPEED, max_step=8.0)
+                    motors.drive_skid(self.SPEED_TURN, -self.SPEED_TURN, max_step=12.0)
                 else:
-                    motors.drive_skid(-self.TURN_SPEED, self.TURN_SPEED, max_step=8.0)
+                    motors.drive_skid(-self.SPEED_TURN, self.SPEED_TURN, max_step=12.0)
                 led_red.value(1)
                 return
             else:
@@ -484,10 +480,9 @@ class TerrainTrekEngine:
         if self.state == "ACTIVE_TREK":
             # --- Ultrasonic Obstacle Reaction ---
             if dist_cm < 18.0:
-                # DANGER ZONE (<18cm): Emergency stop, sound alarm, start avoidance
+                # DANGER ZONE (<18cm): Emergency stop, start avoidance
                 motors.emergency_brake()
                 print(">>> [OBSTACLE] Critical Danger! Distance: {:.1f}cm -> REVERSING".format(dist_cm))
-                play_alarm()
                 self.state = "AVOID_REVERSE"
                 self.avoid_start_ms = now
                 self.avoid_duration_ms = 550
@@ -496,26 +491,26 @@ class TerrainTrekEngine:
 
             elif dist_cm < 35.0:
                 # CAUTION ZONE (18-35cm): Decelerate and curved arc steer
-                speed = self.CRAWL_SPEED if self.crawl_active else (self.CRUISE_SPEED * 0.6)
-                motors.drive_skid(speed * 0.45, speed, max_step=3.0)
+                caution_spd = max(25.0, target_spd * 0.6)
+                motors.drive_skid(caution_spd * 0.4, caution_spd, max_step=6.0)
                 led_red.value(1)
                 return
 
             # --- Clear Path: Speed Regulated by MPU6050 Slope ---
             led_red.value(0)
-            if slope_mode == "CRAWL_UPHILL":
-                # Slow, high-torque crawl on hill
-                motors.drive_skid(self.CRAWL_SPEED, self.CRAWL_SPEED, max_step=2.5)
-                led_grn.value((now // 250) % 2)  # Blink green while climbing
+            if slope_mode == "STRONG_TILT":
+                # Strong Tilt: 30% PWM crawler duty
+                motors.drive_skid(target_spd, target_spd, max_step=6.0)
+                led_grn.value((now // 250) % 2)  # Blink green on steep climb
 
-            elif slope_mode == "DESCENT_DOWNHILL":
-                # Controlled low speed descent
-                motors.drive_skid(self.DESCENT_SPEED, self.DESCENT_SPEED, max_step=3.0)
+            elif slope_mode == "SLIGHT_TILT":
+                # Slight Tilt: 55% PWM duty
+                motors.drive_skid(target_spd, target_spd, max_step=8.0)
                 led_grn.value(1)
 
             else:
-                # Flat terrain standard cruising
-                motors.drive_skid(self.CRUISE_SPEED, self.CRUISE_SPEED, max_step=3.5)
+                # Flat Terrain: 70% PWM cruise duty
+                motors.drive_skid(target_spd, target_spd, max_step=10.0)
                 led_grn.value(1)
 
 
@@ -524,16 +519,16 @@ def main():
     print("\n=======================================================")
     print("LOF TITAN — TERRAIN TREK: LIGHT-ACTIVATED 4WD ROVER")
     print("-------------------------------------------------------")
-    print(" * MPU6050 (I2C: SDA 7, SCL 8) -> Slope & Incline Crawling")
+    print(" * MPU6050 (I2C: SDA 7, SCL 8) -> PWM: Flat 70% | Slight 55% | Strong 30%")
     print(" * Ultrasonic (Trig 6, Echo 19) -> Radar Collision Avoidance")
     print(" * LDR Sensor (Port S1 / GPIO 2) -> Light Wake / Dark Standby")
     print(" * 4WD Motors (M1:15,16 | M2:13,14 | M3:11,12 | M4:9,10)")
     print("=======================================================\n")
 
-    # Initial Power-on Chime
-    beep(1800, 50)
-    time.sleep_ms(30)
-    beep(2400, 70)
+    # Initial Power-on Visual LED Indication
+    led_grn.value(1); led_red.value(1)
+    time.sleep_ms(100)
+    led_grn.value(0); led_red.value(0)
 
     # Initialize I2C for MPU6050
     try:
@@ -596,11 +591,11 @@ def main():
         # 3. LDR Light Lifecycle (Wake on Light / Standby on Dark)
         trek.update_lifecycle(cached_ldr)
 
-        # 4. MPU6050 Slope Analysis (Flat / Crawl Uphill / Descent)
-        slope_mode = trek.evaluate_slope()
+        # 4. MPU6050 Slope Analysis (Flat: 70% | Slight: 55% | Strong: 30%)
+        slope_mode, target_spd, tilt_deg = trek.evaluate_slope()
 
         # 5. 4WD Autonomous Navigation & Obstacle Avoidance
-        trek.execute_navigation(cached_dist, slope_mode)
+        trek.execute_navigation(cached_dist, slope_mode, target_spd)
 
         # 6. Push Button Controls
         # BTN 1: Force Wake / Toggle Override
@@ -609,12 +604,12 @@ def main():
             if trek.state == "STANDBY":
                 trek.state = "ACTIVE_TREK"
                 print(">>> [BTN1] Manual Force WAKE Triggered.")
-                play_wake_sound()
+                led_grn.value(1)
             else:
                 trek.state = "STANDBY"
                 motors.emergency_brake()
                 print(">>> [BTN1] Manual Force STANDBY Triggered.")
-                play_sleep_sound()
+                led_grn.value(0)
             time.sleep_ms(60)
         last_b1 = b1
 
@@ -629,38 +624,50 @@ def main():
         # BTN 3: Adjust LDR Sensitivity
         b3 = btn3.value()
         if b3 == 0 and last_b3 == 1:
-            if trek.LDR_WAKE_THRESHOLD == 32.0:
-                trek.LDR_WAKE_THRESHOLD = 55.0
-                trek.LDR_SLEEP_THRESHOLD = 45.0
-                print(">>> [BTN3] LDR Sensitivity: HIGH LIGHT REQUIRED (Wake > 55%)")
+            if trek.LDR_WAKE_THRESHOLD == 30.0:
+                trek.LDR_WAKE_THRESHOLD = 50.0
+                trek.LDR_SLEEP_THRESHOLD = 40.0
+                print(">>> [BTN3] LDR Sensitivity: HIGH LIGHT REQUIRED (Wake > 50%)")
             else:
-                trek.LDR_WAKE_THRESHOLD = 32.0
-                trek.LDR_SLEEP_THRESHOLD = 24.0
-                print(">>> [BTN3] LDR Sensitivity: NORMAL SENSITIVITY (Wake > 32%)")
-            beep(2200, 40)
+                trek.LDR_WAKE_THRESHOLD = 30.0
+                trek.LDR_SLEEP_THRESHOLD = 20.0
+                print(">>> [BTN3] LDR Sensitivity: NORMAL SENSITIVITY (Wake > 30%)")
+            led_grn.value(1)
+            time.sleep_ms(40)
+            led_grn.value(0)
             time.sleep_ms(60)
         last_b3 = b3
 
-        # BTN 4: Test Horn
+        # BTN 4: Diagnostic LED Test
         b4 = btn4.value()
         if b4 == 0 and last_b4 == 1:
-            beep(2800, 100)
+            led_red.value(1); led_grn.value(1)
+            time.sleep_ms(100)
+            led_red.value(0); led_grn.value(0)
             time.sleep_ms(60)
         last_b4 = b4
 
-        # 7. Real-Time Serial Telemetry Debug Printing (~5Hz)
+        # 7. Real-Time Serial Telemetry Debug Printing & JSON Stream (~5Hz)
         if time.ticks_diff(now, last_debug_ms) > 200:
             m1, m2, m3, m4 = motors.m1, motors.m2, motors.m3, motors.m4
             
+            # Formatted Serial Output
             if trek.state == "STANDBY":
-                print("[STANDBY] Light: {:4.1f}% (DARK < {:2.0f}%) | Pitch: {:+5.1f}° | Dist: {:3.0f}cm | Motors: [OFF]".format(
-                    cached_ldr, trek.LDR_SLEEP_THRESHOLD, imu.pitch, cached_dist
+                print("[STANDBY] Light: {:4.1f}% (DARK < {:2.0f}%) | Tilt: {:4.1f}° | Dist: {:3.0f}cm | Motors: [OFF]".format(
+                    cached_ldr, trek.LDR_SLEEP_THRESHOLD, tilt_deg, cached_dist
                 ))
             else:
-                gear_tag = "[CRAWL]" if trek.crawl_active else ("[DESCENT]" if slope_mode == "DESCENT_DOWNHILL" else "[CRUISE]")
-                print("[ACTIVE] LDR:{:4.1f}% | Incline:{:+5.1f}° {:8s} | Radar:{:3.0f}cm | 4WD:[FL:{:+3.0f}% FR:{:+3.0f}% RL:{:+3.0f}% RR:{:+3.0f}%]".format(
-                    cached_ldr, imu.pitch, gear_tag, cached_dist, m1, m2, m3, m4
+                gear_tag = "[ROLLOVER]" if slope_mode == "ROLLOVER_LOCK" else (
+                    "[STRONG(30%)]" if slope_mode == "STRONG_TILT" else (
+                        "[SLIGHT(55%)]" if slope_mode == "SLIGHT_TILT" else "[FLAT(70%)]"
+                    )
+                )
+                print("[ACTIVE] LDR:{:4.1f}% | Tilt:{:4.1f}° (P:{:+4.1f}° R:{:+4.1f}°) {:14s} | Radar:{:3.0f}cm | 4WD:[FL:{:3.0f}% FR:{:3.0f}% RL:{:3.0f}% RR:{:3.0f}%]".format(
+                    cached_ldr, tilt_deg, imu.pitch, imu.roll, gear_tag, cached_dist, m1, m2, m3, m4
                 ))
+            
+            # Compact JSON Telemetry Stream for Web Dashboard UI
+            print("TLM:{" + f'"ldr":{cached_ldr:.1f},"pitch":{imu.pitch:.1f},"roll":{imu.roll:.1f},"tilt":{tilt_deg:.1f},"dist":{cached_dist:.1f},"state":"{trek.state}","mode":"{slope_mode}","spd":{int(target_spd)},"m1":{int(m1)},"m2":{int(m2)},"m3":{int(m3)},"m4":{int(m4)}' + "}")
             last_debug_ms = now
 
         # CPU Safety Yield (prevents task watchdog reset)

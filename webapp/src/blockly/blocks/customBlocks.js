@@ -2029,13 +2029,13 @@ export function registerCustomBlocks() {
     }
   };
 
-  // ================= GY-53 / VL53L0X LASER TOF DISTANCE SENSOR =================
+  // ================= GY-53 / VL53L1X & VL53L0X LASER TOF DISTANCE SENSOR =================
   Blockly.Blocks['titan_vl53l0x_init'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("🎯 Initialize Laser ToF Sensor (VL53L0X)")
+          .appendField("🎯 Initialize Laser ToF Sensor (VL53L1X / VL53L0X)")
           .appendField("Offset:")
-          .appendField(new Blockly.FieldNumber(-60, -1000, 1000), "OFFSET")
+          .appendField(new Blockly.FieldNumber(0, -1000, 1000), "OFFSET")
           .appendField(new Blockly.FieldDropdown([
             ["mm", "MM"],
             ["cm", "CM"]
@@ -2043,7 +2043,7 @@ export function registerCustomBlocks() {
       this.setPreviousStatement(true, null);
       this.setNextStatement(true, null);
       this.setStyle('machine_blocks');
-      this.setTooltip("Initialize VL53L0X laser sensor on I2C (GPIO 7, 8) with calibration offset (+/-)");
+      this.setTooltip("Initialize VL53L1X / VL53L0X laser sensor on I2C (GPIO 7, 8) with calibration offset (+/-)");
       this.setHelpUrl("");
     }
   };
@@ -2051,8 +2051,8 @@ export function registerCustomBlocks() {
   Blockly.Blocks['titan_vl53l0x_set_offset'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("🎯 Set Laser Distance Offset (VL53L0X) to")
-          .appendField(new Blockly.FieldNumber(-60, -1000, 1000), "OFFSET")
+          .appendField("🎯 Set Laser Distance Offset (VL53L1X) to")
+          .appendField(new Blockly.FieldNumber(0, -1000, 1000), "OFFSET")
           .appendField(new Blockly.FieldDropdown([
             ["mm", "MM"],
             ["cm", "CM"]
@@ -2068,7 +2068,7 @@ export function registerCustomBlocks() {
   Blockly.Blocks['titan_vl53l0x_read_distance'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("🎯 Laser Distance (VL53L0X) in")
+          .appendField("🎯 Laser Distance (VL53L1X / ToF) in")
           .appendField(new Blockly.FieldDropdown([
             ["cm", "CM"],
             ["mm", "MM"],
@@ -2077,7 +2077,7 @@ export function registerCustomBlocks() {
           ]), "UNIT");
       this.setOutput(true, "Number");
       this.setStyle('machine_blocks');
-      this.setTooltip("Measure distance using VL53L0X / GY-53 Laser Time-of-Flight ranging sensor (30mm to 2000mm)");
+      this.setTooltip("Measure distance using VL53L1X / VL53L0X Laser Time-of-Flight ranging sensor (up to 4000mm)");
       this.setHelpUrl("");
     }
   };
