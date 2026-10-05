@@ -188,7 +188,45 @@ export function registerPythonGenerators() {
   pythonGenerator.forBlock['titan_servo_angle'] = function(block) {
     const pin = block.getFieldValue('PIN');
     const angle = block.getFieldValue('ANGLE') || 90;
-    return `# Servo Port S${pin} (GPIO ${pin}) to ${angle} deg\n_get_pwm(${pin}, 50).duty(int(25 + (${angle} / 180.0) * 100))\n`;
+    return `_set_titan_servo(${pin}, ${angle})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_servo_set_angle_var'] = function(block) {
+    const pin = block.getFieldValue('PIN');
+    const angle = pythonGenerator.valueToCode(block, 'ANGLE', Order.NONE) || '90';
+    return `_set_titan_servo(${pin}, ${angle})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_servo_smooth_sweep'] = function(block) {
+    const pin = block.getFieldValue('PIN');
+    const startAngle = block.getFieldValue('START_ANGLE') || 0;
+    const endAngle = block.getFieldValue('END_ANGLE') || 180;
+    const delayMs = block.getFieldValue('DELAY_MS') || 15;
+    return `_sweep_titan_servo(${pin}, ${startAngle}, ${endAngle}, ${delayMs}, 1)\n`;
+  };
+
+  pythonGenerator.forBlock['titan_servo_continuous'] = function(block) {
+    const pin = block.getFieldValue('PIN');
+    const dir = block.getFieldValue('DIR') || 'FORWARD';
+    const speed = block.getFieldValue('SPEED') || 100;
+    return `_set_titan_continuous_servo(${pin}, '${dir}', ${speed})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_servo_detach'] = function(block) {
+    const pin = block.getFieldValue('PIN');
+    return `_detach_titan_servo(${pin})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_servo_pan_tilt'] = function(block) {
+    const pan = block.getFieldValue('PAN_ANGLE') || 90;
+    const tilt = block.getFieldValue('TILT_ANGLE') || 90;
+    return `# Pan & Tilt Servos (Pan S1 / GPIO 2, Tilt S2 / GPIO 1)\n_set_titan_servo(2, ${pan})\n_set_titan_servo(1, ${tilt})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_servo_map_sensor'] = function(block) {
+    const sensorPin = block.getFieldValue('SENSOR_PIN') || '2';
+    const servoPin = block.getFieldValue('SERVO_PIN') || '1';
+    return `_set_titan_servo(${servoPin}, int((ADC(Pin(${sensorPin}), atten=ADC.ATTN_11DB).read() / 4095.0) * 180))\n`;
   };
 
   // ================= 3. HARDWARE & SENSORS =================
@@ -2304,6 +2342,50 @@ def _mqtt_subscribe(topic):
         except Exception: pass
 `;
 
+const SERVO_DRIVER_CODE = `
+def _set_titan_servo(pin, angle):
+    angle = max(0.0, min(180.0, float(angle)))
+    us = 500.0 + (angle / 180.0) * 2000.0
+    pwm = _get_pwm(pin, freq=50)
+    try:
+        pwm.duty_ns(int(us * 1000))
+    except Exception:
+        try:
+            pwm.duty_u16(int((us / 20000.0) * 65535))
+        except Exception:
+            pwm.duty(int((us / 20000.0) * 1023))
+
+def _detach_titan_servo(pin):
+    if pin in _pwm_pool:
+        try:
+            _pwm_pool[pin].duty_u16(0)
+        except Exception:
+            try:
+                _pwm_pool[pin].duty(0)
+            except Exception:
+                pass
+
+def _sweep_titan_servo(pin, start_angle, end_angle, step_delay_ms=15, step_deg=1):
+    start = int(max(0, min(180, start_angle)))
+    end = int(max(0, min(180, end_angle)))
+    step = step_deg if end >= start else -step_deg
+    for a in range(start, end + (1 if step > 0 else -1), step):
+        _set_titan_servo(pin, a)
+        time.sleep_ms(int(step_delay_ms))
+
+def _set_titan_continuous_servo(pin, direction, speed_pct):
+    speed = max(0, min(100, float(speed_pct)))
+    if direction == 'STOP' or speed == 0:
+        _set_titan_servo(pin, 90)
+        _detach_titan_servo(pin)
+    elif direction == 'FORWARD' or direction == 'CW':
+        angle = 90 + (speed / 100.0) * 90
+        _set_titan_servo(pin, angle)
+    elif direction == 'BACKWARD' or direction == 'CCW':
+        angle = 90 - (speed / 100.0) * 90
+        _set_titan_servo(pin, angle)
+`;
+
 export function generateTitanWorkspaceCode(workspace) {
   if (!workspace) return '';
 
@@ -2346,7 +2428,11 @@ export function generateTitanWorkspaceCode(workspace) {
   const needsAmg = fullProgramContent.includes('_read_amg8833') || fullProgramContent.includes('_get_amg8833') || fullProgramContent.includes('_amg8833_oled_heatmap');
   const needsAs5600 = fullProgramContent.includes('_get_as5600') || fullProgramContent.includes('_read_as5600') || fullProgramContent.includes('_compare_as5600');
   const needsDfPlayer = fullProgramContent.includes('_TitanDFPlayer') || fullProgramContent.includes('_get_dfplayer');
-  const needsPwmPool = fullProgramContent.includes('_get_pwm(');
+  const needsServo = fullProgramContent.includes('_set_titan_servo') || 
+                     fullProgramContent.includes('_detach_titan_servo') || 
+                     fullProgramContent.includes('_sweep_titan_servo') || 
+                     fullProgramContent.includes('_set_titan_continuous_servo');
+  const needsPwmPool = fullProgramContent.includes('_get_pwm(') || needsServo;
 
   const needsI2C = needsOled || needsLcd || needsPulse || needsVl53l0x || needsMpu || needsQmc || needsAmg || needsAs5600 || fullProgramContent.includes('_get_shared_i2c');
 
@@ -2366,6 +2452,7 @@ export function generateTitanWorkspaceCode(workspace) {
   if (needsMpu) driverCode += MPU6050_DRIVER_CODE + '\n';
   if (needsQmc) driverCode += QMC5883L_DRIVER_CODE + '\n';
   if (needsAmg) driverCode += AMG8833_DRIVER_CODE + '\n';
+  if (needsServo) driverCode += SERVO_DRIVER_CODE + '\n';
   // 4. Build helper functions (PWM pool, etc.)
   let helperCode = '';
   if (needsPwmPool) {

@@ -49,6 +49,10 @@ export const toolboxDefinition = {
         { kind: "block", type: "titan_wait_for_button" },
         { kind: "block", type: "titan_motor_dual_drive" },
         { kind: "block", type: "titan_motor_control" },
+        { kind: "block", type: "titan_servo_angle" },
+        { kind: "block", type: "titan_servo_set_angle_var" },
+        { kind: "block", type: "titan_servo_smooth_sweep" },
+        { kind: "block", type: "titan_servo_pan_tilt" },
         { kind: "block", type: "titan_onboard_led" },
         { kind: "block", type: "titan_onboard_buzzer_tone" },
         { kind: "block", type: "titan_dfplayer_init" },
@@ -123,7 +127,7 @@ export const toolboxDefinition = {
     },
     {
       kind: "category",
-      name: "Motors",
+      name: "Motors & Servos",
       colour: "#a855f7",
       customId: "motors",
       contents: [
@@ -132,7 +136,13 @@ export const toolboxDefinition = {
         { kind: "block", type: "titan_motor_custom_pins" },
         { kind: "block", type: "titan_motor_dual_drive" },
         { kind: "block", type: "titan_motor_stop" },
-        { kind: "block", type: "titan_servo_angle" }
+        { kind: "block", type: "titan_servo_angle" },
+        { kind: "block", type: "titan_servo_set_angle_var" },
+        { kind: "block", type: "titan_servo_smooth_sweep" },
+        { kind: "block", type: "titan_servo_continuous" },
+        { kind: "block", type: "titan_servo_detach" },
+        { kind: "block", type: "titan_servo_pan_tilt" },
+        { kind: "block", type: "titan_servo_map_sensor" }
       ]
     },
     {

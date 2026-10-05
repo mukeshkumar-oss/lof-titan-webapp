@@ -874,6 +874,62 @@ export class TitanSimulatorEngine {
         break;
       }
 
+      case 'titan_servo_set_angle_var': {
+        const pin = parseInt(getFieldVal('PIN'), 10);
+        const angle = this._evalValueInput(block, 'ANGLE') ?? 90;
+        this.setServo(pin, Number(angle) || 0);
+        break;
+      }
+
+      case 'titan_servo_smooth_sweep': {
+        const pin = parseInt(getFieldVal('PIN'), 10);
+        const start = parseFloat(getFieldVal('START_ANGLE')) || 0;
+        const end = parseFloat(getFieldVal('END_ANGLE')) || 180;
+        const delayMs = parseFloat(getFieldVal('DELAY_MS')) || 15;
+        const step = end >= start ? 2 : -2;
+        for (let a = start; (step > 0 ? a <= end : a >= end); a += step) {
+          this.setServo(pin, a);
+          await this.delay(delayMs);
+        }
+        break;
+      }
+
+      case 'titan_servo_continuous': {
+        const pin = parseInt(getFieldVal('PIN'), 10);
+        const dir = getFieldVal('DIR');
+        const speed = parseFloat(getFieldVal('SPEED')) || 100;
+        if (dir === 'STOP' || speed === 0) {
+          this.setServo(pin, 90);
+        } else if (dir === 'FORWARD') {
+          this.setServo(pin, 90 + (speed / 100) * 90);
+        } else {
+          this.setServo(pin, 90 - (speed / 100) * 90);
+        }
+        break;
+      }
+
+      case 'titan_servo_detach': {
+        const pin = parseInt(getFieldVal('PIN'), 10);
+        break;
+      }
+
+      case 'titan_servo_pan_tilt': {
+        const pan = parseFloat(getFieldVal('PAN_ANGLE')) || 90;
+        const tilt = parseFloat(getFieldVal('TILT_ANGLE')) || 90;
+        this.setServo(2, pan);
+        this.setServo(1, tilt);
+        break;
+      }
+
+      case 'titan_servo_map_sensor': {
+        const sensorPin = parseInt(getFieldVal('SENSOR_PIN'), 10);
+        const servoPin = parseInt(getFieldVal('SERVO_PIN'), 10);
+        const rawVal = this.readAnalogSensor(sensorPin);
+        const mappedAngle = Math.round((rawVal / 4095) * 180);
+        this.setServo(servoPin, mappedAngle);
+        break;
+      }
+
       case 'titan_onboard_led': {
         const led = getFieldVal('LED');
         const state = getFieldVal('STATE');
@@ -1557,6 +1613,24 @@ export class TitanSimulatorEngine {
         if (typeof container === 'string' || Array.isArray(container)) return container.indexOf(item) === -1;
         return !(item in container);
       },
+      // Servo Motor Sandbox Functions
+      _set_titan_servo: (pin, angle) => self.setServo(pin, angle),
+      _detach_titan_servo: (pin) => {},
+      _sweep_titan_servo: async (pin, start, end, delayMs = 15, step = 1) => {
+        const s = Math.max(0, Math.min(180, Number(start) || 0));
+        const e = Math.max(0, Math.min(180, Number(end) || 180));
+        const dir = e >= s ? Math.abs(step || 1) : -Math.abs(step || 1);
+        for (let a = s; (dir > 0 ? a <= e : a >= e); a += dir) {
+          self.setServo(pin, a);
+          await self.delay(delayMs);
+        }
+      },
+      _set_titan_continuous_servo: (pin, dir, speed) => {
+        const spd = Math.max(0, Math.min(100, Number(speed) || 0));
+        if (dir === 'STOP' || spd === 0) self.setServo(pin, 90);
+        else if (dir === 'FORWARD' || dir === 'CW') self.setServo(pin, 90 + (spd / 100) * 90);
+        else self.setServo(pin, 90 - (spd / 100) * 90);
+      },
       checkYield: async () => await self.checkYield(),
       delay: async (ms) => await self.delay(ms),
     };
@@ -1650,6 +1724,7 @@ export class TitanSimulatorEngine {
         _TitanAMG8833, _get_amg8833, _amg_inst, _init_amg8833, _read_amg8833, _read_amg8833_pixel, _draw_amg8833_oled,
         _TitanAS5600, _get_as5600, _as5600_inst, _init_as5600, _read_as5600_angle, _read_as5600_rotations, _reset_as5600_zero, _read_as5600_magnet, _compare_as5600,
         _read_ds18b20, _get_ds18b20, onewire, ds18x20,
+        _set_titan_servo, _detach_titan_servo, _sweep_titan_servo, _set_titan_continuous_servo,
         getattr, 
         SoftI2C, I2C, UART,
         str, int, float, len, range, min, max, round, _in, _not_in, checkYield, delay,
@@ -1668,7 +1743,8 @@ export class TitanSimulatorEngine {
       '_get_as5600', '_get_ds18b20', '_read_ds18b20', '_get_shared_i2c', '_get_vl53l0x',
       '_read_dht', '_read_mq135', '_read_mpu6050', '_get_mpu6050', '_read_qmc5883l',
       '_read_amg8833', '_get_dfplayer', '_play_titan_melody', '_play_titan_sound_effect',
-      '_http_get', '_http_post', '_mqtt_connect', '_mqtt_publish', '_mqtt_subscribe'
+      '_http_get', '_http_post', '_mqtt_connect', '_mqtt_publish', '_mqtt_subscribe',
+      '_set_titan_servo', '_detach_titan_servo', '_sweep_titan_servo', '_set_titan_continuous_servo'
     ];
 
     for (let raw of rawLines) {

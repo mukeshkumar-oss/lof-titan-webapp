@@ -479,6 +479,20 @@ export function TitanSimulatorModal({ isOpen, onClose, workspace, pythonCode, so
                   </div>
 
                   <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+                    <h5 className="font-bold text-teal-700 mb-2 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-teal-500" />
+                      Servo Positions (S1 – S5)
+                    </h5>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-700">
+                      <div>S1 (GPIO 2): <span className="text-teal-700 font-bold">{state.servos?.[2] ?? 90}°</span></div>
+                      <div>S2 (GPIO 1): <span className="text-teal-700 font-bold">{state.servos?.[1] ?? 90}°</span></div>
+                      <div>S3 (GPIO 3): <span className="text-teal-700 font-bold">{state.servos?.[3] ?? 90}°</span></div>
+                      <div>S4 (GPIO 4): <span className="text-teal-700 font-bold">{state.servos?.[4] ?? 90}°</span></div>
+                      <div className="col-span-2">S5 (GPIO 5): <span className="text-teal-700 font-bold">{state.servos?.[5] ?? 90}°</span></div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
                     <h5 className="font-bold text-purple-700 mb-2 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-purple-500" />
                       Keypad Push Buttons

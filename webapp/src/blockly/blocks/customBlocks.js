@@ -285,6 +285,146 @@ export function registerCustomBlocks() {
     }
   };
 
+  Blockly.Blocks['titan_servo_set_angle_var'] = {
+    init: function() {
+      this.appendValueInput("ANGLE")
+          .setCheck("Number")
+          .appendField("Set Servo on Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "PIN")
+          .appendField("to angle");
+      this.appendDummyInput()
+          .appendField("° (0-180)");
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Set servo angle using a variable, sensor reading, or calculation (0-180°)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_servo_smooth_sweep'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Sweep Servo on Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "PIN")
+          .appendField("from")
+          .appendField(new Blockly.FieldNumber(0, 0, 180), "START_ANGLE")
+          .appendField("° to")
+          .appendField(new Blockly.FieldNumber(180, 0, 180), "END_ANGLE")
+          .appendField("° step delay")
+          .appendField(new Blockly.FieldNumber(15, 1, 1000), "DELAY_MS")
+          .appendField("ms");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Smoothly move servo from start angle to end angle with speed/delay control");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_servo_continuous'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("360° Continuous Servo on Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "PIN")
+          .appendField("rotate")
+          .appendField(new Blockly.FieldDropdown([
+            ["Forward (Clockwise)", "FORWARD"],
+            ["Backward (Counter-Clockwise)", "BACKWARD"],
+            ["Stop / Brake", "STOP"]
+          ]), "DIR")
+          .appendField("speed")
+          .appendField(new Blockly.FieldNumber(100, 0, 100), "SPEED")
+          .appendField("%");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Control 360-degree continuous rotation servo speed & direction");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_servo_detach'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Release / Detach Servo on Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "PIN");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Stop sending PWM pulses to servo to eliminate jitter and save power");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_servo_pan_tilt'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Pan & Tilt Servos — Pan (S1)")
+          .appendField(new Blockly.FieldNumber(90, 0, 180), "PAN_ANGLE")
+          .appendField("° , Tilt (S2)")
+          .appendField(new Blockly.FieldNumber(90, 0, 180), "TILT_ANGLE")
+          .appendField("°");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Simultaneously position Pan (Port S1 / GPIO 2) and Tilt (Port S2 / GPIO 1) gimbal servos");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_servo_map_sensor'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Map Sensor Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "SENSOR_PIN")
+          .appendField("to Servo on Port")
+          .appendField(new Blockly.FieldDropdown([
+            ["S1 (GPIO 2)", "2"],
+            ["S2 (GPIO 1)", "1"],
+            ["S3 (GPIO 3)", "3"],
+            ["S4 (GPIO 4)", "4"],
+            ["S5 (GPIO 5)", "5"]
+          ]), "SERVO_PIN");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Map 12-bit analog sensor value (0-4095) directly to servo angle (0-180°)");
+      this.setHelpUrl("");
+    }
+  };
+
   // ================= 3. HARDWARE & SENSORS (SEPARATE INTEGER VALUE PIECES) =================
   Blockly.Blocks['titan_sensor_read_analog'] = {
     init: function() {
