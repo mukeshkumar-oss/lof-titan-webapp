@@ -3,8 +3,27 @@ import { pythonGenerator, Order } from 'blockly/python';
 export function registerPythonGenerators() {
   // ================= 1. TITAN BASE / START BLOCK (SCRATCH FLAG EQUIVALENT) =================
   pythonGenerator.forBlock['titan_start'] = function(block) {
+    const ws = block.workspace;
+    let globalDecl = '';
+    if (ws && ws.getVariableMap) {
+      const allVars = ws.getVariableMap().getAllVariables();
+      if (allVars.length > 0) {
+        const names = allVars.map(v => pythonGenerator.getVariableName(v.getId())).filter(Boolean);
+        const uniqueNames = Array.from(new Set(names));
+        if (uniqueNames.length > 0) {
+          globalDecl = `  global ${uniqueNames.join(', ')}\n`;
+        }
+      }
+    }
     const branch = pythonGenerator.statementToCode(block, 'DO') || '    pass\n';
-    return `def main():\n${branch}\nif __name__ == '__main__':\n    main()\n`;
+    return `def main():\n${globalDecl}${branch}\nif __name__ == '__main__':\n    main()\n`;
+  };
+
+  // MicroPython-compatible math_change (avoids 'from numbers import Number' which does not exist in MicroPython)
+  pythonGenerator.forBlock['math_change'] = function(block) {
+    const argument0 = pythonGenerator.valueToCode(block, 'DELTA', Order.ADDITIVE) || '0';
+    const varName = pythonGenerator.getVariableName(block.getFieldValue('VAR'));
+    return `${varName} = (${varName} if isinstance(${varName}, (int, float)) else 0) + ${argument0}\n`;
   };
 
   pythonGenerator.forBlock['project_info'] = function(block) {
@@ -2389,11 +2408,14 @@ def _set_titan_continuous_servo(pin, direction, speed_pct):
 export function generateTitanWorkspaceCode(workspace) {
   if (!workspace) return '';
 
+  // 1. Initialize Python generator with workspace to set up name database (nameDB_) and variable mappings
+  pythonGenerator.init(workspace);
+
   const topBlocks = workspace.getTopBlocks(true);
   const titanStartBlock = topBlocks.find(b => b.type === 'titan_start');
   const projectInfoBlock = topBlocks.find(b => b.type === 'project_info');
 
-  // 1. Generate executable body code
+  // 2. Generate executable body code
   let bodyCode = '';
   if (titanStartBlock) {
     bodyCode = pythonGenerator.blockToCode(titanStartBlock);
@@ -2412,7 +2434,7 @@ export function generateTitanWorkspaceCode(workspace) {
 
   const fullProgramContent = procCode + '\n' + bodyCode;
 
-  // 2. Detect which peripheral drivers are actually referenced in the generated code
+  // 3. Detect which peripheral drivers are actually referenced in the generated code
   const needsOled = fullProgramContent.includes('_TitanOLED') || fullProgramContent.includes('oled.') || fullProgramContent.includes('_oled_global');
   const needsLcd = fullProgramContent.includes('_TitanLCD1602') || fullProgramContent.includes('lcd.') || fullProgramContent.includes('_lcd_global');
   const needsBuzzerMelody = fullProgramContent.includes('_play_titan_melody');
@@ -2436,7 +2458,7 @@ export function generateTitanWorkspaceCode(workspace) {
 
   const needsI2C = needsOled || needsLcd || needsPulse || needsVl53l0x || needsMpu || needsQmc || needsAmg || needsAs5600 || fullProgramContent.includes('_get_shared_i2c');
 
-  // 3. Assemble required driver code blocks
+  // 4. Assemble required driver code blocks
   let driverCode = '';
   if (needsI2C) driverCode += SHARED_I2C_DRIVER_CODE + '\n';
   if (needsOled) driverCode += OLED_DRIVER_CODE + '\n';
@@ -2453,7 +2475,8 @@ export function generateTitanWorkspaceCode(workspace) {
   if (needsQmc) driverCode += QMC5883L_DRIVER_CODE + '\n';
   if (needsAmg) driverCode += AMG8833_DRIVER_CODE + '\n';
   if (needsServo) driverCode += SERVO_DRIVER_CODE + '\n';
-  // 4. Build helper functions (PWM pool, etc.)
+
+  // 5. Build helper functions (PWM pool, etc.)
   let helperCode = '';
   if (needsPwmPool) {
     helperCode += `\n_pwm_pool = {}
@@ -2466,10 +2489,12 @@ def _get_pwm(pin, freq=1000):
     return _pwm_pool[pin]\n`;
   }
 
-  // 5. Combine all code to inspect required standard library imports
+  // 6. Combine all code to inspect required standard library imports
   const totalCode = driverCode + '\n' + helperCode + '\n' + fullProgramContent;
 
   const hasTime = /\btime\b/.test(totalCode) || totalCode.includes('sleep');
+  const hasMath = /\bmath\b/.test(totalCode) || Boolean(pythonGenerator.definitions_ && pythonGenerator.definitions_['import_math']);
+  const hasRandom = /\brandom\b/.test(totalCode) || Boolean(pythonGenerator.definitions_ && pythonGenerator.definitions_['import_random']);
   const hasPin = /\bPin\b/.test(totalCode) || needsPwmPool;
   const hasPwm = /\bPWM\b/.test(totalCode) || needsPwmPool;
   const hasAdc = /\bADC\b/.test(totalCode);
@@ -2480,7 +2505,7 @@ def _get_pwm(pin, freq=1000):
   const hasUart = /\bUART\b/.test(totalCode);
   const hasHw = /\bhw\b/.test(totalCode);
 
-  // 6. Build minimal, block-specific imports
+  // 7. Build minimal, block-specific imports
   const machineImports = [];
   if (hasPin || hasPwm || hasAdc || hasSoftI2C || hasI2CModule || hasSPIModule) machineImports.push('Pin');
   if (hasPwm) machineImports.push('PWM');
@@ -2495,6 +2520,12 @@ def _get_pwm(pin, freq=1000):
   if (hasTime) {
     importHeader += 'import time\n';
   }
+  if (hasMath) {
+    importHeader += 'import math\n';
+  }
+  if (hasRandom) {
+    importHeader += 'import random\n';
+  }
   if (machineImports.length > 0) {
     importHeader += `from machine import ${machineImports.join(', ')}\n`;
   }
@@ -2502,12 +2533,30 @@ def _get_pwm(pin, freq=1000):
     importHeader += 'from supervisor.led_buzzer import hw\n';
   }
 
-  // 7. Combine final project code
+  // 8. Global Variable Declarations (Top-level initialization)
+  let varDeclarations = '';
+  if (workspace.getVariableMap) {
+    const allVars = workspace.getVariableMap().getAllVariables();
+    if (allVars.length > 0) {
+      const names = allVars.map(v => pythonGenerator.getVariableName(v.getId())).filter(Boolean);
+      const uniqueNames = Array.from(new Set(names));
+      if (uniqueNames.length > 0) {
+        varDeclarations = '# Global Variables\n' + uniqueNames.map(name => `${name} = 0`).join('\n') + '\n';
+      }
+    }
+  } else if (pythonGenerator.definitions_ && pythonGenerator.definitions_.variables) {
+    varDeclarations = '# Global Variables\n' + pythonGenerator.definitions_.variables.replace(/=\s*None/g, '= 0').trim() + '\n';
+  }
+
+  // 9. Combine final project code
   let finalCode = '';
   if (projectInfoBlock) {
     finalCode += pythonGenerator.blockToCode(projectInfoBlock) + '\n';
   }
   finalCode += importHeader;
+  if (varDeclarations.trim()) {
+    finalCode += '\n' + varDeclarations.trim() + '\n';
+  }
   if (driverCode.trim()) {
     finalCode += '\n' + driverCode.trim() + '\n';
   }

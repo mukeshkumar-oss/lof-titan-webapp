@@ -576,10 +576,23 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
   const handleUploadToTitan = () => {
     if (onUploadCode) {
       if (workspaceRef.current) {
-        const freshCode = generateTitanWorkspaceCode(workspaceRef.current);
-        setPythonCode(freshCode);
-        onUploadCode(freshCode);
+        try {
+          const freshCode = generateTitanWorkspaceCode(workspaceRef.current);
+          setPythonCode(freshCode);
+          if (!device?.connected) {
+            alert("Please connect LOF TITAN first (via Bluetooth or USB Serial) before uploading code.");
+            return;
+          }
+          onUploadCode(freshCode);
+        } catch (err) {
+          console.error("Upload generation error:", err);
+          alert("Error generating code: " + err.message);
+        }
       } else {
+        if (!device?.connected) {
+          alert("Please connect LOF TITAN first (via Bluetooth or USB Serial) before uploading code.");
+          return;
+        }
         onUploadCode(pythonCode);
       }
     }
@@ -741,7 +754,17 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
 
             {/* Python Code Drawer Toggle */}
             <button 
-              onClick={() => setShowPythonDrawer(!showPythonDrawer)}
+              onClick={() => {
+                if (!showPythonDrawer && workspaceRef.current) {
+                  try {
+                    const generated = generateTitanWorkspaceCode(workspaceRef.current);
+                    setPythonCode(generated);
+                  } catch (e) {
+                    console.error("Code view generator error:", e);
+                  }
+                }
+                setShowPythonDrawer(!showPythonDrawer);
+              }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border shrink-0 ${
                 showPythonDrawer 
                   ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
@@ -757,8 +780,12 @@ export function BlocklyIDE({ isOpen, onClose, device, onUploadCode }) {
             <button 
               onClick={() => {
                 if (workspaceRef.current) {
-                  const generated = generateTitanWorkspaceCode(workspaceRef.current);
-                  setPythonCode(generated);
+                  try {
+                    const generated = generateTitanWorkspaceCode(workspaceRef.current);
+                    setPythonCode(generated);
+                  } catch (e) {
+                    console.error("Simulate code generation error:", e);
+                  }
                 }
                 setShowSimulator(true);
               }}
