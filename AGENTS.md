@@ -51,6 +51,7 @@ npm run dev
 | **8x8 IR Thermal Camera (AMG8833)** | `GPIO 7 (SDA), 8 (SCL)` | Grid-EYE 64-pixel thermal infrared matrix (Addr: `0x69`), range 0–80°C (0.25°C res) |
 | **Magnetic Rotary Encoder (AS5600)** | `GPIO 7 (SDA), 8 (SCL)` | 12-bit contactless magnetic rotary encoder (Addr: `0x36`), 0–360° angle, turns & RPM tracking |
 | **Laser ToF Distance Sensor (GY-53 / VL53L0X)** | `GPIO 7 (SDA), 8 (SCL)` | Time-of-Flight laser distance sensor (Addr: `0x29`), range 30–2000mm (0.03–2.0m) with mm accuracy |
+| **PCA9685 16-Channel Servo / PWM Driver** | `GPIO 7 (SDA), 8 (SCL)` | 16-channel 12-bit I2C servo controller (Addr: `0x40` default, 50Hz PWM), angles 0–180°, smooth sweeps, continuous servos |
 | **DFPlayer Mini MP3 Player** | `GPIO 17 (TX), 18 (RX)` | UART MP3 module (`UART(1, baudrate=9600, tx=17, rx=18)`), supports track selection, folder, volume, EQ, loop |
 | **UART Port** | `GPIO 17 (TX), 18 (RX)` | `UART(1, baudrate=115200, tx=17, rx=18)` |
 | **SPI Header & 2.42" OLED (SSD1309)** | `VCC, CS:38, MOSI:36, CLK:35, MISO/DC:37, GND` | 6-pin SPI Connector: `CS=38`, `MOSI=36`, `CLK/SCK=35`, `DC/MISO=37` |

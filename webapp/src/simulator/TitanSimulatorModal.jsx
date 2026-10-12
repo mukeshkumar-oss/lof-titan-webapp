@@ -492,6 +492,20 @@ export function TitanSimulatorModal({ isOpen, onClose, workspace, pythonCode, so
                     </div>
                   </div>
 
+                  {Object.keys(state.pcaServos || {}).length > 0 && (
+                    <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+                      <h5 className="font-bold text-indigo-700 mb-2 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                        PCA9685 I2C Servos (16-Ch)
+                      </h5>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-700">
+                        {Object.entries(state.pcaServos).map(([ch, angle]) => (
+                          <div key={ch}>Ch {ch}: <span className="text-indigo-700 font-bold">{angle}°</span></div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
                     <h5 className="font-bold text-purple-700 mb-2 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-purple-500" />

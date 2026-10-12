@@ -142,7 +142,15 @@ export const toolboxDefinition = {
         { kind: "block", type: "titan_servo_continuous" },
         { kind: "block", type: "titan_servo_detach" },
         { kind: "block", type: "titan_servo_pan_tilt" },
-        { kind: "block", type: "titan_servo_map_sensor" }
+        { kind: "block", type: "titan_servo_map_sensor" },
+        { kind: "block", type: "titan_pca9685_init" },
+        { kind: "block", type: "titan_pca9685_servo_angle" },
+        { kind: "block", type: "titan_pca9685_servo_set_angle_var" },
+        { kind: "block", type: "titan_pca9685_servo_smooth_sweep" },
+        { kind: "block", type: "titan_pca9685_servo_continuous" },
+        { kind: "block", type: "titan_pca9685_servo_detach" },
+        { kind: "block", type: "titan_pca9685_pan_tilt" },
+        { kind: "block", type: "titan_pca9685_set_pwm" }
       ]
     },
     {

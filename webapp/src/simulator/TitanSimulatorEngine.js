@@ -28,6 +28,7 @@ export class TitanSimulatorEngine {
         M6: { dir: 'STOP', speed: 0, pinA: 11, pinB: 12, dutyA: 0, dutyB: 0 },
       },
       servos: { 2: 90, 1: 90, 3: 90, 4: 90, 5: 90 },
+      pcaServos: {},
       leds: { led1: false, led2: false },
       buzzer: { active: false, freq: 0, tone: null },
       oled: {
@@ -144,6 +145,7 @@ export class TitanSimulatorEngine {
       ...this.state,
       motors: { ...this.state.motors },
       servos: { ...this.state.servos },
+      pcaServos: { ...this.state.pcaServos },
       leds: { ...this.state.leds },
       buzzer: { ...this.state.buzzer },
       oled: {
@@ -566,6 +568,12 @@ export class TitanSimulatorEngine {
     this._notify();
   }
 
+  setPCAServo(channel, angle) {
+    const a = Math.max(0, Math.min(180, Math.round(angle)));
+    this.state.pcaServos[channel] = a;
+    this._notify();
+  }
+
   setLed(ledKey, state) {
     const applyState = (curr, target) => {
       if (target === 'ON' || target === 1 || target === true) return true;
@@ -927,6 +935,82 @@ export class TitanSimulatorEngine {
         const rawVal = this.readAnalogSensor(sensorPin);
         const mappedAngle = Math.round((rawVal / 4095) * 180);
         this.setServo(servoPin, mappedAngle);
+        break;
+      }
+
+      case 'titan_pca9685_init': {
+        break;
+      }
+
+      case 'titan_pca9685_servo_angle': {
+        const ch = parseInt(getFieldVal('CHANNEL'), 10) || 0;
+        const angle = parseFloat(getFieldVal('ANGLE')) || 90;
+        this.setPCAServo(ch, angle);
+        break;
+      }
+
+      case 'titan_pca9685_servo_set_angle_var': {
+        const ch = parseInt(getFieldVal('CHANNEL'), 10) || 0;
+        const angle = this._evalValueInput(block, 'ANGLE') ?? 90;
+        this.setPCAServo(ch, Number(angle) || 0);
+        break;
+      }
+
+      case 'titan_pca9685_servo_smooth_sweep': {
+        const ch = parseInt(getFieldVal('CHANNEL'), 10) || 0;
+        const start = parseFloat(getFieldVal('START_ANGLE')) || 0;
+        const end = parseFloat(getFieldVal('END_ANGLE')) || 180;
+        const delayMs = parseFloat(getFieldVal('DELAY_MS')) || 15;
+        const step = end >= start ? 2 : -2;
+        for (let a = start; (step > 0 ? a <= end : a >= end); a += step) {
+          this.setPCAServo(ch, a);
+          await this.delay(delayMs);
+        }
+        break;
+      }
+
+      case 'titan_pca9685_servo_continuous': {
+        const ch = parseInt(getFieldVal('CHANNEL'), 10) || 0;
+        const dir = getFieldVal('DIR');
+        const speed = parseFloat(getFieldVal('SPEED')) || 100;
+        if (dir === 'STOP' || speed === 0) {
+          this.setPCAServo(ch, 90);
+        } else if (dir === 'FORWARD') {
+          this.setPCAServo(ch, 90 + (speed / 100) * 90);
+        } else {
+          this.setPCAServo(ch, 90 - (speed / 100) * 90);
+        }
+        break;
+      }
+
+      case 'titan_pca9685_servo_detach': {
+        const ch = getFieldVal('CHANNEL');
+        if (ch === 'ALL') {
+          for (let i = 0; i < 16; i++) {
+            if (this.state.pcaServos[i] !== undefined) delete this.state.pcaServos[i];
+          }
+        } else {
+          delete this.state.pcaServos[parseInt(ch, 10)];
+        }
+        this._notify();
+        break;
+      }
+
+      case 'titan_pca9685_pan_tilt': {
+        const panCh = parseInt(getFieldVal('PAN_CH'), 10) || 0;
+        const panAngle = parseFloat(getFieldVal('PAN_ANGLE')) || 90;
+        const tiltCh = parseInt(getFieldVal('TILT_CH'), 10) || 1;
+        const tiltAngle = parseFloat(getFieldVal('TILT_ANGLE')) || 90;
+        this.setPCAServo(panCh, panAngle);
+        this.setPCAServo(tiltCh, tiltAngle);
+        break;
+      }
+
+      case 'titan_pca9685_set_pwm': {
+        const ch = parseInt(getFieldVal('CHANNEL'), 10) || 0;
+        const duty = this._evalValueInput(block, 'DUTY') ?? 2048;
+        const angle = Math.round((Number(duty) / 4095) * 180);
+        this.setPCAServo(ch, angle);
         break;
       }
 
@@ -1631,6 +1715,34 @@ export class TitanSimulatorEngine {
         else if (dir === 'FORWARD' || dir === 'CW') self.setServo(pin, 90 + (spd / 100) * 90);
         else self.setServo(pin, 90 - (spd / 100) * 90);
       },
+
+      // PCA9685 16-Channel Servo Controller
+      _get_pca9685: (addr = 0x40) => ({
+        set_freq: () => {},
+        set_pwm: (ch, on, off) => self.setPCAServo(ch, Math.round((off / 4095) * 180)),
+        set_servo_angle: (ch, angle) => self.setPCAServo(ch, angle),
+        set_continuous_servo: (ch, dir, speed) => {
+          const spd = Math.max(0, Math.min(100, Number(speed) || 0));
+          if (dir === 'STOP' || spd === 0) self.setPCAServo(ch, 90);
+          else if (dir === 'FORWARD' || dir === 'CW') self.setPCAServo(ch, 90 + (spd / 100) * 90);
+          else self.setPCAServo(ch, 90 - (spd / 100) * 90);
+        },
+        detach: (ch) => {
+          delete self.state.pcaServos[ch];
+          self._notify();
+        },
+        detach_all: () => {
+          self.state.pcaServos = {};
+          self._notify();
+        },
+        sweep_servo: async (ch, start, end, delayMs = 15, step = 1) => {
+          const s = start <= end ? 2 : -2;
+          for (let a = start; (s > 0 ? a <= end : a >= end); a += s) {
+            self.setPCAServo(ch, a);
+            await self.delay(delayMs);
+          }
+        }
+      }),
       checkYield: async () => await self.checkYield(),
       delay: async (ms) => await self.delay(ms),
     };

@@ -248,6 +248,69 @@ export function registerPythonGenerators() {
     return `_set_titan_servo(${servoPin}, int((ADC(Pin(${sensorPin}), atten=ADC.ATTN_11DB).read() / 4095.0) * 180))\n`;
   };
 
+  // ================= 2B. PCA9685 16-CHANNEL I2C SERVO CONTROLLER =================
+  pythonGenerator.forBlock['titan_pca9685_init'] = function(block) {
+    const addr = block.getFieldValue('ADDR') || '0x40';
+    const freq = block.getFieldValue('FREQ') || 50;
+    return `_get_pca9685(${addr}).set_freq(${freq})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_pca9685_servo_angle'] = function(block) {
+    const ch = block.getFieldValue('CHANNEL') || '0';
+    const angle = block.getFieldValue('ANGLE') || 90;
+    const addr = block.getFieldValue('ADDR') || '0x40';
+    return `_get_pca9685(${addr}).set_servo_angle(${ch}, ${angle})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_pca9685_servo_set_angle_var'] = function(block) {
+    const ch = block.getFieldValue('CHANNEL') || '0';
+    const angle = pythonGenerator.valueToCode(block, 'ANGLE', Order.NONE) || '90';
+    const addr = block.getFieldValue('ADDR') || '0x40';
+    return `_get_pca9685(${addr}).set_servo_angle(${ch}, ${angle})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_pca9685_servo_smooth_sweep'] = function(block) {
+    const ch = block.getFieldValue('CHANNEL') || '0';
+    const startAngle = block.getFieldValue('START_ANGLE') || 0;
+    const endAngle = block.getFieldValue('END_ANGLE') || 180;
+    const delayMs = block.getFieldValue('DELAY_MS') || 15;
+    const addr = block.getFieldValue('ADDR') || '0x40';
+    return `_get_pca9685(${addr}).sweep_servo(${ch}, ${startAngle}, ${endAngle}, ${delayMs}, 1)\n`;
+  };
+
+  pythonGenerator.forBlock['titan_pca9685_servo_continuous'] = function(block) {
+    const ch = block.getFieldValue('CHANNEL') || '0';
+    const dir = block.getFieldValue('DIR') || 'FORWARD';
+    const speed = block.getFieldValue('SPEED') || 100;
+    const addr = block.getFieldValue('ADDR') || '0x40';
+    return `_get_pca9685(${addr}).set_continuous_servo(${ch}, '${dir}', ${speed})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_pca9685_servo_detach'] = function(block) {
+    const ch = block.getFieldValue('CHANNEL') || '0';
+    const addr = block.getFieldValue('ADDR') || '0x40';
+    if (ch === 'ALL') {
+      return `_get_pca9685(${addr}).detach_all()\n`;
+    }
+    return `_get_pca9685(${addr}).detach(${ch})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_pca9685_pan_tilt'] = function(block) {
+    const panCh = block.getFieldValue('PAN_CH') || '0';
+    const panAngle = block.getFieldValue('PAN_ANGLE') || 90;
+    const tiltCh = block.getFieldValue('TILT_CH') || '1';
+    const tiltAngle = block.getFieldValue('TILT_ANGLE') || 90;
+    const addr = block.getFieldValue('ADDR') || '0x40';
+    return `# PCA9685 Pan & Tilt Servos\n_get_pca9685(${addr}).set_servo_angle(${panCh}, ${panAngle})\n_get_pca9685(${addr}).set_servo_angle(${tiltCh}, ${tiltAngle})\n`;
+  };
+
+  pythonGenerator.forBlock['titan_pca9685_set_pwm'] = function(block) {
+    const ch = block.getFieldValue('CHANNEL') || '0';
+    const duty = pythonGenerator.valueToCode(block, 'DUTY', Order.NONE) || '2048';
+    const addr = block.getFieldValue('ADDR') || '0x40';
+    return `_get_pca9685(${addr}).set_pwm(${ch}, 0, int(${duty}))\n`;
+  };
+
   // ================= 3. HARDWARE & SENSORS =================
   pythonGenerator.forBlock['titan_sensor_read_analog'] = function(block) {
     const pin = block.getFieldValue('PIN');
@@ -2405,6 +2468,92 @@ def _set_titan_continuous_servo(pin, direction, speed_pct):
         _set_titan_servo(pin, angle)
 `;
 
+const PCA9685_DRIVER_CODE = `class _TitanPCA9685:
+    def __init__(self, i2c=None, addr=0x40, freq=50):
+        self.i2c = i2c or _get_shared_i2c()
+        self.addr = addr
+        self.freq = freq
+        self._init_device()
+
+    def _write(self, reg, val):
+        if self.i2c:
+            try: self.i2c.writeto_mem(self.addr, reg, bytearray([val]))
+            except Exception: pass
+
+    def _read(self, reg):
+        if self.i2c:
+            try: return self.i2c.readfrom_mem(self.addr, reg, 1)[0]
+            except Exception: return 0
+        return 0
+
+    def _init_device(self):
+        if not self.i2c: return
+        try:
+            self._write(0x00, 0x00)
+            self.set_freq(self.freq)
+            self._write(0x01, 0x04)
+        except Exception: pass
+
+    def set_freq(self, freq):
+        self.freq = freq
+        prescale = int(round(25000000.0 / (4096.0 * freq)) - 1)
+        prescale = max(3, min(255, prescale))
+        oldmode = self._read(0x00)
+        newmode = (oldmode & 0x7F) | 0x10
+        self._write(0x00, newmode)
+        self._write(0xFE, prescale)
+        self._write(0x00, oldmode)
+        time.sleep_ms(5)
+        self._write(0x00, oldmode | 0xA1)
+
+    def set_pwm(self, channel, on, off):
+        if not self.i2c or channel < 0 or channel > 15: return
+        reg = 0x06 + 4 * channel
+        data = bytearray([on & 0xFF, (on >> 8) & 0x0F, off & 0xFF, (off >> 8) & 0x0F])
+        try: self.i2c.writeto_mem(self.addr, reg, data)
+        except Exception: pass
+
+    def set_servo_angle(self, channel, angle, min_us=500, max_us=2500):
+        angle = max(0.0, min(180.0, float(angle)))
+        us = min_us + (angle / 180.0) * (max_us - min_us)
+        ticks = int((us / (1000000.0 / self.freq)) * 4096.0)
+        ticks = max(0, min(4095, ticks))
+        self.set_pwm(channel, 0, ticks)
+
+    def set_continuous_servo(self, channel, direction, speed_pct=100):
+        speed = max(0.0, min(100.0, float(speed_pct)))
+        if direction == 'STOP' or speed == 0:
+            self.set_servo_angle(channel, 90)
+            self.detach(channel)
+        elif direction in ('CW', 'FORWARD'):
+            angle = 90.0 + (speed / 100.0) * 90.0
+            self.set_servo_angle(channel, angle)
+        else:
+            angle = 90.0 - (speed / 100.0) * 90.0
+            self.set_servo_angle(channel, angle)
+
+    def detach(self, channel):
+        self.set_pwm(channel, 0, 0)
+
+    def detach_all(self):
+        for ch in range(16):
+            self.detach(ch)
+
+    def sweep_servo(self, channel, start_angle, end_angle, step_delay_ms=15, step_deg=1):
+        start = int(max(0, min(180, start_angle)))
+        end = int(max(0, min(180, end_angle)))
+        step = step_deg if end >= start else -step_deg
+        for a in range(start, end + (1 if step > 0 else -1), step):
+            self.set_servo_angle(channel, a)
+            time.sleep_ms(int(step_delay_ms))
+
+_pca9685_pool = {}
+def _get_pca9685(addr=0x40):
+    if addr not in _pca9685_pool:
+        _pca9685_pool[addr] = _TitanPCA9685(addr=addr)
+    return _pca9685_pool[addr]
+`;
+
 export function generateTitanWorkspaceCode(workspace) {
   if (!workspace) return '';
 
@@ -2450,13 +2599,14 @@ export function generateTitanWorkspaceCode(workspace) {
   const needsAmg = fullProgramContent.includes('_read_amg8833') || fullProgramContent.includes('_get_amg8833') || fullProgramContent.includes('_amg8833_oled_heatmap');
   const needsAs5600 = fullProgramContent.includes('_get_as5600') || fullProgramContent.includes('_read_as5600') || fullProgramContent.includes('_compare_as5600');
   const needsDfPlayer = fullProgramContent.includes('_TitanDFPlayer') || fullProgramContent.includes('_get_dfplayer');
+  const needsPca9685 = fullProgramContent.includes('_get_pca9685') || fullProgramContent.includes('_TitanPCA9685');
   const needsServo = fullProgramContent.includes('_set_titan_servo') || 
                      fullProgramContent.includes('_detach_titan_servo') || 
                      fullProgramContent.includes('_sweep_titan_servo') || 
                      fullProgramContent.includes('_set_titan_continuous_servo');
   const needsPwmPool = fullProgramContent.includes('_get_pwm(') || needsServo;
 
-  const needsI2C = needsOled || needsLcd || needsPulse || needsVl53l0x || needsMpu || needsQmc || needsAmg || needsAs5600 || fullProgramContent.includes('_get_shared_i2c');
+  const needsI2C = needsOled || needsLcd || needsPulse || needsVl53l0x || needsMpu || needsQmc || needsAmg || needsAs5600 || needsPca9685 || fullProgramContent.includes('_get_shared_i2c');
 
   // 4. Assemble required driver code blocks
   let driverCode = '';
@@ -2475,6 +2625,7 @@ export function generateTitanWorkspaceCode(workspace) {
   if (needsQmc) driverCode += QMC5883L_DRIVER_CODE + '\n';
   if (needsAmg) driverCode += AMG8833_DRIVER_CODE + '\n';
   if (needsServo) driverCode += SERVO_DRIVER_CODE + '\n';
+  if (needsPca9685) driverCode += PCA9685_DRIVER_CODE + '\n';
 
   // 5. Build helper functions (PWM pool, etc.)
   let helperCode = '';

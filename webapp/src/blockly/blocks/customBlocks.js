@@ -425,6 +425,180 @@ export function registerCustomBlocks() {
     }
   };
 
+  // ================= 2B. PCA9685 16-CHANNEL I2C SERVO CONTROLLER =================
+  const PCA9685_CHANNEL_OPTIONS = [
+    ["Channel 0", "0"],
+    ["Channel 1", "1"],
+    ["Channel 2", "2"],
+    ["Channel 3", "3"],
+    ["Channel 4", "4"],
+    ["Channel 5", "5"],
+    ["Channel 6", "6"],
+    ["Channel 7", "7"],
+    ["Channel 8", "8"],
+    ["Channel 9", "9"],
+    ["Channel 10", "10"],
+    ["Channel 11", "11"],
+    ["Channel 12", "12"],
+    ["Channel 13", "13"],
+    ["Channel 14", "14"],
+    ["Channel 15", "15"]
+  ];
+
+  const PCA9685_ADDR_OPTIONS = [
+    ["0x40 (Default)", "0x40"],
+    ["0x41", "0x41"],
+    ["0x42", "0x42"],
+    ["0x43", "0x43"],
+    ["0x44", "0x44"],
+    ["0x45", "0x45"],
+    ["0x46", "0x46"],
+    ["0x47", "0x47"]
+  ];
+
+  Blockly.Blocks['titan_pca9685_init'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("⚙️ PCA9685 Init (16-Ch Servo)")
+          .appendField("Addr")
+          .appendField(new Blockly.FieldDropdown(PCA9685_ADDR_OPTIONS), "ADDR")
+          .appendField("Freq")
+          .appendField(new Blockly.FieldNumber(50, 24, 1520), "FREQ")
+          .appendField("Hz");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Initialize PCA9685 16-Channel 12-bit PWM/Servo Driver over I2C (SDA: GPIO 7, SCL: GPIO 8, Default Addr: 0x40)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_pca9685_servo_angle'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("PCA9685 Servo")
+          .appendField(new Blockly.FieldDropdown(PCA9685_CHANNEL_OPTIONS), "CHANNEL")
+          .appendField("angle")
+          .appendField(new Blockly.FieldNumber(90, 0, 180), "ANGLE")
+          .appendField("°");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Set PCA9685 servo on specified channel (0-15) to target angle (0-180°)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_pca9685_servo_set_angle_var'] = {
+    init: function() {
+      this.appendValueInput("ANGLE")
+          .setCheck("Number")
+          .appendField("PCA9685 Servo")
+          .appendField(new Blockly.FieldDropdown(PCA9685_CHANNEL_OPTIONS), "CHANNEL")
+          .appendField("set angle");
+      this.appendDummyInput()
+          .appendField("° (0-180)");
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Set PCA9685 servo angle using a variable, sensor reading, or calculation (0-180°)");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_pca9685_servo_smooth_sweep'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("PCA9685 Sweep")
+          .appendField(new Blockly.FieldDropdown(PCA9685_CHANNEL_OPTIONS), "CHANNEL")
+          .appendField("from")
+          .appendField(new Blockly.FieldNumber(0, 0, 180), "START_ANGLE")
+          .appendField("° to")
+          .appendField(new Blockly.FieldNumber(180, 0, 180), "END_ANGLE")
+          .appendField("° delay")
+          .appendField(new Blockly.FieldNumber(15, 1, 1000), "DELAY_MS")
+          .appendField("ms");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Smoothly sweep servo on PCA9685 channel from start angle to end angle");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_pca9685_servo_continuous'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("PCA9685 360° Servo")
+          .appendField(new Blockly.FieldDropdown(PCA9685_CHANNEL_OPTIONS), "CHANNEL")
+          .appendField("rotate")
+          .appendField(new Blockly.FieldDropdown([
+            ["Forward (Clockwise)", "FORWARD"],
+            ["Backward (Counter-Clockwise)", "BACKWARD"],
+            ["Stop / Brake", "STOP"]
+          ]), "DIR")
+          .appendField("speed")
+          .appendField(new Blockly.FieldNumber(100, 0, 100), "SPEED")
+          .appendField("%");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Control 360-degree continuous rotation servo speed & direction on PCA9685 channel");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_pca9685_servo_detach'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("PCA9685 Release")
+          .appendField(new Blockly.FieldDropdown([
+            ...PCA9685_CHANNEL_OPTIONS,
+            ["All Channels (0-15)", "ALL"]
+          ]), "CHANNEL");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Turn off PWM signal on PCA9685 channel to release servo motor, stopping jitter and saving power");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_pca9685_pan_tilt'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("PCA9685 Pan & Tilt — Pan")
+          .appendField(new Blockly.FieldDropdown(PCA9685_CHANNEL_OPTIONS), "PAN_CH")
+          .appendField(new Blockly.FieldNumber(90, 0, 180), "PAN_ANGLE")
+          .appendField("° , Tilt")
+          .appendField(new Blockly.FieldDropdown(PCA9685_CHANNEL_OPTIONS), "TILT_CH")
+          .appendField(new Blockly.FieldNumber(90, 0, 180), "TILT_ANGLE")
+          .appendField("°");
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Simultaneously position Pan and Tilt gimbal servos on PCA9685");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['titan_pca9685_set_pwm'] = {
+    init: function() {
+      this.appendValueInput("DUTY")
+          .setCheck("Number")
+          .appendField("PCA9685")
+          .appendField(new Blockly.FieldDropdown(PCA9685_CHANNEL_OPTIONS), "CHANNEL")
+          .appendField("set PWM duty (0-4095)");
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('motor_blocks');
+      this.setTooltip("Set raw 12-bit PWM duty cycle (0-4095) on PCA9685 channel for servos, LEDs, or motor drivers");
+      this.setHelpUrl("");
+    }
+  };
+
   // ================= 3. HARDWARE & SENSORS (SEPARATE INTEGER VALUE PIECES) =================
   Blockly.Blocks['titan_sensor_read_analog'] = {
     init: function() {
