@@ -1,7 +1,7 @@
 # ==============================================================================
 # LOF TITAN — Intelligent Continuous-PID Magnetic Security Rover
 # Speed Range: 0% to 40% Full Dynamic Envelope
-# Real-Time Trajectory Control: Continuous Heading Lock (+/-2.5° Tolerance) Throughout 20s
+# Real-Time Trajectory Control: Continuous Heading Lock (+/-2.5° Tolerance) Throughout Patrol Legs
 # Intelligent Adaptive Pivot: Dynamic PWM & Frequency Auto-Tuning via Compass Feedback
 # Heat Intrusion Alarm: 27°C Threshold (AMG8833 8x8 IR Thermal Matrix)
 # Hardware: ESP32-S3 | Motors: M1 (15,16) & M2 (13,14) | I2C: SDA 7, SCL 8
@@ -21,6 +21,7 @@ from machine import Pin, PWM, SoftI2C
 # ================= GLOBAL CONFIGURATION =================
 MAX_SPEED_PCT = 40.0          # Maximum motor speed envelope (40%)
 ALARM_TEMP_THRESHOLD = 27.0   # Heat intrusion alarm threshold (°C)
+PATROL_DURATION_SEC = 8.0     # Active patrol leg duration per direction (seconds)
 
 # ================= 1. SINGLETON PWM MOTOR INTERFACE (0% - 40% RANGE) =================
 _pwm_pool = {}
@@ -342,7 +343,7 @@ HTML_PAGE = """<!DOCTYPE html>
 
     <div class="stats-bar">
       <div>Max Temp<div class="stat-num" id="maxTemp">-- °C</div></div>
-      <div>Time Left<div class="stat-num" id="timer">20.0s</div></div>
+      <div>Time Left<div class="stat-num" id="timer">8.0s</div></div>
       <div>Speed Range<div class="stat-num">0% - 40%</div></div>
     </div>
   </div>
@@ -429,7 +430,7 @@ def process_web_requests(s_sock, mission_state, refresh_sensors=True):
                     "cur_dir": compass.direction,
                     "tgt_angle": mission_state.get("target_angle", 0.0),
                     "tgt_dir": mission_state.get("target_dir", "NORTH"),
-                    "time_left": mission_state.get("time_left", 20.0),
+                    "time_left": mission_state.get("time_left", PATROL_DURATION_SEC),
                     "alarm": mission_state.get("alarm", False),
                     "pixels": thermal.pixels
                 })
@@ -587,9 +588,9 @@ def intelligent_align_to_heading(target_heading, tolerance=2.5, server_socket=No
             time.sleep_ms(40)
 
 
-def run_patrol_leg(target_heading, target_name, duration_sec=20.0, s_sock=None, mission_state=None):
+def run_patrol_leg(target_heading, target_name, duration_sec=PATROL_DURATION_SEC, s_sock=None, mission_state=None):
     """
-    Advances towards target_heading for 20 active seconds while CONTINUOUSLY
+    Advances towards target_heading for duration_sec active seconds while CONTINUOUSLY
     adjusting steering via PID so heading remains strictly within +/-2.5° throughout.
     """
     mission_state["target_angle"] = target_heading
@@ -604,7 +605,7 @@ def run_patrol_leg(target_heading, target_name, duration_sec=20.0, s_sock=None, 
     base_forward_speed = 32.0 # Cruise speed within 0% to 40% envelope
     set_motor_freq(1000)
 
-    print(f"\n[PATROL START] Advancing towards {target_name} ({target_heading}°) for {duration_sec}s with continuous PID lock (0-40%)...")
+    print(f"\n[PATROL START] Advancing towards {target_name} ({target_heading}°) for {duration_sec:.1f}s with continuous PID lock (0-40%)...")
 
     while elapsed_active_time < duration_sec:
         now = time.ticks_ms()
@@ -681,7 +682,7 @@ def run_patrol_leg(target_heading, target_name, duration_sec=20.0, s_sock=None, 
         time.sleep_ms(20)
 
     stop_smooth()
-    print(f"[PATROL LEG COMPLETE] Finished 20 seconds advancing {target_name}!")
+    print(f"[PATROL LEG COMPLETE] Finished {duration_sec:.1f} seconds advancing {target_name}!")
 
 
 # ================= 7. MAIN MISSION ENTRY =================
@@ -690,6 +691,7 @@ def main():
     print("🚀 LOF TITAN Continuous-PID Security Rover Ready")
     print(f"⚡ Speed Range: 0% to {MAX_SPEED_PCT:.0f}% | Heading Lock: +/-2.5°")
     print(f"🚨 Heat Intrusion Alarm: >{ALARM_TEMP_THRESHOLD:.0f}°C (AMG8833 Thermal)")
+    print(f"⏱️ Patrol Leg Time: {PATROL_DURATION_SEC:.1f}s per direction")
     print("🧭 Adaptive Pivot: Compass Feedback Stall & Freq Tuning")
     print("==================================================")
 
@@ -703,7 +705,7 @@ def main():
     mission_state = {
         "target_angle": 0.0,
         "target_dir": "NORTH",
-        "time_left": 20.0,
+        "time_left": PATROL_DURATION_SEC,
         "alarm": False
     }
 
@@ -712,14 +714,14 @@ def main():
 
     try:
         while True:
-            # 1. Patrol NORTH (0°) for 20 active seconds with continuous alignment
-            run_patrol_leg(target_heading=0.0, target_name="NORTH", duration_sec=20.0, s_sock=s_sock, mission_state=mission_state)
+            # 1. Patrol NORTH (0°) for configured active seconds with continuous alignment
+            run_patrol_leg(target_heading=0.0, target_name="NORTH", duration_sec=PATROL_DURATION_SEC, s_sock=s_sock, mission_state=mission_state)
             
             # 2. Pivot 180° to SOUTH (180°) with adaptive PWM & frequency
             intelligent_align_to_heading(target_heading=180.0, tolerance=2.5, server_socket=s_sock, mission_state=mission_state)
 
-            # 3. Patrol SOUTH (180°) for 20 active seconds with continuous alignment
-            run_patrol_leg(target_heading=180.0, target_name="SOUTH", duration_sec=20.0, s_sock=s_sock, mission_state=mission_state)
+            # 3. Patrol SOUTH (180°) for configured active seconds with continuous alignment
+            run_patrol_leg(target_heading=180.0, target_name="SOUTH", duration_sec=PATROL_DURATION_SEC, s_sock=s_sock, mission_state=mission_state)
 
             # 4. Pivot 180° back to NORTH (0°) with adaptive PWM & frequency
             intelligent_align_to_heading(target_heading=0.0, tolerance=2.5, server_socket=s_sock, mission_state=mission_state)
